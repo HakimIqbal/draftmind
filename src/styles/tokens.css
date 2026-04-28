@@ -1,0 +1,174 @@
+/* ============================================================
+   DraftMind Design Tokens
+   7 Tweaks Parameters: theme, font, density, accent, radius, copilotPosition, panelState
+   ============================================================ */
+
+/* --- Theme: Dark (default) --- */
+:root,
+[data-theme='dark'] {
+  --bg-canvas: #16130f;
+  --bg-surface: #1c1814;
+  --bg-elevated: #221e18;
+  --bg-rail: #110e0b;
+
+  --ink-primary: #f2efe8;
+  --ink-secondary: #b8b2a6;
+  --ink-tertiary: #7a7468;
+  --ink-quaternary: #4a4640;
+
+  --accent: #e8743c;
+  --accent-deep: #c2562a;
+
+  --amber-muted: #c68b3d;
+  --sage-muted: #6b8e5a;
+  --red-muted: #b85843;
+
+  --border-subtle: rgba(242, 239, 232, 0.06);
+  --border-default: rgba(242, 239, 232, 0.1);
+  --border-strong: rgba(242, 239, 232, 0.16);
+}
+
+/* --- Theme: Light --- */
+[data-theme='light'] {
+  --bg-canvas: #faf7f2;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-rail: #f0ebe3;
+
+  --ink-primary: #1a1a1a;
+  --ink-secondary: #52525b;
+  --ink-tertiary: #71717a;
+  --ink-quaternary: #d4d4d8;
+
+  --accent: #e8743c;
+  --accent-deep: #c2562a;
+
+  --amber-muted: #b8772e;
+  --sage-muted: #5c7e4d;
+  --red-muted: #a04835;
+
+  --border-subtle: rgba(26, 26, 26, 0.06);
+  --border-default: rgba(26, 26, 26, 0.1);
+  --border-strong: rgba(26, 26, 26, 0.16);
+}
+
+/* --- Accent Variants (Tweaks parameter 4) --- */
+[data-accent='ember'] {
+  --accent: #e8743c;
+  --accent-deep: #c2562a;
+}
+
+[data-accent='forest'] {
+  --accent: #4a8c5c;
+  --accent-deep: #3a7048;
+}
+
+[data-accent='deep-blue'] {
+  --accent: #4a7cb8;
+  --accent-deep: #3a6498;
+}
+
+[data-accent='plum'] {
+  --accent: #8b5c9e;
+  --accent-deep: #704a82;
+}
+
+[data-accent='charcoal'] {
+  --accent: #6b6b6b;
+  --accent-deep: #525252;
+}
+
+/* --- Density: Compact (default) --- */
+:root,
+[data-density='compact'] {
+  --row-height: 44px;
+  --card-padding: 16px;
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 12px;
+  --gap-lg: 16px;
+  --gap-xl: 24px;
+  --font-body-size: 14px;
+  --font-helper-size: 12px;
+}
+
+/* --- Density: Cozy --- */
+[data-density='cozy'] {
+  --row-height: 56px;
+  --card-padding: 24px;
+  --gap-xs: 8px;
+  --gap-sm: 12px;
+  --gap-md: 16px;
+  --gap-lg: 24px;
+  --gap-xl: 32px;
+  --font-body-size: 15px;
+  --font-helper-size: 13px;
+}
+
+/* --- Border Radius: Default --- */
+:root,
+[data-radius='default'] {
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+}
+
+/* --- Border Radius: Sharp --- */
+[data-radius='sharp'] {
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+}
+
+/* --- Border Radius: Rounded --- */
+[data-radius='rounded'] {
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* --- Font Pairing: Fraunces + Inter (default) --- */
+:root,
+[data-font='fraunces-inter'] {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+/* --- Font Pairing: Playfair + Inter --- */
+[data-font='playfair-inter'] {
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter Tight', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+/* --- Font Pairing: Sans Inter --- */
+[data-font='sans-inter'] {
+  --font-display: 'Inter Tight', sans-serif;
+  --font-body: 'Inter Tight', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+/* --- Font Pairing: Sans Geist --- */
+[data-font='sans-geist'] {
+  --font-display: 'Geist', 'Inter Tight', sans-serif;
+  --font-body: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+}
+
+/* --- Font Pairing: Sans IBM Plex --- */
+[data-font='sans-ibmplex'] {
+  --font-display: 'IBM Plex Sans', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+/* --- Font Pairing: DM Serif + DM Sans --- */
+[data-font='dmserif-dmsans'] {
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
+}

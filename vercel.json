@@ -1,0 +1,14 @@
+{
+  "buildCommand": "pnpm build",
+  "framework": "nextjs",
+  "regions": ["sin1"],
+  "functions": {
+    "src/app/api/prd/export/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "src/app/api/prd/generate/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}

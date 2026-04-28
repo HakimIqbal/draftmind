@@ -2,7 +2,24 @@
 
 **Think Less. Draft Smarter.**
 
-AI-powered Product Requirement Document generator for B2B internal product teams.
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Tiptap](https://img.shields.io/badge/Tiptap-2.6-6C2BD9)](https://tiptap.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+AI-powered Product Requirement Document generator for B2B internal product teams. DraftMind streamlines the entire PRD lifecycle — from generation to review, collaboration, and export.
+
+## Feature Highlights
+
+- **31 Artboards** — Full design system across onboarding, dashboard, editor, settings, and more
+- **6 AI Providers** — Anthropic, OpenAI, Gemini, Groq, Sumopod, GaNRouter via Vercel AI SDK
+- **6 Export Formats** — PDF, DOCX, Markdown, HTML, JSON, plain text
+- **Rich Editor** — Tiptap-based with slash menu, AI copilot, inline comments, and real-time collaboration (Yjs CRDT)
+- **AI Review** — Automated PRD quality analysis with scoring and improvement suggestions
+- **Workspace Management** — Multi-member workspaces with role-based access control
+- **Tweaks Panel** — Fine-tune AI generation parameters (temperature, model, tone, length)
 
 ## Tech Stack
 
@@ -16,7 +33,7 @@ AI-powered Product Requirement Document generator for B2B internal product teams
 - **State**: Zustand (client) + TanStack Query (server)
 - **Testing**: Vitest + Playwright
 
-## Quick Start (Local Development)
+## Quick Start
 
 ### Prerequisites
 
@@ -48,6 +65,13 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Demo Credentials
+
+| Email                  | Password      | Role   |
+| ---------------------- | ------------- | ------ |
+| `admin@draftmind.test` | `password123` | Admin  |
+| `user@draftmind.test`  | `password123` | Member |
+
 ### Available Scripts
 
 | Script            | Description                       |
@@ -71,16 +95,17 @@ Open [http://localhost:3000](http://localhost:3000).
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [PRD Schema](docs/PRD_SCHEMA.md)
 - [API Reference](docs/API.md)
+- [User Guide](docs/USER_GUIDE.md)
 
 ## Deployment
 
 DraftMind supports three deployment targets:
 
 1. **Local** — Supabase local + Next.js dev server
-2. **Vercel** — Serverless deployment (Singapore region)
+2. **Vercel** — Serverless deployment (Singapore region `sin1`)
 3. **VPS** — Docker container with optional bundled Postgres
 
-See [Deployment Guide](docs/DEPLOYMENT.md) for details.
+See [Deployment Guide](docs/DEPLOYMENT.md) for step-by-step instructions including migrations, seeding, OAuth redirect configuration, and SSL setup.
 
 ## License
 

@@ -1,3 +1,13 @@
+@import '../styles/fonts.css';
+@import '../styles/tokens.css';
+@import '../styles/editor.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  * {
+    border-color: var(--border-default);
+  }
+}
