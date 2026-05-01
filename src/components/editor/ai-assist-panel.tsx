@@ -165,11 +165,6 @@ export function AIAssistPanel({ selectedText, prdId, onInsert, onClose }: AIAssi
       </div>
 
       <Separator />
-
-      {/* Footer meta */}
-      <div className="px-4 py-3">
-        <span className="font-mono text-[11px] text-ink-tertiary">[mock] &middot; 0 credits</span>
-      </div>
     </div>
   );
 }

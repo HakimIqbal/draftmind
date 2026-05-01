@@ -135,7 +135,7 @@ export function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
   return (
-    <div className="mx-auto max-w-3xl px-lg py-lg">
+    <div>
       <h1 className="text-lg font-semibold text-ink-primary">Activity log</h1>
 
       <div className="mt-md flex items-center gap-xs border-b border-subtle">

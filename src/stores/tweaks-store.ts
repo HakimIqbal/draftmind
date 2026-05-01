@@ -31,7 +31,7 @@ interface TweaksActions {
 }
 
 const defaults: TweaksState = {
-  theme: 'dark',
+  theme: 'light',
   font: 'fraunces-inter',
   density: 'compact',
   accent: 'ember',

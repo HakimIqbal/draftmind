@@ -10,10 +10,10 @@ export default async function GeneratePrdPage({
 }) {
   const user = await requireUser();
   const workspace = await getCurrentWorkspace(user.id);
-  if (!workspace) redirect('/onboarding/step-3');
+  if (!workspace) redirect('/dashboard');
 
   const params = await searchParams;
-  const initialBrief = params.brief ? decodeURIComponent(params.brief) : '';
+  const initialBrief = params.brief ?? '';
 
   return (
     <div className="mx-auto max-w-3xl p-lg">

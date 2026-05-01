@@ -1,0 +1,103 @@
+# Landing Page Brief
+
+Desc:
+Spec for a marketing or product landing page: hero, value props, social proof, CTAs, and design direction. Hand this to an AI tool like v0, Cursor, or Lovable to generate a polished landing page.
+
+Instructions: Write this as a creative brief that could be handed directly to a designer or AI page builder. Be specific about copy — write actual headlines, not placeholders. Value propositions should be benefit-focused, not feature-focused. Social proof should feel authentic. Design direction should reference specific visual styles, color palettes, or reference sites rather than vague adjectives like 'modern' or 'clean.' The page should have a clear conversion narrative from top to bottom.
+
+Template                                          7 Sections 
+
+## Page Goal & Audience
+### Conversion Goal
+The single primary action you want visitors to take: sign up, buy, book a demo, join waitlist, download, etc.
+
+### Target Visitor
+- **Traffic source**: Where they come from (paid ad, organic search, Product Hunt, referral, social)
+- **Awareness level**: What they already know about you
+- **Key question**: The #1 thing on their mind when they land
+- **Primary objection**: What might stop them from converting
+
+This profile shapes every section below — the page should feel like a direct answer to this visitor.
+
+## Hero Section
+The first thing visitors see — it must answer three questions instantly: What is this? Who is it for? Why should I care?
+
+### Copy
+- **Headline**: 8 words or fewer, benefit-driven (not clever — clear)
+- **Subheadline**: 1-2 sentences expanding on the value proposition
+- **CTA button**: Exact button text (e.g., 'Start free trial' not 'Submit')
+
+### Visual
+- **Hero image/visual**: Product screenshot, demo video, illustration, or animation
+- **Layout**: Full-width, split (text left / visual right), centered, etc.
+- **Above the fold**: Everything visible before scrolling
+
+## Value Propositions
+3-4 key benefits written from the user's perspective — what they GET, not what the product HAS.
+
+### Format for Each
+- **Headline**: 5-8 words, benefit-focused
+- **Description**: 1-2 sentences explaining how the product delivers this benefit
+- **Visual**: Icon suggestion, illustration, or screenshot
+
+### Example
+- **Ship 10x faster** — AI handles the boilerplate so you focus on what makes your product unique. No more copy-pasting patterns between projects.
+
+Order from most compelling to least. Address the visitor's top concerns from the audience section above.
+
+## Social Proof
+What builds trust and credibility on this page. Be specific — vague praise doesn't convert.
+
+### Options (pick 2-4)
+- **Customer testimonials**: Real quotes with name, title, company, and photo
+- **Logo bar**: Companies/brands that use the product
+- **Usage stats**: '10,000+ teams,' '2M documents created,' etc.
+- **Press mentions**: 'Featured in TechCrunch, Product Hunt #1 of the day'
+- **Case study snippet**: 'Company X increased conversion by 40%'
+- **Awards/badges**: G2, Product Hunt, industry awards
+
+Order by persuasiveness. Lead with whatever is strongest.
+
+## Feature Showcase
+3-5 key features that demonstrate HOW the product delivers the value props above.
+
+### Format for Each
+- **Headline**: Benefit-oriented, not technical ('See changes in real time' not 'WebSocket integration')
+- **Description**: 2-3 sentences on how it works and why it matters
+- **Visual**: Screenshot, GIF, short video, or illustration
+- **Layout**: Alternating left/right, tabbed showcase, or interactive demo
+
+Order from most impressive to least. Each feature should build confidence that the product actually works.
+
+## CTA & Conversion
+### Primary CTA
+- **Button copy**: Exact text (action-oriented: 'Start building free' not 'Get started')
+- **Form fields**: Only what is absolutely required (email? name + email? just a button?)
+- **Placement**: After hero, after features, sticky footer, etc.
+
+### Secondary CTA
+- **For hesitant visitors**: 'Watch demo,' 'See pricing,' 'Talk to sales'
+
+### Trust Builders
+- Risk reducers: 'No credit card required,' '14-day free trial,' 'Cancel anytime'
+- Pricing preview: Show pricing or 'Free for up to X users'
+- Urgency (if authentic): 'Early access pricing,' 'Limited beta spots'
+
+## Design Direction
+### Visual Style
+- **Color palette**: Primary, secondary, accent (hex codes or descriptive: 'dark navy + electric blue accents')
+- **Typography**: Sans-serif modern, serif editorial, monospace tech, etc.
+- **Spacing**: Dense/information-rich vs. spacious/premium
+- **Vibe**: Minimal, playful, corporate, developer-focused, luxury, etc.
+
+### References
+List 1-3 existing sites whose visual style to emulate and what specifically to borrow from each.
+
+### Brand Assets
+- Logo, brand fonts, brand colors that must be used
+- Existing design system or component library
+
+### Responsive
+- Mobile-first or desktop-first
+- Key mobile adaptations (collapsed nav, stacked layout, etc.)
+- Animation and interaction preferences (subtle or expressive)

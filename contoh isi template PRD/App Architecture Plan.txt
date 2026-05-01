@@ -1,0 +1,132 @@
+# App Architecture Plan
+
+Desc:
+Plan your system architecture before you start building. Covers data model, API design, auth, integrations, and deployment — everything an AI coding agent needs to scaffold your app correctly from the start.
+
+Instructions: Write this as a technical blueprint that an AI coding assistant or engineer could use to scaffold the entire application. Be opinionated about technology choices — pick specific tools and explain why. Data models should list actual fields with types. API routes should specify methods, paths, and payloads. Auth should name the exact provider and flow. Keep it practical and buildable, not theoretical.
+
+Template Sections                                                     7 sections
+
+## System Overview
+What the app does in 2-3 sentences, who it is for, and the high-level architecture.
+
+### Architecture Pattern
+- **Type**: Monolith / Microservices / Serverless / Jamstack
+- **Key components**: Frontend, Backend API, Database, Background Jobs, External Services
+
+### System Diagram
+Describe how the major pieces connect: which services talk to which, what protocols they use (REST, GraphQL, WebSocket), and where data flows.
+
+## Data Model
+Define every core entity with its fields, types, and relationships.
+
+### Entity Format
+```
+User
+- id: uuid (PK)
+- email: text (unique)
+- name: text
+- role: enum (admin, member)
+- createdAt: timestamptz
+```
+
+### Relationships
+- **User → Project**: One-to-many (user has many projects)
+- **Project → Organization**: Many-to-one (project belongs to org)
+- **User ↔ Organization**: Many-to-many (via Membership join table)
+
+Note which fields are indexed and any unique constraints beyond primary keys.
+
+## API Design
+List every API route grouped by resource.
+
+### Format
+```
+METHOD /api/path
+Auth: required | public
+Body: { field: type, ... }
+Response: { field: type, ... }
+```
+
+### Example
+```
+POST /api/projects
+Auth: required
+Body: { name: string, description?: string }
+Response: { id, name, description, createdAt }
+
+GET /api/projects/:id
+Auth: required
+Response: { id, name, description, members: [...] }
+```
+
+Note rate limiting, pagination approach, and error response format.
+
+## Auth & Permissions
+### Authentication
+- **Provider**: e.g., Clerk, NextAuth, Supabase Auth
+- **Methods**: Magic link, OAuth (Google, GitHub), email/password
+- **Session handling**: JWT tokens, cookie sessions, etc.
+
+### Authorization
+- **Roles**: List each role and its capabilities
+- **Enforcement**: How auth is checked (middleware, per-route, RLS)
+- **Public routes**: Which pages/endpoints don't require auth
+
+### Multi-tenancy
+If applicable: how organizations/workspaces are scoped and how data isolation works.
+
+## Third-Party Services
+List every external service the app depends on.
+
+### Format
+For each service:
+- **Service**: What it does
+- **SDK/Library**: Which package to use
+- **Config**: Key environment variables and setup
+- **Failure handling**: What happens when this service is down
+
+### Common Services
+- **Payments**: Stripe, Lemon Squeezy, etc.
+- **Email**: Resend, SendGrid, Postmark
+- **File storage**: S3, Cloudflare R2, Uploadthing
+- **AI/ML**: OpenAI, Anthropic, Replicate
+- **Analytics**: PostHog, Mixpanel, Segment
+- **Monitoring**: Sentry, LogRocket
+
+## Frontend Architecture
+### Tech Choices
+- **Framework**: Next.js, Vite + React, SvelteKit, etc.
+- **Component library**: shadcn/ui, Radix, Material UI, etc.
+- **Styling**: Tailwind CSS, CSS Modules, styled-components
+- **State management**: React Query, Zustand, Redux, etc.
+
+### Page Structure
+List every page/route with its path and purpose:
+- `/` — Landing or dashboard
+- `/app` — Main application
+- `/settings` — User/org settings
+
+### Data Fetching Strategy
+- Server components vs. client components
+- Caching and revalidation approach
+- Global loading and error state handling
+
+## Infrastructure & Deployment
+### Hosting
+- **Frontend**: Vercel, Netlify, Cloudflare Pages, etc.
+- **Backend**: Same as frontend / Railway / Fly.io / AWS
+- **Database**: Neon, Supabase, PlanetScale, RDS
+
+### CI/CD Pipeline
+- Build and test steps
+- Preview deployments for PRs
+- Production deployment trigger (merge to main, manual, etc.)
+
+### Environments
+- **Development**: Local setup, seed data
+- **Staging**: Config and purpose
+- **Production**: Config, monitoring, alerts
+
+### Environment Variables
+List all required env vars by category (auth, database, services, feature flags). Note which are secret vs. public.

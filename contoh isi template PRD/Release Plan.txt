@@ -1,0 +1,134 @@
+# Release Plan
+
+Desc:
+A comprehensive guide for planning and executing a product release, covering all critical aspects from product overview to measurement and success criteria.
+
+Instructions: Write with enough specificity that any team member could execute the plan independently. Include concrete dates, owners, and dependencies. Be brutally clear about what is included vs. excluded from scope. Success criteria should be measurable from day one. The RACI matrix should cover every major workstream with no ambiguity.
+
+Template                                          7 Sections 
+
+## Product Overview
+What is being released, who it is for, and why it matters.
+
+### Summary
+- **Product/Feature**: [Name and brief description]
+- **Target audience**: [Who benefits from this release]
+- **Value proposition**: [Key benefit in one sentence]
+- **Strategic alignment**: How this release supports broader product/business goals
+
+### Release Type
+- Major release / Feature launch / Improvement / Hotfix
+- New product vs. update to existing
+
+## Release Objectives
+What this release aims to achieve — using SMART goals.
+
+### Primary Objectives
+For each objective:
+- **Goal**: [Specific, measurable outcome]
+- **Metric**: [How it will be measured]
+- **Target**: [Concrete number or threshold]
+- **Timeline**: [When we expect to see results]
+
+### Relevance
+How each objective ties to team KPIs and company strategy.
+
+### Achievability
+Assessment of feasibility given time and resources. Flag any objectives that are stretch goals.
+
+## Release Scope
+What is and isn't included in this release.
+
+### Included Features
+For each feature:
+- **Feature**: [Name] — [Brief description and purpose]
+- **Priority**: P0 / P1 / P2
+
+### Bug Fixes
+- [Bug description] — [Impact and urgency]
+
+### Excluded / Deferred
+- [Feature/fix] — Deferred because [reason]. Planned for [timeframe].
+
+### Non-Functional Requirements
+- **Performance**: [Targets — load time, throughput, etc.]
+- **Security**: [Requirements — auth, encryption, audit logging]
+- **Accessibility**: [WCAG level and specific requirements]
+
+### Dependencies & Limitations
+- External dependencies that could affect the release
+- Known limitations of the current release
+
+## Stakeholders & RACI
+Who is involved and what they are responsible for.
+
+### RACI Matrix
+| Activity | Responsible | Accountable | Consulted | Informed |
+|----------|-------------|-------------|-----------|----------|
+| Feature development | [Name/Team] | [Name] | [Names] | [Names] |
+| QA & testing | [Name/Team] | [Name] | [Names] | [Names] |
+| Go/no-go decision | [Name] | [Name] | [Names] | [Names] |
+| Marketing & comms | [Name/Team] | [Name] | [Names] | [Names] |
+| Customer support | [Name/Team] | [Name] | [Names] | [Names] |
+
+### External Stakeholders
+- Partners, vendors, or customers involved in the release
+- Their roles and communication plan
+
+## Release Timeline & Milestones
+The schedule from now to release and beyond.
+
+### Key Milestones
+| Milestone | Date | Owner | Status |
+|-----------|------|-------|--------|
+| Feature freeze | [Date] | [Name] | |
+| QA complete | [Date] | [Name] | |
+| Staging deploy | [Date] | [Name] | |
+| Go/no-go decision | [Date] | [Name] | |
+| Production deploy | [Date] | [Name] | |
+| Post-release review | [Date] | [Name] | |
+
+### Deploy Plan
+- **Strategy**: Big bang / Rolling / Canary / Feature flag
+- **Rollback trigger**: [What metric or condition triggers rollback]
+- **Rollback procedure**: [Steps to revert]
+
+## Risk Assessment
+What could go wrong and how to handle it.
+
+### Risk Matrix
+| Risk | Likelihood | Impact | Mitigation | Owner |
+|------|------------|--------|------------|-------|
+| [Risk 1] | Low/Med/High | Low/Med/High | [Plan] | [Name] |
+| [Risk 2] | Low/Med/High | Low/Med/High | [Plan] | [Name] |
+
+### Common Release Risks
+- Critical bug found in staging
+- External dependency not ready
+- Performance degradation under production load
+- Negative user feedback requiring rapid response
+
+### Go/No-Go Criteria
+Specific conditions that must be met for the release to proceed. Who makes the final call?
+
+## Measurement & Success Criteria
+How you will know the release was successful.
+
+### Day-1 Metrics
+- Error rate stays below [threshold]
+- Performance within [targets]
+- No P0 bugs reported
+
+### Week-1 Metrics
+- [Feature adoption metric]: [Target]
+- [User satisfaction metric]: [Target]
+- Support ticket volume: [Expected vs. threshold]
+
+### Month-1 Metrics
+- [Business outcome metric]: [Target]
+- [Retention/engagement metric]: [Target]
+
+### Review
+- When is the post-release review?
+- What format (metrics dashboard, team meeting, written report)?
+- How do learnings feed into the next release cycle?

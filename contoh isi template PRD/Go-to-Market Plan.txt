@@ -1,0 +1,124 @@
+# Go-to-Market Plan
+
+Desc:
+Strategic plan for launching the product, including marketing, sales, and operational activities.
+
+Instructions: Focus on actionable, time-bound activities with clear owners and success criteria. Pricing strategy should include competitive context and justification. Promotional plans should specify channels with expected outcomes. The overall plan should be executable by the team, not aspirational marketing fluff.
+
+Template Sections                                                     7 sections
+
+## Executive Summary
+The entire GTM strategy in one paragraph. A busy executive should be able to read this and know the plan.
+
+### Include
+- **What** you are launching
+- **Who** you are targeting
+- **When** you are launching
+- **How** you will reach them
+- **Goal** for the first 90 days (one key metric)
+
+## Market Analysis
+The landscape you are launching into.
+
+### Market Size
+- **TAM**: Total addressable market
+- **SAM**: Serviceable addressable market
+- **SOM**: Serviceable obtainable market (realistic near-term target)
+
+### Target Segments
+For each segment:
+- **Who they are**: Demographics, company size, role
+- **Why they buy**: Primary motivation and trigger event
+- **Where they are**: Channels, communities, publications they trust
+- **Current solution**: What they use today and why it's insufficient
+
+### Competitive Landscape
+Key competitors and your differentiation against each.
+
+## Product Positioning
+How the product will be perceived in the market.
+
+### Positioning Statement
+For [target customer] who [need/pain point], [product name] is a [category] that [key benefit]. Unlike [alternatives], it [key differentiator].
+
+### Messaging Hierarchy
+- **Primary message**: The one thing everyone should remember
+- **Supporting messages**: 3 proof points that back up the primary message
+- **Proof points**: Data, testimonials, or demos that make it believable
+
+### Tone & Voice
+How the product should feel in all communications: technical, approachable, premium, playful, etc.
+
+## Pricing Strategy
+How the product is priced and why.
+
+### Pricing Model
+- **Model type**: Freemium, free trial, subscription, usage-based, one-time, etc.
+- **Tiers**: What each tier includes and who it's for
+- **Price points**: Specific numbers with justification
+
+### Competitive Context
+- How your pricing compares to alternatives
+- Price anchoring strategy (positioned as premium, value, or disruptive)
+
+### Metrics
+- **Target conversion rate**: Free → paid
+- **Target ARPU**: Average revenue per user
+- **Expansion path**: How users upgrade over time
+
+## Promotional Plan
+How you will generate awareness and demand.
+
+### Launch Channels
+For each channel:
+- **Channel**: e.g., Product Hunt, Twitter/X, email, content marketing, paid ads
+- **Tactic**: Specific action (e.g., 'Launch on PH with 50 pre-committed upvoters')
+- **Timeline**: When this happens relative to launch
+- **Owner**: Who is responsible
+- **Budget**: Estimated spend (if any)
+
+### Content Plan
+- Launch blog post / announcement
+- Demo video or product walkthrough
+- Customer stories or case studies
+- Social media content calendar
+
+### PR & Partnerships
+- Press outreach targets
+- Partnership or co-marketing opportunities
+
+## Sales Strategy
+How the product will be sold.
+
+### Sales Motion
+- **Self-serve**: Users sign up and convert on their own
+- **Sales-assisted**: Inbound leads get a demo or call
+- **Outbound**: Proactive outreach to target accounts
+- **Hybrid**: Combination (describe the trigger for each)
+
+### Sales Enablement
+- One-pager or pitch deck
+- Demo script and environment
+- Objection handling guide
+- Competitive battlecard
+
+### Partner & Channel Sales
+Any indirect sales channels: resellers, integrations marketplace, agency partners.
+
+## Success Metrics
+How you will know the launch is working.
+
+### 30-Day Targets
+- **Awareness**: Website visits, signups, waitlist additions
+- **Activation**: Users who complete onboarding or key action
+- **Revenue**: MRR, deals closed, or conversion rate
+
+### 90-Day Targets
+- **Retention**: Day-30 and Day-60 retention rates
+- **Growth**: Month-over-month growth rate
+- **Satisfaction**: NPS, CSAT, or qualitative feedback themes
+
+### Tracking
+- Which tools are used (analytics, CRM, support)
+- Who reviews metrics and how often
+- What triggers a pivot or escalation if targets are missed

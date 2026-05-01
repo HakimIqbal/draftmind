@@ -1,0 +1,132 @@
+# Customer Journey Map
+
+Desc:
+A comprehensive template for mapping out and improving the customer journey, including customer personas, journey stages, opportunities for improvement, and an action plan.
+
+Instructions: Map the actual customer experience, not the idealized version. Include emotional states at each stage — frustration, confusion, delight. Touchpoints should be specific (e.g., "order confirmation email" not "communication"). Opportunities for improvement should connect directly to observed pain points with clear prioritization. Be honest about where the experience breaks down.
+
+Template Sections                                                     5 sections
+
+## Customer Persona
+A detailed profile of the primary customer whose journey you are mapping.
+
+### Demographics
+- Age, role, location, income level, company size
+
+### Behavior
+- Buying habits, brand preferences, digital behavior, tool usage
+
+### Needs & Goals
+- What they are trying to accomplish
+- What success looks like for them
+
+### Challenges
+- Pain points and frustrations they face daily
+- What prevents them from reaching their goals
+
+### Preferred Channels
+- How they prefer to communicate: email, chat, phone, self-serve
+- Where they spend time: social media, communities, publications
+
+## Journey Stages
+The customer's experience mapped across each stage of their relationship with your product.
+
+### Awareness
+- **Actions**: How they first discover your product
+- **Feelings**: Curiosity, skepticism, excitement
+- **Touchpoints**: Ads, content, word of mouth, social media
+- **Key question**: 'Is this relevant to me?'
+
+### Consideration
+- **Actions**: Comparing you against alternatives
+- **Feelings**: Evaluation, uncertainty, hope
+- **Touchpoints**: Website, demos, reviews, free trial
+- **Key question**: 'Is this better than what I have?'
+
+### Decision
+- **Actions**: Making the purchase/signup decision
+- **Feelings**: Confidence or hesitation
+- **Touchpoints**: Pricing page, sales call, checkout flow
+- **Key question**: 'Is this worth the investment?'
+
+### Onboarding & First Value
+- **Actions**: Setting up, learning, first success
+- **Feelings**: Excitement, confusion, accomplishment
+- **Touchpoints**: Onboarding flow, docs, support, email sequences
+- **Key question**: 'Can I get value quickly?'
+
+### Retention
+- **Actions**: Regular usage, deeper adoption
+- **Feelings**: Satisfaction, habit formation, or frustration
+- **Touchpoints**: Product UI, feature updates, support
+- **Key question**: 'Is this still worth it?'
+
+### Advocacy
+- **Actions**: Recommending to others, writing reviews
+- **Feelings**: Pride, loyalty, community belonging
+- **Touchpoints**: Referral programs, communities, social sharing
+- **Key question**: 'Am I proud to recommend this?'
+
+## Pain Points & Moments of Truth
+Specific points where the experience breaks down or delights.
+
+### Pain Points
+For each pain point:
+- **Stage**: Which journey stage
+- **Pain**: What goes wrong
+- **Severity**: Frustrating / Painful / Causes churn
+- **Frequency**: How often it occurs
+- **Evidence**: Data, quotes, or support tickets that prove this
+
+### Moments of Truth
+Critical interactions that disproportionately influence the customer's perception:
+- **First impression**: The initial experience that sets expectations
+- **Aha moment**: When the customer first realizes the value
+- **Recovery moment**: How you handle things when they go wrong
+
+These are the highest-leverage points to improve.
+
+## Opportunities for Improvement
+Gaps and possibilities identified from mapping the journey.
+
+### Unmet Needs
+- Needs the product doesn't address yet
+- Features competitors offer that you don't
+- Workarounds customers have built
+
+### Experience Gaps
+- Stages where the experience is weakest
+- Handoffs between channels that feel broken
+- Information customers need but can't easily find
+
+### Innovation Areas
+- Where introducing new features or processes could transform the experience
+- Technology-enabled improvements (AI, automation, personalization)
+- Areas where simplification would have outsized impact
+
+### Quick Wins
+- Low-effort, high-impact improvements that can ship fast
+
+## Action Plan
+Concrete initiatives to improve the journey, organized by priority.
+
+### Immediate (This Quarter)
+For each initiative:
+- **Initiative**: [Name]
+- **Journey stage**: [Which stage it improves]
+- **Expected impact**: [Which pain point it addresses and metric it moves]
+- **Owner**: [Who is responsible]
+- **Effort**: Small / Medium / Large
+
+### Near-Term (Next 2 Quarters)
+- Larger initiatives requiring design and engineering investment
+- Pilot programs to test before full rollout
+
+### Long-Term (6-12 Months)
+- Structural changes to the product or organization
+- Platform or infrastructure investments
+
+### Success Metrics
+- How you will measure whether the journey is actually improving
+- Baseline measurements to take now
+- Review cadence and accountability

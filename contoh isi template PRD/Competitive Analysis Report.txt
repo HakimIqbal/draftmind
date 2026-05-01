@@ -1,0 +1,112 @@
+# Competitive Analysis Report
+
+Desc:
+This template provides a comprehensive structure for analyzing and reporting on competitors, covering company background, product offerings, market positioning, and strategic insights.
+
+Instructions: Go beyond surface-level feature comparison. Include specific pricing, positioning gaps, and strategic differences. Be honest about your own product's weaknesses relative to competitors. Customer sentiment should come from real reviews and data sources. Every insight should connect to an actionable product or strategy recommendation.
+
+Template Sections                                                     5 sections
+
+## Company Profiles
+Background on each competitor being analyzed.
+
+### Format for Each Competitor
+**[Competitor Name]**
+- **Overview**: What they do, company size, funding stage, headquarters
+- **Founded**: Year and brief history
+- **Revenue/Funding**: Publicly available financial signals
+- **Key products**: Their main offerings and target market
+- **Leadership**: Notable executives and their background
+- **Recent moves**: Acquisitions, pivots, major launches in the last 12 months
+
+### Your Company (for comparison)
+Brief summary of your own positioning to anchor the analysis.
+
+## Product Comparison
+Feature-by-feature analysis against your product.
+
+### Feature Matrix
+| Feature | Your Product | Competitor A | Competitor B | Competitor C |
+|---------|-------------|-------------|-------------|-------------|
+| [Feature 1] | ✓ / ✗ / Partial | ✓ / ✗ / Partial | ✓ / ✗ / Partial | ✓ / ✗ / Partial |
+| [Feature 2] | ... | ... | ... | ... |
+
+### Deep Dives
+For the 3-5 most important features, compare in detail:
+- **Your approach**: How you do it
+- **Their approach**: How they do it
+- **User impact**: Which approach is better for users and why
+
+### Innovation & Technology
+- Unique capabilities each competitor has
+- Technology investments (AI/ML, platform, infrastructure)
+- R&D signals (hiring, patents, open source)
+
+## SWOT Analysis
+Strengths, weaknesses, opportunities, and threats for each competitor.
+
+### Format for Each Competitor
+**[Competitor Name]**
+
+| | Helpful | Harmful |
+|---|---------|--------|
+| **Internal** | **Strengths**: [List] | **Weaknesses**: [List] |
+| **External** | **Opportunities**: [List] | **Threats**: [List] |
+
+### Your SWOT (Honest Assessment)
+Apply the same framework to your own product — be candid about weaknesses.
+
+### Key Insights
+- Where competitors are strongest relative to you
+- Where you have clear advantages
+- Where the market has unmet needs that nobody serves well
+
+## Market Positioning & Pricing
+How competitors position themselves and price their products.
+
+### Positioning Map
+Describe where each competitor sits along key dimensions:
+- **Axis 1**: e.g., Simple ←→ Enterprise-grade
+- **Axis 2**: e.g., Affordable ←→ Premium
+
+### Brand Perception
+For each competitor:
+- How the market perceives them (trusted, innovative, cheap, complex)
+- Key messaging themes from their website and marketing
+- Customer sentiment from reviews (G2, Capterra, Reddit, Twitter)
+
+### Pricing Comparison
+| | Free Tier | Entry Price | Mid Tier | Enterprise |
+|---|-----------|-------------|----------|------------|
+| Your Product | [details] | [price] | [price] | [price] |
+| Competitor A | [details] | [price] | [price] | [price] |
+
+### Customer Acquisition
+- Primary channels each competitor uses (PLG, sales-led, partnerships)
+- Estimated marketing spend or presence
+- Retention strategies: loyalty programs, lock-in, switching costs
+
+## Strategic Insights
+Actionable conclusions that should inform your strategy.
+
+### Key Takeaways
+3-5 most important insights from the analysis:
+1. **Insight**: [Finding] → **Implication**: [What to do about it]
+2. **Insight**: [Finding] → **Implication**: [What to do about it]
+
+### Competitive Advantages to Protect
+- Your strongest differentiators that competitors would struggle to replicate
+- How to strengthen and communicate these advantages
+
+### Vulnerabilities to Address
+- Areas where competitors clearly outperform you
+- Specific actions to close the gap, with priority and timeline
+
+### Market Gaps
+- Unmet needs that no competitor serves well
+- Opportunity to differentiate or create a new category
+
+### Competitive Response Plan
+- How to respond if [Competitor A] launches [specific feature]
+- How to respond if [Competitor B] undercuts on price
+- Signals to monitor (job postings, funding, product updates)

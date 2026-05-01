@@ -5,13 +5,13 @@ import type { NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/home';
+  const next = searchParams.get('next') ?? '/auto';
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=missing_code', origin));
   }
 
-  const response = NextResponse.redirect(new URL(next, origin));
+  const cookiesToSet: { name: string; value: string; options?: object }[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,14 +21,8 @@ export async function GET(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(
-              name,
-              value,
-              options as Parameters<typeof response.cookies.set>[2],
-            ),
-          );
+        setAll(cookies: { name: string; value: string; options?: object }[]) {
+          cookiesToSet.push(...cookies);
         },
       },
     },
@@ -40,21 +34,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=auth_failed', origin));
   }
 
-  // Check if onboarding is completed
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Auto-detect: check if user is super admin
+  let redirectTo = next;
+  if (next === '/auto') {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', user.id)
+        .single();
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('onboarding_completed_at')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.onboarding_completed_at) {
-      return NextResponse.redirect(new URL('/onboarding/step-1', origin));
+      if (profileError || !profile) {
+        // Profile query failed — default to /home, middleware will handle re-check
+        redirectTo = '/dashboard';
+      } else {
+        redirectTo = profile.is_super_admin ? '/admin' : '/dashboard';
+      }
+    } else {
+      redirectTo = '/dashboard';
     }
+  }
+
+  const response = NextResponse.redirect(new URL(redirectTo, origin));
+  for (const { name, value, options } of cookiesToSet) {
+    response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2]);
   }
 
   return response;

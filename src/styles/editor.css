@@ -53,14 +53,25 @@
 }
 
 /* Lists */
-.tiptap-editor .ProseMirror ul,
+.tiptap-editor .ProseMirror ul {
+  padding-left: 24px;
+  margin-bottom: 12px;
+  list-style-type: disc;
+}
+
 .tiptap-editor .ProseMirror ol {
   padding-left: 24px;
   margin-bottom: 12px;
+  list-style-type: decimal;
 }
 
 .tiptap-editor .ProseMirror li {
   margin-bottom: 4px;
+  display: list-item;
+}
+
+.tiptap-editor .ProseMirror li p {
+  margin-bottom: 2px;
 }
 
 /* Blockquote */

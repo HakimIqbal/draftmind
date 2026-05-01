@@ -33,11 +33,12 @@ export async function addProvider(input: AddProviderInput) {
 
   const { error } = await supabase.from('providers').insert({
     workspace_id: input.workspaceId,
-    provider_type: input.providerType,
+    type: input.providerType,
     display_name: input.displayName,
     api_key_encrypted: encryptedKey,
     base_url: input.baseUrl ?? null,
-    model: input.model,
+    default_model: input.model,
+    available_models: [input.model],
     is_default: input.isDefault,
     status: 'active',
     created_by: user.id,

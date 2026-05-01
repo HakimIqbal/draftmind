@@ -1,0 +1,143 @@
+# Product Security Assessment
+
+Desc:
+A comprehensive guide to evaluate and enhance the security of a product, focusing on various aspects such as technical specifications, key features, and risk assessment.
+
+Instructions: Be specific to the product's actual architecture and tech stack — avoid generic security checklists. Prioritize risks by likelihood and impact, not just listing every possible threat. Include concrete remediation steps with estimated effort. The incident response plan should be actionable enough to follow during an actual security event.
+
+Template                                          6 Sections 
+
+## Product Overview
+Foundation for the security assessment — what is being assessed.
+
+### Product Description
+- Core functionality and target users
+- Distinguishing features that create unique security needs
+- Potential attack vectors specific to this product
+
+### Technical Architecture
+- Programming languages, frameworks, and key libraries
+- Infrastructure: cloud provider, hosting model (containers, serverless, VMs)
+- Network architecture: public endpoints, internal services, VPNs
+
+### Dependencies
+- Third-party services, APIs, and libraries
+- Known vulnerabilities in dependencies (check npm audit, Dependabot, etc.)
+- SLA and security posture of critical vendors
+
+### Deployment Environment
+- On-premises / Cloud / Hybrid
+- Environment isolation (prod, staging, dev)
+- Secrets management approach
+
+## Data Security
+How sensitive data is protected at rest, in transit, and in use.
+
+### Data Classification
+- **Critical**: Passwords, tokens, payment info, API keys
+- **Sensitive**: PII (email, name, phone), health data, financial records
+- **Internal**: Business logic, analytics, logs
+- **Public**: Marketing content, public API docs
+
+### Protection Measures
+- **Encryption at rest**: Database encryption, column-level encryption
+- **Encryption in transit**: TLS version and configuration
+- **Hashing**: Password hashing algorithm (bcrypt, argon2, scrypt)
+- **Tokenization**: Payment data or other sensitive fields
+- **Data integrity**: Checksums, audit trails, backup verification
+
+### Privacy & Compliance
+- GDPR, CCPA, HIPAA, SOC 2 applicability
+- Data retention policies and automated deletion
+- Right to deletion / data export process
+- Data processing agreements with vendors
+
+## Authentication & Authorization
+How users prove who they are and what they can access.
+
+### Authentication
+- **Methods**: Password, OAuth, SSO, magic link, MFA
+- **Session management**: Token type (JWT, session cookies), expiration, refresh
+- **Password policy**: Minimum length, complexity, breach checking
+- **Rate limiting**: Login attempts, account lockout policy
+
+### Authorization
+- **Model**: RBAC, ABAC, or custom
+- **Roles**: List each role and its permissions
+- **Enforcement**: Where access control is checked (middleware, API, database RLS)
+- **Principle of least privilege**: How it is applied
+
+### API Security
+- API key management and rotation
+- OAuth scopes and token permissions
+- Rate limiting and throttling per endpoint
+
+## Threat Analysis & Risk Assessment
+Identifying, evaluating, and prioritizing security risks.
+
+### Threat Model
+For each threat category:
+- **Threat**: [Description]
+- **Attack vector**: [How an attacker would exploit this]
+- **Likelihood**: Low / Medium / High
+- **Impact**: Low / Medium / High
+- **Current controls**: [What is already in place]
+
+### Common Threats to Assess
+- **Injection**: SQL injection, XSS, command injection
+- **Authentication bypass**: Broken auth, session hijacking
+- **Data exposure**: Sensitive data in logs, error messages, APIs
+- **Access control**: Privilege escalation, IDOR
+- **Supply chain**: Compromised dependencies, malicious packages
+- **Infrastructure**: Misconfigured cloud services, exposed ports
+
+### Risk Prioritization
+Rank risks by (likelihood × impact) to focus remediation efforts.
+
+## Security Controls & Monitoring
+Defensive measures and ongoing security operations.
+
+### Preventive Controls
+- Input validation and sanitization strategy
+- Content Security Policy (CSP) headers
+- CORS configuration
+- Dependency scanning (Snyk, npm audit, Dependabot)
+- Code review security checklist
+
+### Detective Controls
+- **Logging**: What security events are logged and where
+- **Monitoring**: Real-time alerting on suspicious activity
+- **Audit trails**: Who changed what, when, from where
+- **Vulnerability scanning**: Frequency and tools used
+
+### Security Testing
+- Static analysis (SAST): Tools and CI integration
+- Dynamic analysis (DAST): Penetration testing schedule
+- Bug bounty program: If applicable, scope and rewards
+
+## Incident Response & Business Continuity
+What happens when something goes wrong.
+
+### Incident Response Plan
+- **Detection**: How incidents are identified (alerts, reports, monitoring)
+- **Triage**: Severity classification (P0-P3) and response times
+- **Containment**: Immediate steps to limit damage
+- **Communication**: Who is notified, internal and external disclosure
+- **Recovery**: Steps to restore normal operations
+- **Post-mortem**: Root cause analysis and prevention
+
+### Contacts
+| Role | Person | Contact |
+|------|--------|--------|
+| Security lead | [Name] | [Email/phone] |
+| Engineering on-call | [Name] | [Pager] |
+| Legal/compliance | [Name] | [Email] |
+| Communications | [Name] | [Email] |
+
+### Business Continuity
+- **Backup strategy**: Frequency, retention, tested recovery time
+- **Disaster recovery**: RTO and RPO targets
+- **Failover**: Redundancy and auto-scaling configuration
+
+### Remediation Priorities
+Summary of the most critical vulnerabilities found in this assessment with remediation timelines and owners.

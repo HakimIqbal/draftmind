@@ -1,37 +1,31 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Chip } from '@/components/ui/chip';
-import { Avatar } from '@/components/ui/avatar';
-import { createClient } from '@/lib/supabase/client';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Inbox, Megaphone, X } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+} from '@/app/(app)/notifications/actions';
 
 interface Notification {
   id: string;
   type: string;
-  actor_name: string | null;
+  title: string;
+  body: string | null;
   action_url: string | null;
-  resource_title: string | null;
-  is_read: boolean;
+  read_at: string | null;
   created_at: string;
 }
 
-type TabKey = 'all' | 'mentions' | 'reviews';
+const ANNOUNCEMENT_TYPES = ['integration_event'];
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'mentions', label: 'Mentions' },
-  { key: 'reviews', label: 'Reviews' },
-];
-
-const VERB_MAP: Record<string, string> = {
-  mention: 'mentioned you in',
-  review_request: 'requested review on',
-  comment: 'commented on',
-  status_change: 'changed status of',
-  assignment: 'assigned you to',
-};
+function isAnnouncement(type: string) {
+  return ANNOUNCEMENT_TYPES.includes(type);
+}
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -47,133 +41,190 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
-interface NotificationsInboxProps {
-  userId: string;
-  workspaceId: string;
-}
+const TYPE_LABELS: Record<string, string> = {
+  mention: 'Mention',
+  review_request: 'Review',
+  approval_needed: 'Approval',
+  comment_reply: 'Comment',
+  ai_suggestion_ready: 'AI',
+  workspace_invite: 'Invite',
+  integration_event: 'Announcement',
+};
 
-export function NotificationsInbox({ userId, workspaceId }: NotificationsInboxProps) {
+export function NotificationsInbox() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [tab, setTab] = useState<TabKey>('all');
+  const [tab, setTab] = useState<'inbox' | 'announcements'>('inbox');
   const router = useRouter();
-  const supabase = createClient();
 
-  const fetchNotifications = useCallback(async () => {
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('workspace_id', workspaceId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (data) setNotifications(data);
-  }, [userId, workspaceId, supabase]);
+  const fetchData = useCallback(async () => {
+    const data = await getNotifications();
+    setNotifications(data);
+  }, []);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
-  const filtered = useMemo(() => {
-    if (tab === 'all') return notifications;
-    if (tab === 'mentions') return notifications.filter((n) => n.type === 'mention');
-    if (tab === 'reviews') return notifications.filter((n) => n.type === 'review_request');
-    return notifications;
-  }, [notifications, tab]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.is_read).length,
+  const inboxItems = useMemo(
+    () => notifications.filter((n) => !isAnnouncement(n.type)),
     [notifications],
   );
+  const announcementItems = useMemo(
+    () => notifications.filter((n) => isAnnouncement(n.type)),
+    [notifications],
+  );
+  const currentItems = tab === 'inbox' ? inboxItems : announcementItems;
+  const inboxUnread = useMemo(() => inboxItems.filter((n) => !n.read_at).length, [inboxItems]);
+  const announcementUnread = useMemo(
+    () => announcementItems.filter((n) => !n.read_at).length,
+    [announcementItems],
+  );
+  const totalUnread = inboxUnread + announcementUnread;
 
-  async function markAllRead() {
-    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
-    if (unreadIds.length === 0) return;
-    await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  async function handleMarkAllRead() {
+    await markAllNotificationsRead(tab);
+    const now = new Date().toISOString();
+    setNotifications((prev) =>
+      prev.map((n) => {
+        const match = tab === 'inbox' ? !isAnnouncement(n.type) : isAnnouncement(n.type);
+        return match && !n.read_at ? { ...n, read_at: now } : n;
+      }),
+    );
   }
 
-  async function markRead(id: string, actionUrl: string | null) {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    if (actionUrl) {
-      router.push(actionUrl);
-    }
+  async function handleMarkRead(id: string, actionUrl: string | null) {
+    await markNotificationRead(id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)),
+    );
+    if (actionUrl) router.push(actionUrl);
+  }
+
+  async function handleDelete(id: string) {
+    await deleteNotification(id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   }
 
   return (
-    <div className="flex max-h-[480px] w-[380px] flex-col bg-bg-elevated">
+    <div className="flex max-h-[480px] w-[400px] flex-col bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-subtle px-md py-sm">
-        <span className="text-sm font-medium text-ink-primary">
-          Notifications{unreadCount > 0 ? ` \u00B7 ${unreadCount} unread` : ''}
+      <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
+        <span className="text-[14px] font-semibold text-[#1a1a1a]">
+          Notifications{totalUnread > 0 ? ` · ${totalUnread}` : ''}
         </span>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllRead}
-            className="text-xs text-ink-secondary transition-colors hover:text-ink-primary"
-          >
+        {(tab === 'inbox' ? inboxUnread : announcementUnread) > 0 && (
+          <button onClick={handleMarkAllRead} className="text-[12px] text-accent hover:underline">
             Mark all read
           </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-xs border-b border-subtle px-md">
-        {TABS.map((t) => (
-          <Chip key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
-            {t.label}
-          </Chip>
-        ))}
+      <div className="flex border-b border-[#f0f0f0]">
+        <button
+          onClick={() => setTab('inbox')}
+          className={cn(
+            'flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[12px] font-medium transition-colors',
+            tab === 'inbox'
+              ? 'border-b-2 border-[#1a1a1a] text-[#1a1a1a]'
+              : 'text-[#999] hover:text-[#555]',
+          )}
+        >
+          <Inbox size={13} />
+          Inbox
+          {inboxUnread > 0 && (
+            <span className="rounded-full bg-accent px-1.5 py-px text-[10px] font-bold text-white">
+              {inboxUnread}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setTab('announcements')}
+          className={cn(
+            'flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[12px] font-medium transition-colors',
+            tab === 'announcements'
+              ? 'border-b-2 border-[#1a1a1a] text-[#1a1a1a]'
+              : 'text-[#999] hover:text-[#555]',
+          )}
+        >
+          <Megaphone size={13} />
+          Announcements
+          {announcementUnread > 0 && (
+            <span className="rounded-full bg-accent px-1.5 py-px text-[10px] font-bold text-white">
+              {announcementUnread}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
-          <p className="px-md py-xl text-center text-sm text-ink-tertiary">All caught up!</p>
+        {currentItems.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            {tab === 'inbox' ? (
+              <>
+                <Inbox size={20} className="mx-auto text-[#ddd]" />
+                <p className="mt-2 text-[13px] text-[#aaa]">No notifications yet</p>
+              </>
+            ) : (
+              <>
+                <Megaphone size={20} className="mx-auto text-[#ddd]" />
+                <p className="mt-2 text-[13px] text-[#aaa]">No announcements</p>
+              </>
+            )}
+          </div>
         ) : (
-          <div>
-            {filtered.map((n) => {
-              const verb = VERB_MAP[n.type] ?? n.type;
-              return (
+          <div className="divide-y divide-[#f5f5f5]">
+            {currentItems.map((n) => (
+              <div
+                key={n.id}
+                className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[#fafaf9]"
+              >
                 <button
-                  key={n.id}
-                  onClick={() => markRead(n.id, n.action_url)}
-                  className="flex w-full items-start gap-sm px-md py-sm text-left transition-colors hover:bg-bg-surface"
+                  onClick={() => handleMarkRead(n.id, n.action_url)}
+                  className="flex min-w-0 flex-1 items-start gap-3 text-left"
                 >
-                  {/* Unread dot */}
-                  <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0">
-                    {!n.is_read && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
+                  <span className="mt-1.5 flex h-2 w-2 shrink-0">
+                    {!n.read_at && <span className="h-2 w-2 rounded-full bg-accent" />}
                   </span>
-
-                  <Avatar name={n.actor_name ?? 'Unknown'} size="sm" />
-
-                  <span className="min-w-0 flex-1 text-sm text-ink-secondary">
-                    <span className="font-medium text-ink-primary">
-                      {n.actor_name ?? 'Someone'}
-                    </span>{' '}
-                    {verb}{' '}
-                    {n.resource_title && (
-                      <span className="font-medium text-ink-primary">{n.resource_title}</span>
-                    )}
-                    <span className="block font-mono text-[11px] text-ink-tertiary">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[13px] font-medium text-[#1a1a1a]">{n.title}</p>
+                      {tab === 'inbox' && (
+                        <span className="shrink-0 rounded bg-[#f5f5f4] px-1.5 py-px text-[9px] font-semibold uppercase text-[#999]">
+                          {TYPE_LABELS[n.type] ?? n.type}
+                        </span>
+                      )}
+                    </div>
+                    {n.body && <p className="mt-0.5 text-[12px] text-[#888]">{n.body}</p>}
+                    <p className="mt-1 text-[11px] text-[#bbb]">
                       {formatRelativeTime(n.created_at)}
-                    </span>
-                  </span>
+                    </p>
+                  </div>
                 </button>
-              );
-            })}
+                <button
+                  onClick={() => handleDelete(n.id)}
+                  className="mt-1 shrink-0 rounded p-1 text-[#ddd] opacity-0 transition-all hover:bg-[#f0f0f0] hover:text-[#999] group-hover:opacity-100"
+                  title="Delete"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="border-t border-subtle px-md py-sm">
-        <Link
-          href="/settings/notifications"
-          className="text-xs text-ink-secondary transition-colors hover:text-ink-primary"
+      <div className="border-t border-[#f0f0f0] px-4 py-2.5">
+        <button
+          onClick={() => router.push('/settings/notifications')}
+          className="text-[12px] text-[#999] hover:text-[#555]"
         >
           Notification preferences
-        </Link>
+        </button>
       </div>
     </div>
   );

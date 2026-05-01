@@ -1,0 +1,126 @@
+# AI Coding Rules & Standards
+
+Desc:
+Define the conventions, patterns, and rules for AI coding assistants working on your codebase. Generates a comprehensive rules file (like CLAUDE.md or .cursorrules) that keeps AI output consistent with your project.
+
+Instructions: Write this as a direct, imperative reference document that an AI coding assistant will read before every task. Use short declarative sentences and bullet points. Be specific about file paths, naming conventions, and patterns. Include concrete examples of do/don't for each rule. The tone should be a technical style guide, not a tutorial. Every rule should be actionable and unambiguous.
+
+Template Sections                                                     7 sections
+
+## Project Overview
+Brief description of what the project does and its current maturity.
+
+### Repository Structure
+Describe the top-level directory layout and where key code lives.
+
+### Project Status
+- **Maturity**: Prototype / MVP / Production
+- **Key technologies**: List the core frameworks and languages
+- **Monorepo?**: If yes, describe the workspace structure
+
+## Tech Stack & Conventions
+List every major technology with its version and any project-specific conventions.
+
+- **Framework**: e.g., Next.js 14 (App Router only — no Pages Router)
+- **Language**: e.g., TypeScript (strict mode)
+- **Package manager**: e.g., pnpm
+- **Database**: e.g., PostgreSQL via Neon
+- **ORM**: e.g., Prisma
+- **Auth**: e.g., Clerk
+- **Hosting**: e.g., Vercel
+- **UI**: e.g., shadcn/ui + Tailwind CSS
+- **State management**: e.g., React Query for server state, Zustand for client
+
+For each, note project-specific conventions: 'Prefer server components by default,' 'Use App Router route handlers, not API routes,' etc.
+
+## Code Style Rules
+### Naming Conventions
+- **Files (components)**: PascalCase (e.g., `MessageDisplay.tsx`)
+- **Files (non-components)**: kebab-case (e.g., `use-auth.ts`)
+- **Directories**: kebab-case (e.g., `chat-messages/`)
+- **Variables/functions**: camelCase
+- **Types/interfaces**: PascalCase
+- **Database fields**: camelCase
+
+### Imports & Exports
+- Import order: React, third-party, local (with blank line between groups)
+- Prefer named exports over default exports
+
+### TypeScript
+- Use strict types — avoid `any`, prefer `unknown` when needed
+- Define return types explicitly on exported functions
+
+### Formatting
+- Specify linter/formatter (ESLint, Prettier, Biome) and key config choices
+
+## Component & Architecture Patterns
+### Component Structure
+- Where components live and how they are organized
+- Preferred component pattern (functional only, with hooks)
+- Props typing approach (inline vs. separate interface)
+
+### Data Fetching
+- Server components vs. client components: when to use which
+- Data fetching library and patterns (React Query, SWR, server actions)
+- Loading and error state handling
+
+### State Management
+- Server state: approach and library
+- Client state: approach and library
+- Form state: library and validation approach (e.g., React Hook Form + Zod)
+
+### API Routes
+- Input validation pattern (e.g., Zod schemas)
+- Error response format
+- Authentication middleware approach
+
+## Do's and Don'ts
+Explicit rules the AI must follow. Be specific and exhaustive — this is the highest-impact section.
+
+### Do
+- DO use React Query for all server state
+- DO write error boundaries around async components
+- DO validate all API inputs with Zod
+- DO use semantic HTML elements
+- DO handle loading and error states for every async operation
+
+### Don't
+- DON'T use `any` type — ever
+- DON'T install new dependencies without asking
+- DON'T use `useEffect` for data fetching — use React Query
+- DON'T put business logic in components — extract to `/lib`
+- DON'T use inline styles — use Tailwind classes
+
+Customize these lists with rules specific to your project.
+
+## Testing & Quality
+### Testing Framework
+- **Unit/integration**: e.g., Vitest, Jest
+- **E2E**: e.g., Playwright, Cypress
+- **Test file naming**: e.g., `*.test.ts` colocated with source
+
+### What to Test
+- Business logic and utility functions: always
+- API route handlers: always
+- Component rendering: for complex interactive components
+- E2E: critical user flows only
+
+### Quality Gates
+- Linting: ESLint config and key rules
+- Formatting: Prettier/Biome config
+- CI checks: what must pass before merge
+- Type checking: `tsc --noEmit` in CI
+
+## Common Pitfalls
+Things AI assistants commonly get wrong in this codebase. List specific gotchas:
+
+- **Pitfall**: Description of what goes wrong and why
+- **Correct approach**: What to do instead
+- **Pitfall**: Another common mistake
+- **Correct approach**: The right pattern
+
+Include:
+- Deprecated patterns that still appear in the codebase
+- Environment-specific quirks (e.g., 'Prisma client must be regenerated after schema changes')
+- Files or modules that need extra care
+- Known bugs or workarounds the AI should be aware of

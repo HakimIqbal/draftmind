@@ -9,11 +9,11 @@ interface LogoTier1Props {
 export function LogoTier1({ size = 280, className }: LogoTier1Props) {
   return (
     <Image
-      src="/logo/tier1-full.svg"
+      src="/logo/logo.jpg"
       width={size}
       height={size}
       alt="DraftMind"
-      className={cn(className)}
+      className={cn('rounded-lg object-contain', className)}
       priority
     />
   );

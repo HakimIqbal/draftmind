@@ -1,0 +1,76 @@
+# Founding Hypothesis
+
+Desc:
+A powerful strategy tool from Jake Knapp and John Zeratsky, creators of the Design Sprint, introduced in Click via Lenny’s Newsletter. The Founding Hypothesis helps teams align on the basics—customer, problem, approach, competitors, and differentiation—to craft a clear, testable foundation for any new product or initiative.
+
+Instructions: Use this template to clearly define the customer's problem, our approach to solving it, and how our solution stands out from competitors. DO NOT make this too long Return in the format
+If we help [customer]
+solve [problem]
+with [approach],
+they will choose it over [competitors]
+because our solution is [differentiation].
+
+Template                                          5 Sections 
+
+## Customer Identification
+Identify the specific customer or segment experiencing the problem.
+
+### Be Specific
+- Not 'businesses' but 'B2B SaaS companies with 10-50 employees'
+- Not 'developers' but 'frontend engineers building React apps'
+- Include their role, company stage, and what they care about most
+
+### Validation
+- How do you know these are your customers?
+- Have you talked to them? How many?
+- What evidence supports this customer choice?
+
+## Problem Definition
+Describe the problem the customer faces in specific, measurable terms.
+
+### Guidelines
+- State the problem from the customer's perspective, not yours
+- Quantify the pain: time wasted, money lost, frequency of occurrence
+- Distinguish between the **root problem** and symptoms
+
+### Format
+[Customers] currently struggle with [specific problem], which causes [measurable consequence]. Today they cope by [current workaround], which is inadequate because [limitation].
+
+## Solution Approach
+How you will solve the problem — the 'what' at a high level.
+
+### Guidelines
+- Describe the approach, not every feature
+- Explain why THIS approach vs. alternatives you considered
+- Be honest about what is novel vs. what is table stakes
+
+### Format
+We will [approach] by [method], which solves the problem because [reasoning]. We chose this over [alternatives] because [tradeoff rationale].
+
+## Competitive Analysis
+Who else solves this problem and why customers would choose you.
+
+### Competitors
+For each competitor or alternative (including 'do nothing'):
+- **Name**: What they offer
+- **Strengths**: What they do well
+- **Weaknesses**: Where they fall short
+- **Why customers switch**: What triggers leaving them
+
+### Differentiation
+The specific reasons a customer would choose your solution over every alternative listed above.
+
+## Differentiation Strategy
+What makes your solution uniquely valuable — your unfair advantage.
+
+### Types of Differentiation
+- **Experience**: 10x better UX for the specific use case
+- **Speed**: Dramatically faster to start or complete the task
+- **Price**: Significantly cheaper or different pricing model
+- **Integration**: Works where your customers already are
+- **Technology**: Unique capability competitors can't easily replicate
+
+### The Hypothesis
+Complete the sentence:
+
+**If we help** [customer] **solve** [problem] **with** [approach], **they will choose it over** [competitors] **because our solution is** [differentiation].

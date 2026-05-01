@@ -26,7 +26,7 @@ export async function requireWorkspaceMember(workspaceId: string) {
     .single();
 
   if (!member) {
-    redirect('/home');
+    redirect('/dashboard');
   }
 
   return { user, role: member.role };
@@ -38,7 +38,7 @@ export async function requireWorkspaceRole(workspaceId: string, roles: Workspace
   const { user, role } = await requireWorkspaceMember(workspaceId);
 
   if (!roles.includes(role as WorkspaceRole)) {
-    redirect('/home');
+    redirect('/dashboard');
   }
 
   return { user, role };

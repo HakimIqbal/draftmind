@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: SharePageProps) {
     .single();
 
   if (!share) {
-    return { title: 'Not Found — DraftMind' };
+    return { title: 'DraftMind' };
   }
 
   const { data: prd } = await supabase
@@ -28,10 +28,10 @@ export async function generateMetadata({ params }: SharePageProps) {
     .eq('id', share.prd_id)
     .single();
 
-  const doc = prd?.content as PRDDocument | undefined;
+  const _doc = prd?.content as PRDDocument | undefined;
 
   return {
-    title: doc ? `${doc.metadata.title} — DraftMind` : 'Shared PRD — DraftMind',
+    title: 'DraftMind',
   };
 }
 

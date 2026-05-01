@@ -1,14 +1,19 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import { TweaksProvider } from '@/components/tweaks/tweaks-provider';
-import { TweaksButton } from '@/components/tweaks/tweaks-button';
 import { CommandPalette } from '@/components/overlays/command-palette';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'DraftMind — Think Less. Draft Smarter.',
+  title: {
+    default: 'DraftMind',
+    template: '%s',
+  },
   description: 'AI-powered Product Requirement Document generator for product teams.',
-  icons: { icon: '/logo/favicon.ico' },
+  icons: {
+    icon: '/logo/favicon.png',
+    apple: '/logo/logo.jpg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      data-theme="dark"
+      data-theme="light"
       data-density="compact"
       data-radius="default"
       data-font="fraunces-inter"
@@ -26,10 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TweaksProvider>
           {children}
           <CommandPalette />
-          {process.env.NODE_ENV === 'development' && <TweaksButton />}
         </TweaksProvider>
         <Toaster
-          position="bottom-right"
+          position="top-right"
           toastOptions={{
             className: 'bg-bg-elevated text-ink-primary border-strong font-body',
           }}

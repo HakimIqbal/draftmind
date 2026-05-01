@@ -11,7 +11,7 @@ interface Props {
 export default async function PRDListPage({ searchParams }: Props) {
   const user = await requireUser();
   const workspace = await getCurrentWorkspace(user.id);
-  if (!workspace) redirect('/onboarding/step-3');
+  if (!workspace) redirect('/dashboard');
 
   const wsId = workspace.id as string;
   const params = await searchParams;

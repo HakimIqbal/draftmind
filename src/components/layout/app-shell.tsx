@@ -13,6 +13,7 @@ interface AppShellProps {
   currentWorkspaceId?: string;
   userName?: string;
   userEmail?: string;
+  recentPRDs?: { id: string; title: string }[];
 }
 
 export function AppShell({
@@ -21,20 +22,26 @@ export function AppShell({
   currentWorkspaceId,
   userName,
   userEmail,
+  recentPRDs,
 }: AppShellProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <TooltipProvider>
       <div className="flex h-screen">
-        {sidebarCollapsed ? (
-          <SidebarCollapsedRail onExpand={() => setSidebarCollapsed(false)} />
-        ) : (
+        {sidebarOpen ? (
           <Sidebar
             collapsed={false}
-            onToggleCollapse={() => setSidebarCollapsed(true)}
+            onToggleCollapse={() => setSidebarOpen(false)}
             workspaces={workspaces}
             currentWorkspaceId={currentWorkspaceId}
+            userName={userName}
+            userEmail={userEmail}
+            recentPRDs={recentPRDs}
+          />
+        ) : (
+          <SidebarCollapsedRail
+            onExpand={() => setSidebarOpen(true)}
             userName={userName}
             userEmail={userEmail}
           />

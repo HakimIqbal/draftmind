@@ -7,7 +7,7 @@ import { PRDPipelineBoard } from '@/components/dashboard/prd-pipeline-board';
 export default async function PrdPipelinePage() {
   const user = await requireUser();
   const workspace = await getCurrentWorkspace(user.id);
-  if (!workspace) redirect('/onboarding/step-3');
+  if (!workspace) redirect('/dashboard');
 
   const { items } = await getPRDsByWorkspace(workspace.id, {}, 200);
 

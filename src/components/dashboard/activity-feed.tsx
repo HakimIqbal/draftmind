@@ -1,6 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '@/components/ui/avatar';
-import { Card } from '@/components/ui/card';
 import type { ActivityFeedItem } from '@/lib/db/queries/dashboard';
 
 const VERB_MAP: Record<string, string> = {
@@ -17,39 +16,35 @@ function getVerb(type: string): string {
   return VERB_MAP[type] ?? type.replace(/_/g, ' ');
 }
 
-interface ActivityFeedProps {
-  items: ActivityFeedItem[];
-}
-
-export function ActivityFeed({ items }: ActivityFeedProps) {
+export function ActivityFeed({ items }: { items: ActivityFeedItem[] }) {
   if (items.length === 0) {
     return (
-      <Card className="p-sm">
-        <p className="text-center text-xs text-ink-tertiary">No recent activity</p>
-      </Card>
+      <div className="rounded-xl border border-[#eee] bg-white px-5 py-10 text-center">
+        <p className="text-[13px] text-[#aaa]">No activity yet</p>
+      </div>
     );
   }
 
   return (
-    <Card className="divide-y divide-subtle p-0">
-      {items.map((item) => {
-        const name = item.actor?.full_name ?? 'Unknown';
-        return (
-          <div key={item.id} className="flex items-start gap-xs p-sm">
-            <Avatar name={name} size="sm" seed={item.actor?.avatar_color_seed ?? undefined} />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-ink-primary">
-                <span className="font-medium">{name}</span> {getVerb(item.type)}
-              </p>
-              <span className="font-mono text-[11px] text-ink-tertiary">
-                {formatDistanceToNow(new Date(item.created_at), {
-                  addSuffix: true,
-                })}
-              </span>
+    <div className="rounded-xl border border-[#eee] bg-white">
+      <div className="divide-y divide-[#f5f5f5]">
+        {items.map((item) => {
+          const name = item.actor?.full_name ?? 'Unknown';
+          return (
+            <div key={item.id} className="flex items-start gap-3 px-4 py-3">
+              <Avatar name={name} size="sm" seed={item.actor?.avatar_color_seed ?? undefined} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] text-[#555]">
+                  <span className="font-medium text-[#1a1a1a]">{name}</span> {getVerb(item.type)}
+                </p>
+                <span className="text-[11px] text-[#bbb]">
+                  {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                </span>
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }

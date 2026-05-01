@@ -1,0 +1,129 @@
+# Product Launch Checklist
+
+Desc:
+A detailed checklist for ensuring all aspects of product launch are covered to minimize risks.
+
+Instructions: Be exhaustive and specific. Each checklist item should be a concrete, verifiable task with a clear definition of done — not a vague category. Organize items chronologically (T-4 weeks, T-2 weeks, T-1 week, launch day, post-launch). Include cross-functional dependencies between teams.
+
+Template                                          6 Sections 
+
+## Pre-Launch (T-4 weeks)
+Tasks to complete well before launch day.
+
+### Product Readiness
+- [ ] All P0 features complete and tested
+- [ ] Beta feedback addressed or triaged
+- [ ] Performance and load testing passed
+- [ ] Security review completed
+- [ ] Accessibility audit passed
+
+### Content & Marketing
+- [ ] Launch blog post drafted and reviewed
+- [ ] Product screenshots and demo video created
+- [ ] Social media posts scheduled
+- [ ] Email announcement drafted
+- [ ] Press/media outreach started (if applicable)
+
+### Internal Readiness
+- [ ] Support team trained on new features
+- [ ] FAQ and help docs written
+- [ ] Internal announcement sent to company
+
+## Pre-Launch (T-1 week)
+Final preparations the week before launch.
+
+### Technical
+- [ ] Staging environment matches production config
+- [ ] Monitoring and alerting configured
+- [ ] Rollback plan documented and tested
+- [ ] Feature flags set to correct state
+- [ ] Database migrations tested in staging
+
+### Marketing
+- [ ] Launch page live (or scheduled)
+- [ ] All marketing materials finalized and approved
+- [ ] Social media queue loaded
+- [ ] Email list segmented and ready
+- [ ] Product Hunt / Hacker News draft prepared (if applicable)
+
+### Team
+- [ ] Launch day schedule shared with team
+- [ ] On-call rotation set for launch day
+- [ ] Escalation contacts identified
+
+## Launch Day
+The day-of execution checklist.
+
+### Morning
+- [ ] Deploy to production
+- [ ] Verify all features working in production
+- [ ] Enable feature flags / remove beta restrictions
+- [ ] Publish launch blog post
+- [ ] Send email announcement
+
+### Midday
+- [ ] Post on social media channels
+- [ ] Submit to Product Hunt / communities
+- [ ] Monitor error rates and performance dashboards
+- [ ] Respond to early user feedback and questions
+
+### End of Day
+- [ ] Review launch day metrics
+- [ ] Address any critical bugs or issues
+- [ ] Send internal recap to team
+- [ ] Celebrate the launch
+
+## Post-Launch (Week 1)
+First week after launch — monitor, respond, and iterate.
+
+### Monitoring
+- [ ] Track key metrics daily (signups, activation, errors)
+- [ ] Monitor support ticket volume and themes
+- [ ] Watch social media mentions and sentiment
+- [ ] Review error tracking (Sentry, LogRocket) for new issues
+
+### Response
+- [ ] Respond to all customer feedback within 24 hours
+- [ ] Triage and fix critical bugs immediately
+- [ ] Publish follow-up content (tips, tutorials, use cases)
+
+### Retrospective
+- [ ] Run launch retrospective with team
+- [ ] Document learnings for next launch
+- [ ] Update launch playbook with improvements
+
+## Post-Launch (Month 1)
+First month — measure success and plan next steps.
+
+### Metrics Review
+- [ ] Compare actual metrics to launch targets
+- [ ] Identify top-performing acquisition channels
+- [ ] Analyze activation funnel drop-off points
+- [ ] Assess early retention signals
+
+### Product Iteration
+- [ ] Prioritize feature requests from launch feedback
+- [ ] Ship quick wins identified during launch week
+- [ ] Plan next release based on user data
+
+### Growth
+- [ ] Double down on channels that worked
+- [ ] Cut or adjust channels that underperformed
+- [ ] Plan second wave of marketing (case studies, webinars, partnerships)
+
+## Launch Roles & Contacts
+Who is responsible for what during the launch.
+
+### Key Roles
+| Role | Person | Responsibility |
+|------|--------|----------------|
+| Launch Lead | [Name] | Overall coordination, go/no-go decision |
+| Engineering | [Name] | Deploy, monitor, hotfix |
+| Marketing | [Name] | Content, social, PR |
+| Support | [Name] | Customer responses, FAQ updates |
+| Design | [Name] | Assets, last-minute visual fixes |
+
+### Escalation Path
+- **Critical bug**: [Who to contact and how]
+- **PR/comms issue**: [Who to contact]
+- **Go/no-go decision**: [Who makes the call]

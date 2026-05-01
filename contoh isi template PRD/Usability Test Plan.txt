@@ -1,0 +1,143 @@
+# Usability Test Plan
+
+Desc:
+This template outlines the necessary components for planning and executing a usability test. It helps in defining objectives, methodology, environment, measures, and reporting for effective usability testing.
+
+Instructions: Design tests that will change product decisions — avoid testing just to check a box. Participant criteria should reflect real user segments, not convenience samples. Tasks should be realistic end-to-end scenarios. Define specific pass/fail thresholds. Include a decision framework: what concrete changes will be made based on which outcomes.
+
+Template                                          6 Sections 
+
+## Test Overview
+Why you are running this test and what you hope to learn.
+
+### Purpose
+- What usability questions this test will answer
+- What product decisions depend on the results
+
+### Scope
+- Which product area, feature, or flow is being tested
+- What is NOT being tested (out of scope)
+
+### Stakeholders
+| Role | Person | Responsibility |
+|------|--------|----------------|
+| Test facilitator | [Name] | Runs sessions, asks questions |
+| Note-taker | [Name] | Captures observations in real time |
+| Observer(s) | [Names] | Watches sessions, adds notes |
+| Decision maker | [Name] | Acts on findings |
+
+## Test Design
+How the test will be structured and conducted.
+
+### Methodology
+- **Type**: Moderated / Unmoderated / Remote / In-person
+- **Format**: Think-aloud, task-based, comparative (A vs. B), exploratory
+- **Duration**: [X] minutes per session
+- **Number of sessions**: [X] participants
+
+### Participant Criteria
+- **Include**: [Demographics, experience level, user segment]
+- **Exclude**: [Who should NOT participate and why]
+- **Recruitment source**: Customer list, panel service, social media
+- **Incentive**: [What participants receive]
+
+### Test Environment
+- **Device/browser**: Specific requirements
+- **Prototype or live product**: Which version is being tested
+- **Tools**: UserTesting, Maze, Lookback, Zoom, etc.
+
+## Tasks & Scenarios
+What participants will be asked to do.
+
+### Scenarios
+Realistic contexts that set up the tasks (don't hint at the UI):
+
+**Scenario 1: [Name]**
+'Imagine you are [context]. You need to [goal].'
+
+### Tasks
+For each task:
+- **Task**: [What the participant should accomplish]
+- **Scenario**: [Which scenario it belongs to]
+- **Starting point**: [Where they begin]
+- **Success criteria**: [How you know they completed it]
+- **Time limit**: [Max time before moving on]
+
+### Post-Task Questions
+- On a scale of 1-7, how easy was that task?
+- What was confusing or unclear?
+- What would you expect to happen next?
+
+## Metrics & Success Criteria
+How results will be measured.
+
+### Quantitative Metrics
+| Metric | Target | How Measured |
+|--------|--------|-------------|
+| Task completion rate | > [X]% | [Method] |
+| Time on task | < [X] min | [Method] |
+| Error rate | < [X]% | [Method] |
+| Satisfaction (post-task) | > [X]/7 | Rating scale |
+| SUS score | > [X] | Post-test survey |
+
+### Qualitative Metrics
+- Confusion points: Where users hesitate, backtrack, or express frustration
+- Mental model fit: Does the UI match what users expect?
+- Feature discovery: Do users notice key features without prompting?
+- Emotional response: Confidence, frustration, delight at key moments
+
+### Pass/Fail Thresholds
+- **Pass**: [Criteria] → Proceed to launch
+- **Conditional pass**: [Criteria] → Fix issues, retest specific areas
+- **Fail**: [Criteria] → Redesign required before launch
+
+## Session Guide
+Script and structure for running each test session.
+
+### Intro (5 min)
+- Welcome and set expectations
+- Explain think-aloud protocol
+- Confirm recording consent
+- Remind them: 'We are testing the product, not you'
+
+### Warm-Up (5 min)
+- Background questions about their role and experience
+- Current workflow related to the product area
+
+### Tasks (30-40 min)
+- Walk through each task/scenario in order
+- Ask post-task rating after each task
+- Note where they struggle without intervening
+
+### Debrief (10 min)
+- Overall impressions
+- What was easiest? Most frustrating?
+- Would they use this? Why/why not?
+- Any features they expected but didn't find?
+
+## Analysis & Recommendations
+How findings become product decisions.
+
+### Analysis Framework
+For each finding:
+- **Finding**: [What was observed]
+- **Severity**: Critical / Major / Minor / Cosmetic
+- **Frequency**: [X] of [Y] participants encountered this
+- **Impact**: Effect on task completion and satisfaction
+- **Recommendation**: Specific change to make
+
+### Deliverables
+- **Findings summary**: All issues ranked by severity × frequency
+- **Highlight reel**: 3-5 min video of key moments for stakeholders
+- **Recommendation deck**: Prioritized changes with effort estimates
+
+### Decision Framework
+- **Critical**: Must fix before launch — blocks core functionality
+- **Major**: Fix in next sprint — degrades experience significantly
+- **Minor**: Add to backlog — nice-to-have improvements
+- **Cosmetic**: Fix when convenient — polish items
+
+### Next Steps
+- Schedule follow-up test to validate fixes (if needed)
+- Timeline for implementing changes
+- When to test again

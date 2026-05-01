@@ -1,0 +1,67 @@
+# Spec for AI Prototyping
+
+Desc:
+A self-contained product spec designed to be pasted directly into AI prototyping tools like v0, Bolt, Lovable, or Replit. Covers what to build, how it should look, the tech stack, and key user flows — everything these tools need to generate a working prototype.
+
+Instructions: Write this as a clear, complete spec that someone could paste into v0, Bolt, Lovable, or Replit and get a working prototype on the first try. Be extremely specific about visual design (name exact component libraries, colors, layouts) and user interactions (what happens on every click, submit, and navigation). Tech stack choices should be explicit — these tools need exact framework and library names, not categories. Keep the language direct and imperative. The spec should be self-contained: an AI code generator reading only this document should produce something that looks and works right without follow-up questions.
+
+Template                                          8 Sections 
+
+## Product Overview
+What you are building in 2-3 sentences: the core concept, who it is for, and the primary action users take. Be specific about what makes this product useful — not just what it is, but why someone would use it. Include the scope for this prototype: what is included and what will be built later.
+
+## Design & Visual Style
+Specific design direction for the AI tool to follow:
+- **Component library**: shadcn/ui, Material UI, Chakra UI, DaisyUI, or custom
+- **Styling framework**: Tailwind CSS, CSS Modules, vanilla CSS
+- **Color scheme**: Primary, secondary, and accent colors (hex codes or descriptive palette like 'neutral with blue accents')
+- **Theme**: Light mode, dark mode, or both with toggle
+- **Layout style**: Sidebar nav, top nav, dashboard grid, single-page scroll, etc.
+- **Typography & spacing**: Dense/compact vs. spacious, font preferences
+- **Reference sites**: 1-2 existing products whose visual style to emulate
+
+## Tech Stack
+The exact technologies the prototype should use. Be specific — AI tools generate better code with explicit choices:
+- **Framework**: Next.js (App Router), Vite + React, Astro, SvelteKit, Nuxt, etc.
+- **Language**: TypeScript or JavaScript
+- **Database**: Supabase, Neon, PlanetScale, Firebase, or local SQLite
+- **ORM**: Prisma, Drizzle, or direct SQL
+- **Auth**: Clerk, NextAuth, Supabase Auth, or none for prototype
+- **Hosting target**: Vercel, Netlify, Railway, or local only
+- **Key libraries**: Any specific packages to use (date handling, charts, rich text, etc.)
+
+## Pages & Navigation
+Every page or screen in the prototype with its URL path and purpose:
+- **Page name** (/path): What the user sees and does on this page
+
+Specify the navigation structure: sidebar links, top nav items, tab bars, or breadcrumbs. Note which pages require authentication and which are public. Describe the landing/home page experience for both logged-in and logged-out users.
+
+## Core User Flows
+The 2-4 most important user interactions, described step by step:
+
+**Flow 1: [Name]**
+1. User lands on [page] and sees [what]
+2. User clicks/types [action]
+3. System responds with [result]
+4. User sees [confirmation/next state]
+
+Include the 'first win' moment — the first time the user gets value from the product. Cover the happy path in detail. Note key transitions, loading states, and success/error feedback.
+
+## Data Model & Backend
+The core data entities the prototype needs, with key fields:
+- **Entity** (field: type, field: type, ...)
+- Relationships between entities
+
+Specify any API endpoints or server actions needed. Note if the prototype should use real data persistence or mock/seed data. Include any background jobs, webhooks, or scheduled tasks if relevant.
+
+## Key Components
+Specific UI components that need special attention beyond standard page layouts. Examples: a drag-and-drop kanban board, a real-time chat widget, a rich text editor, a data table with sorting/filtering, a multi-step form wizard, a file upload area. For each, describe the expected behavior and any library preferences.
+
+## AI Generation Notes
+Additional instructions specifically for the AI code generation tool:
+- Features to skip or stub out for now (e.g., 'skip email notifications, just log to console')
+- Performance considerations ('use server components where possible')
+- Specific patterns to follow or avoid
+- Seed data or placeholder content to include
+- Any known limitations of the target platform to work around
+- Mobile responsiveness requirements

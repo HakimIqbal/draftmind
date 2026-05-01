@@ -3,9 +3,6 @@
 import { useState, useTransition } from 'react';
 import { MoreHorizontal, Search, UserPlus } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectTrigger,
@@ -40,8 +37,7 @@ function relativeTime(dateString: string | null): string {
   if (diffHr < 24) return `${diffHr}h ago`;
   const diffDay = Math.floor(diffHr / 24);
   if (diffDay < 30) return `${diffDay}d ago`;
-  const diffMonth = Math.floor(diffDay / 30);
-  return `${diffMonth}mo ago`;
+  return `${Math.floor(diffDay / 30)}mo ago`;
 }
 
 interface MembersTableProps {
@@ -65,11 +61,12 @@ export function MembersTable({
   const isAdmin = currentUserRole === 'admin';
 
   const filtered = members.filter((m) => {
+    if (!search) return true;
     const q = search.toLowerCase();
-    if (!q) return true;
-    const name = m.profile?.full_name?.toLowerCase() ?? '';
-    const email = m.profile?.email?.toLowerCase() ?? '';
-    return name.includes(q) || email.includes(q);
+    return (
+      (m.profile?.full_name?.toLowerCase().includes(q) ?? false) ||
+      (m.profile?.email?.toLowerCase().includes(q) ?? false)
+    );
   });
 
   function handleRoleChange(userId: string, newRole: string) {
@@ -77,67 +74,69 @@ export function MembersTable({
       await changeRole(workspaceId, userId, newRole as 'admin' | 'editor' | 'commenter' | 'viewer');
     });
   }
-
   function handleRemove(userId: string) {
     startTransition(async () => {
       await removeMember(workspaceId, userId);
     });
   }
-
-  function handleResend(invitationId: string) {
+  function handleResend(id: string) {
     startTransition(async () => {
-      await resendInvitation(workspaceId, invitationId);
+      await resendInvitation(workspaceId, id);
     });
   }
-
-  function handleRevoke(invitationId: string) {
+  function handleRevoke(id: string) {
     startTransition(async () => {
-      await revokeInvitation(workspaceId, invitationId);
+      await revokeInvitation(workspaceId, id);
     });
   }
 
   return (
-    <div className="space-y-6 p-md">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-xl font-bold text-ink-primary">
-          Members{' '}
-          <span className="font-mono text-sm font-normal text-ink-tertiary">{members.length}</span>
-        </h1>
-        {isAdmin && (
-          <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)}>
-            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-            Invite member
-          </Button>
-        )}
+    <div className="mx-auto max-w-3xl px-8 py-10">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#1a1a1a]">Team</h1>
+          <p className="mt-0.5 text-[13px] text-[#888]">
+            {members.length} member{members.length !== 1 ? 's' : ''}
+            {invitations.length > 0 && ` · ${invitations.length} pending`}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative w-52">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#bbb]" />
+            <input
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="focus:ring-accent/30 h-9 w-full rounded-lg border border-[#e5e5e3] bg-white pl-9 pr-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
+            />
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => setInviteOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Invite
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-tertiary" />
-        <Input
-          placeholder="Search members..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-8"
-        />
-      </div>
-
-      {/* Members table */}
-      <div className="overflow-hidden rounded-md border border-subtle">
-        <table className="w-full text-sm">
+      {/* Members */}
+      <div className="overflow-hidden rounded-xl border border-[#eee]">
+        <table className="w-full">
           <thead>
-            <tr className="border-b border-subtle bg-bg-surface">
-              <th className="px-4 py-2 text-left font-mono text-[11px] uppercase text-ink-tertiary">
+            <tr className="border-b border-[#f0f0f0] bg-[#fafaf9]">
+              <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
                 Member
               </th>
-              <th className="px-4 py-2 text-left font-mono text-[11px] uppercase text-ink-tertiary">
+              <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
                 Role
               </th>
-              <th className="hidden px-4 py-2 text-left font-mono text-[11px] uppercase text-ink-tertiary sm:table-cell">
+              <th className="hidden px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999] sm:table-cell">
                 Last active
               </th>
-              <th className="w-10 px-4 py-2" />
+              <th className="w-10 px-5 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -145,40 +144,35 @@ export function MembersTable({
               const name = member.profile?.full_name ?? 'Unknown';
               const email = member.profile?.email ?? '';
               const isSelf = member.user_id === currentUserId;
-
               return (
                 <tr
                   key={member.user_id}
-                  className="hover:bg-bg-surface/50 border-b border-subtle transition-colors last:border-b-0"
+                  className="border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <Avatar
                         name={name}
-                        size="md"
+                        size="sm"
                         seed={member.profile?.avatar_color_seed ?? undefined}
                       />
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-ink-primary">
+                      <div>
+                        <p className="text-[13px] font-medium text-[#1a1a1a]">
                           {name}
-                          {isSelf && (
-                            <span className="ml-1.5 font-mono text-[10px] text-ink-tertiary">
-                              you
-                            </span>
-                          )}
-                        </div>
-                        <div className="truncate font-mono text-xs text-ink-secondary">{email}</div>
+                          {isSelf && <span className="ml-1.5 text-[10px] text-[#bbb]">you</span>}
+                        </p>
+                        <p className="text-[11px] text-[#aaa]">{email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5">
                     {isAdmin && !isSelf ? (
                       <Select
                         value={member.role}
                         onValueChange={(val) => handleRoleChange(member.user_id, val)}
                         disabled={isPending}
                       >
-                        <SelectTrigger className="h-7 w-[120px] text-xs">
+                        <SelectTrigger className="h-7 w-[110px] text-[12px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -189,28 +183,28 @@ export function MembersTable({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-sm capitalize text-ink-primary">{member.role}</span>
+                      <span className="text-[13px] capitalize text-[#666]">{member.role}</span>
                     )}
                   </td>
-                  <td className="hidden px-4 py-3 sm:table-cell">
-                    <span className="font-mono text-xs text-ink-tertiary">
+                  <td className="hidden px-5 py-3.5 sm:table-cell">
+                    <span className="text-[12px] text-[#bbb]">
                       {relativeTime(member.last_active_at)}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5">
                     {isAdmin && !isSelf && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="rounded p-1 text-ink-tertiary transition-colors hover:text-ink-primary">
+                          <button className="rounded-md p-1 text-[#ccc] hover:text-[#666]">
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            className="text-red-muted"
+                            className="text-red-500"
                             onClick={() => handleRemove(member.user_id)}
                           >
-                            Remove member
+                            Remove
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -221,7 +215,7 @@ export function MembersTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-sm text-ink-secondary">
+                <td colSpan={4} className="px-5 py-12 text-center text-[13px] text-[#aaa]">
                   No members found
                 </td>
               </tr>
@@ -232,65 +226,58 @@ export function MembersTable({
 
       {/* Pending invitations */}
       {invitations.length > 0 && (
-        <>
-          <Separator />
-          <div className="space-y-3">
-            <h2 className="font-display text-sm font-semibold text-ink-primary">
-              Pending invitations
-            </h2>
-            <div className="overflow-hidden rounded-md border border-subtle">
-              <table className="w-full text-sm">
-                <tbody>
-                  {invitations.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      className="hover:bg-bg-surface/50 border-b border-subtle transition-colors last:border-b-0"
-                    >
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-sm text-ink-primary">{inv.email}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm capitalize text-ink-primary">{inv.role}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 rounded-sm border border-amber-500/30 px-2 py-0.5 font-mono text-[11px] text-amber-400">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                          Pending
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {isAdmin && (
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleResend(inv.id)}
-                              disabled={isPending}
-                            >
-                              Resend
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-muted"
-                              onClick={() => handleRevoke(inv.id)}
-                              disabled={isPending}
-                            >
-                              Revoke
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <div className="mt-8">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-[#aaa]">
+            Pending invitations
+          </p>
+          <div className="overflow-hidden rounded-xl border border-[#eee]">
+            <table className="w-full">
+              <tbody>
+                {invitations.map((inv) => (
+                  <tr
+                    key={inv.id}
+                    className="border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
+                  >
+                    <td className="px-5 py-3.5">
+                      <span className="text-[13px] text-[#1a1a1a]">{inv.email}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-[13px] capitalize text-[#666]">{inv.role}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                        Pending
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      {isAdmin && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleResend(inv.id)}
+                            disabled={isPending}
+                            className="text-[12px] text-[#999] hover:text-[#555]"
+                          >
+                            Resend
+                          </button>
+                          <button
+                            onClick={() => handleRevoke(inv.id)}
+                            disabled={isPending}
+                            className="text-[12px] text-red-400 hover:text-red-600"
+                          >
+                            Revoke
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Invite modal */}
       <InviteModal workspaceId={workspaceId} open={inviteOpen} onOpenChange={setInviteOpen} />
     </div>
   );

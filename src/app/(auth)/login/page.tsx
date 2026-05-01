@@ -9,17 +9,14 @@ export default async function LoginPage() {
   } = await supabase.auth.getUser();
 
   if (user) {
+    // Auto-detect: admin goes to /admin, user goes to /home
     const { data: profile } = await supabase
       .from('profiles')
-      .select('onboarding_completed_at')
+      .select('is_super_admin')
       .eq('id', user.id)
       .single();
 
-    if (profile?.onboarding_completed_at) {
-      redirect('/home');
-    } else {
-      redirect('/onboarding/step-1');
-    }
+    redirect(profile?.is_super_admin ? '/admin' : '/dashboard');
   }
 
   return <LoginPageClient />;

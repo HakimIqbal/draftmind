@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
+import { pollAIRunStatus } from '@/app/(app)/prds/[prdId]/generation-actions';
 
 interface GenerationLoadingProps {
   prdId: string;
@@ -31,6 +31,7 @@ function getStepStatuses(currentStep: number): StepStatus[] {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function estimateTimeRemaining(elapsedMs: number, progress: number): string {
   if (progress <= 0 || progress >= 100) return '--';
   const totalEstimate = elapsedMs / (progress / 100);
@@ -75,16 +76,11 @@ export function GenerationLoading({
     }
   }, [prdId, aiRunId]);
 
-  // Poll ai_run status
+  // Poll ai_run status via server action
   const pollStatus = useCallback(async () => {
-    const supabase = createClient();
-    const { data: run } = await supabase
-      .from('ai_runs')
-      .select('status, error_message')
-      .eq('id', aiRunId)
-      .single();
+    const run = await pollAIRunStatus(aiRunId);
 
-    if (!run) return;
+    if (run.status === 'not_found') return;
 
     if (run.status === 'success') {
       setCurrentStep(STEPS.length);
@@ -98,27 +94,30 @@ export function GenerationLoading({
     }
 
     if (run.status === 'error') {
-      setError(run.error_message || 'Generation failed');
+      setError(run.error || 'Generation failed');
       return;
     }
 
-    // Simulate step progression based on elapsed time
-    const elapsed = Date.now() - startTime;
-    if (elapsed < 2000) {
+    // Real status-based progress
+    if (run.status === 'queued') {
       setCurrentStep(0);
-      setProgress(5);
-    } else if (elapsed < 6000) {
-      setCurrentStep(1);
-      setProgress(20 + Math.min(30, ((elapsed - 2000) / 4000) * 30));
-    } else if (elapsed < 10000) {
-      setCurrentStep(2);
-      setProgress(55 + Math.min(15, ((elapsed - 6000) / 4000) * 15));
-    } else if (elapsed < 14000) {
-      setCurrentStep(3);
-      setProgress(72 + Math.min(15, ((elapsed - 10000) / 4000) * 15));
-    } else {
-      setCurrentStep(4);
-      setProgress(Math.min(95, 88 + ((elapsed - 14000) / 10000) * 7));
+      setProgress(10);
+    } else if (run.status === 'running') {
+      // AI is actively processing — show real elapsed time
+      const elapsed = Date.now() - startTime;
+      const elapsedSec = Math.floor(elapsed / 1000);
+      // Progress based on real elapsed: cap at 90% (100% only on success)
+      const realProgress = Math.min(90, 20 + elapsedSec * 3);
+      setProgress(realProgress);
+
+      // Steps based on real elapsed time during running state
+      if (elapsedSec < 2)
+        setCurrentStep(1); // Calling AI
+      else if (elapsedSec < 5)
+        setCurrentStep(2); // Parsing
+      else if (elapsedSec < 8)
+        setCurrentStep(3); // Validating
+      else setCurrentStep(4); // Saving
     }
   }, [aiRunId, prdId, router, startTime]);
 
@@ -133,9 +132,7 @@ export function GenerationLoading({
     };
   }, [triggerGeneration, pollStatus]);
 
-  const elapsed = Date.now() - startTime;
   const stepStatuses = getStepStatuses(currentStep);
-  const timeRemaining = estimateTimeRemaining(elapsed, progress);
 
   if (error) {
     return (
@@ -171,7 +168,7 @@ export function GenerationLoading({
       <div className="border-ink-quaternary/10 flex items-center gap-sm border-b px-lg py-sm">
         <ProgressBar value={progress} className="flex-1" />
         <span className="whitespace-nowrap font-mono text-[11px] text-ink-secondary">
-          {Math.round(progress)}% &middot; {timeRemaining}
+          {Math.round(progress)}% &middot; {Math.floor((Date.now() - startTime) / 1000)}s elapsed
         </span>
       </div>
 

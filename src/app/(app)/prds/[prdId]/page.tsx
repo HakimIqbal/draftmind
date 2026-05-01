@@ -14,7 +14,7 @@ export default async function EditorPage({
 }) {
   const user = await requireUser();
   const workspace = await getCurrentWorkspace(user.id);
-  if (!workspace) redirect('/onboarding/step-3');
+  if (!workspace) redirect('/dashboard');
 
   const { prdId } = await params;
   const { generating } = await searchParams;

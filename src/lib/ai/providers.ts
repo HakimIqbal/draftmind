@@ -1,6 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createGroq } from '@ai-sdk/groq';
 import type { LanguageModelV1 } from 'ai';
 
@@ -10,6 +9,8 @@ export interface ProviderConfig {
   availableModels: string[];
   supportsStructuredOutput: boolean;
   supportsStreaming: boolean;
+  requiresBaseUrl: boolean;
+  baseUrl?: string;
   createModel: (apiKey: string, model: string, baseUrl?: string) => LanguageModelV1;
 }
 
@@ -20,6 +21,7 @@ export const PROVIDER_REGISTRY: Record<string, ProviderConfig> = {
     availableModels: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
     supportsStructuredOutput: true,
     supportsStreaming: true,
+    requiresBaseUrl: false,
     createModel: (apiKey, model) => createAnthropic({ apiKey })(model),
   },
   openai: {
@@ -28,41 +30,67 @@ export const PROVIDER_REGISTRY: Record<string, ProviderConfig> = {
     availableModels: ['gpt-4o', 'gpt-4o-mini', 'o1-preview'],
     supportsStructuredOutput: true,
     supportsStreaming: true,
+    requiresBaseUrl: false,
     createModel: (apiKey, model) => createOpenAI({ apiKey })(model),
-  },
-  gemini: {
-    displayName: 'Google Gemini',
-    defaultModel: 'gemini-1.5-pro',
-    availableModels: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'],
-    supportsStructuredOutput: true,
-    supportsStreaming: true,
-    createModel: (apiKey, model) => createGoogleGenerativeAI({ apiKey })(model),
   },
   groq: {
     displayName: 'Groq',
     defaultModel: 'llama-3.3-70b-versatile',
-    availableModels: ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+    availableModels: [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+    ],
     supportsStructuredOutput: false,
     supportsStreaming: true,
+    requiresBaseUrl: false,
     createModel: (apiKey, model) => createGroq({ apiKey })(model),
   },
   sumopod: {
     displayName: 'Sumopod',
-    defaultModel: 'sumopod-xl-v2',
-    availableModels: ['sumopod-xl-v2', 'sumopod-base'],
+    defaultModel: 'gpt-4o-mini',
+    availableModels: ['gpt-4o', 'gpt-4o-mini', 'claude-3-haiku', 'deepseek-chat'],
     supportsStructuredOutput: false,
     supportsStreaming: true,
+    requiresBaseUrl: true,
+    baseUrl: 'https://ai.sumopod.com/v1',
     createModel: (apiKey, model, baseUrl) =>
-      createOpenAI({ apiKey, baseURL: baseUrl ?? '' })(model),
+      createOpenAI({ apiKey, baseURL: baseUrl ?? 'https://ai.sumopod.com/v1' })(model),
   },
   ganrouter: {
     displayName: 'GaNRouter',
-    defaultModel: 'gan-route-v1',
-    availableModels: ['gan-route-v1'],
+    defaultModel: 'cc/claude-sonnet-4-6',
+    availableModels: [
+      // Claude Code — best for PRD writing
+      'cc/claude-sonnet-4-6',
+      'cc/claude-opus-4-6',
+      'cc/claude-opus-4-5-20251101',
+      'cc/claude-sonnet-4-5-20250929',
+      'cc/claude-haiku-4-5-20251001',
+      // OpenAI (non-codex) — good for text generation
+      'cx/gpt-5.4',
+      'cx/gpt-5.2',
+      'cx/gpt-5.1',
+      // GitHub Copilot — Claude
+      'gh/claude-opus-4.6',
+      'gh/claude-sonnet-4.6',
+      'gh/claude-sonnet-4.5',
+      'gh/claude-opus-4.5',
+      // GitHub Copilot — GPT
+      'gh/gpt-5',
+      'gh/gpt-5.1',
+      'gh/gpt-5.2',
+      'gh/gpt-5.4',
+      'gh/gpt-4o',
+      'gh/gpt-4o-mini',
+    ],
     supportsStructuredOutput: false,
     supportsStreaming: true,
+    requiresBaseUrl: true,
+    baseUrl: 'https://ganrouter.com/v1',
     createModel: (apiKey, model, baseUrl) =>
-      createOpenAI({ apiKey, baseURL: baseUrl ?? '' })(model),
+      createOpenAI({ apiKey, baseURL: baseUrl ?? 'https://ganrouter.com/v1' })(model),
   },
 };
 

@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 export function HomeQuickInput() {
   const [brief, setBrief] = useState('');
@@ -16,29 +14,26 @@ export function HomeQuickInput() {
   }
 
   return (
-    <div className="space-y-xs">
-      <span className="font-mono text-[11px] uppercase tracking-wider text-ink-tertiary">
-        Start with AI
-      </span>
-      <Input
-        className="h-11 text-sm"
-        placeholder="Reduce cart abandonment by 15% with inline address validation..."
-        value={brief}
-        onChange={(e) => setBrief(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') handleDraft();
-        }}
-      />
-      <div className="flex items-center gap-sm">
-        <Button variant="primary-fill" size="sm" onClick={handleDraft}>
-          Draft PRD
-        </Button>
-        <Link
-          href="/templates"
-          className="font-mono text-xs text-ink-tertiary transition-colors hover:text-ink-secondary"
+    <div>
+      <p className="mb-2 text-[13px] font-medium text-[#1a1a1a]">What are you working on?</p>
+      <div className="flex gap-2">
+        <input
+          className="focus:ring-accent/30 h-10 flex-1 rounded-lg border border-[#e5e5e3] bg-[#fafaf9] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:bg-white focus:outline-none focus:ring-1"
+          placeholder="Describe your product idea or problem..."
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleDraft();
+          }}
+        />
+        <button
+          onClick={handleDraft}
+          disabled={!brief.trim()}
+          className="inline-flex h-10 items-center gap-1 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-30"
         >
-          From template
-        </Link>
+          Draft PRD
+          <ArrowRight size={13} />
+        </button>
       </div>
     </div>
   );

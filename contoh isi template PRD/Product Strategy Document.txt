@@ -1,0 +1,131 @@
+# Product Strategy Document
+
+Desc:
+A comprehensive template for defining and detailing the strategy for a product, including vision, market analysis, objectives, strategies, and roadmap.
+
+Instructions: Think long-term and connect every section back to the product vision. Market analysis should include specific data and trends, not generic industry observations. OKRs should ladder clearly from vision to measurable outcomes. The roadmap should explain sequencing rationale — why this order matters. Avoid filler; every section should contain decisions or insights that change behavior.
+
+Template                                          6 Sections 
+
+## Product Vision & Mission
+The overarching purpose and long-term aspiration of the product.
+
+### Vision
+The future state your product is working toward. This should be:
+- Ambitious and inspiring — paints a picture of the world you want to create
+- Aligned with the company's broader vision
+- Stable over years, not quarters
+
+### Mission
+What your product does today to move toward that vision:
+- Who you serve
+- What value you deliver
+- How you are uniquely positioned to deliver it
+
+### Example
+- **Vision**: 'Every team ships great products without bureaucracy.'
+- **Mission**: 'We give product teams AI-powered tools to write better specs, align faster, and ship with confidence.'
+
+## Market Analysis
+The landscape your product operates in.
+
+### Industry Trends
+- 3-5 current and emerging trends that affect your product
+- For each: what the trend is, how it affects your market, and your strategic response
+
+### Competitor Analysis
+For each key competitor:
+- **Name**: What they do
+- **Strengths**: Where they excel
+- **Weaknesses**: Where they fall short
+- **Your advantage**: Why customers choose you instead
+
+### Target Audience
+- **Primary segment**: Who they are, what they need, how large the segment is
+- **Secondary segment**: Who else benefits from your product
+- **Underserved needs**: Gaps in the market that your product can fill
+
+### Market Size
+- **TAM / SAM / SOM**: With sources and methodology
+
+## Objectives & Key Results
+Precise, measurable goals for the strategy period.
+
+### Objectives
+For each objective:
+- **Objective**: [Ambitious, time-bound goal aligned with the vision]
+- **Timeframe**: [Quarter or year]
+- **Owner**: [Who is accountable]
+
+### Key Results
+For each objective, 2-4 measurable results:
+- KR1: [Metric] from [baseline] to [target] by [date]
+- KR2: [Metric] from [baseline] to [target] by [date]
+
+### Alignment
+How these OKRs connect to:
+- Company-level objectives
+- Cross-functional team goals
+- Revenue and growth targets
+
+## Product Strategies
+Strategic approaches across product, marketing, and customer success.
+
+### Product Development Strategy
+- Key bets: The 2-3 biggest things you are building and why
+- Build vs. buy vs. partner decisions
+- Technical investments (platform, infrastructure, AI/ML)
+- UX/UI evolution direction
+
+### Marketing & Sales Strategy
+- Positioning and messaging approach
+- Key channels and campaigns
+- Sales motion (self-serve, sales-assisted, enterprise)
+- Pricing strategy and evolution
+
+### Customer Success Strategy
+- Onboarding and activation approach
+- Retention and expansion playbook
+- Support model and escalation paths
+- Community and education programs
+
+## Product Roadmap
+A time-bound plan showing what gets built and when.
+
+### Near-Term (This Quarter)
+For each initiative:
+- **Initiative**: [Name]
+- **Goal**: [What it achieves]
+- **Status**: Not started / In progress / Complete
+- **Dependencies**: [What it needs]
+
+### Medium-Term (Next 2 Quarters)
+- Planned initiatives with rationale and rough sizing
+- Key milestones and checkpoints
+
+### Long-Term (6-12 Months)
+- Strategic bets and exploration areas
+- Technology investments
+- Market expansion plans
+
+### Sequencing Rationale
+Why this order? What must come first to enable what comes later?
+
+## Risks & Success Criteria
+What could derail the strategy and how you will measure progress.
+
+### Key Risks
+For each risk:
+- **Risk**: [What could go wrong]
+- **Likelihood**: Low / Medium / High
+- **Impact**: Low / Medium / High
+- **Mitigation**: [How to prevent or reduce]
+
+### Strategy Success Criteria
+How you will know the strategy is working at the 3, 6, and 12 month mark:
+- **3 months**: [Early signals and leading indicators]
+- **6 months**: [Meaningful progress markers]
+- **12 months**: [Outcome-level results]
+
+### Review Cadence
+When and how the strategy will be reviewed and updated.

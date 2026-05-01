@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth/permissions';
 import { ProvidersList, type ProviderRow } from '@/components/settings/providers-list';
 
 export const metadata = {
-  title: 'LLM Providers — DraftMind',
+  title: 'DraftMind',
 };
 
 export default async function ProviderSettingsPage() {
@@ -32,9 +32,5 @@ export default async function ProviderSettingsPage() {
     providers = (data ?? []) as ProviderRow[];
   }
 
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <ProvidersList providers={providers} workspaceId={workspaceId} />
-    </div>
-  );
+  return <ProvidersList providers={providers} workspaceId={workspaceId} />;
 }

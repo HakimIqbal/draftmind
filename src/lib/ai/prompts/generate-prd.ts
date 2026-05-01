@@ -7,6 +7,15 @@ export interface GeneratePRDInput {
   endDate?: string;
   templateName?: string;
   locale?: 'en' | 'id' | 'mixed';
+  targetUsers?: string;
+  problemStatement?: string;
+  teamMembers?: string;
+  constraints?: string;
+  successCriteria?: string;
+  platform?: string;
+  priority?: string;
+  techStack?: string;
+  designLink?: string;
 }
 
 export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
@@ -19,6 +28,15 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
     endDate,
     templateName,
     locale = 'mixed',
+    targetUsers,
+    problemStatement,
+    teamMembers,
+    constraints,
+    successCriteria,
+    platform,
+    priority,
+    techStack,
+    designLink,
   } = input;
 
   const localeInstruction =
@@ -39,6 +57,20 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
     ? `The user selected the "${templateName}" template. Tailor tone and depth accordingly.`
     : '';
 
+  const extraContext = [
+    targetUsers && `Target Users/Audience: ${targetUsers}`,
+    problemStatement && `Problem Statement: ${problemStatement}`,
+    teamMembers && `Team Members: ${teamMembers}`,
+    constraints && `Constraints & Limitations: ${constraints}`,
+    successCriteria && `Success Criteria: ${successCriteria}`,
+    platform && `Platform: ${platform}`,
+    priority && `Priority Level: ${priority}`,
+    techStack && `Tech Stack: ${techStack}`,
+    designLink && `Design Reference: ${designLink}`,
+  ]
+    .filter(Boolean)
+    .join('\n- ');
+
   return `Generate a complete PRD based on the following brief. Output ONLY a valid JSON object — no markdown fences, no explanation, no text outside the JSON.
 
 ## Metadata
@@ -48,6 +80,9 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
 - ${dateRange}
 ${templateHint}
 
+## Additional Context
+${extraContext ? `- ${extraContext}` : 'No additional context provided.'}
+
 ## Language
 ${localeInstruction}
 
@@ -56,6 +91,14 @@ ${brief}
 
 ## Instructions
 Generate all 14 PRD sections. For any section where the brief does not provide enough information, fill in reasonable defaults and mark uncertain values with [TO CONFIRM].
+
+${targetUsers ? `Use the target users "${targetUsers}" to shape user stories and requirements.` : ''}
+${problemStatement ? `Use the problem statement to drive the overview and objectives.` : ''}
+${constraints ? `Incorporate the constraints into scope and risks sections.` : ''}
+${successCriteria ? `Use the success criteria to define success metrics.` : ''}
+${platform ? `Design requirements for the "${platform}" platform.` : ''}
+${techStack ? `Reference the tech stack "${techStack}" in technical requirements and non-functional requirements.` : ''}
+${teamMembers ? `Assign team members to DARCI roles: ${teamMembers}` : ''}
 
 The JSON object must have exactly these keys:
 

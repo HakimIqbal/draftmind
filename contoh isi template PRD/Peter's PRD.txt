@@ -1,0 +1,97 @@
+# Peter's PRD
+
+Desc:
+Peter Yang's PRD template (shared with permission)
+
+Instructions: Prioritize clarity and focus — this template works best when concise. The problem section needs concrete evidence (data, user quotes, or research). Write requirements as user stories with clear priority levels (P0 vs P1). The launch plan should specify experiment design with measurable success criteria and a ramp plan.
+
+Template                                          5 Sections 
+
+## Team
+List the people involved and their roles.
+
+### Format
+| Role | Name |
+|------|------|
+| PM | [Name] |
+| Design | [Name] |
+| Engineering Lead | [Name] |
+| Analytics | [Name] |
+| Marketing | [Name] |
+
+Include anyone with decision-making authority or a key deliverable.
+
+## Problem
+The customer problem you're solving — with evidence that it's real.
+
+### Format
+**Who**: [Specific customer segment]
+**Problem**: [What they struggle with]
+**Evidence**: [How you know — data, research, support tickets]
+
+### Example (Pinterest topic selector)
+*New users want to see topics they're interested in when they first sign up. Today, all new users see the same feed of popular content dominated by a few categories like women's fashion and decor that don't match the diverse interests of all new users.*
+
+### Guidelines
+- Be specific about who the customer is
+- Link to customer research and data
+- The problem should be clear enough that anyone on the team can explain it
+
+## Goals
+One output goal and 2-3 input metrics that drive it.
+
+### Output Goal
+The single metric that defines success:
+- **Metric**: [Name]
+- **Target**: [X]% change from [baseline]
+- **Timeframe**: [Period]
+
+### Input Metrics
+Leading indicators that drive the output:
+- Input 1: [Metric and target]
+- Input 2: [Metric and target]
+- Input 3: [Metric and target]
+
+### Non-Goals (Optional)
+Things explicitly out of scope and why.
+
+### Example (Pinterest)
+- **Output**: Grow activation rate by 20% (% of signups who return within 7 days)
+- **Inputs**: # users who visit topic selector, # who select a topic, # of topics selected, # who pin during first session
+
+## Requirements
+What the solution looks like, written as user stories with clear priorities.
+
+### High-Level Solution
+Describe the solution in 2-3 sentences before diving into details.
+
+### Milestones
+If there are multiple phases, list them clearly with scope for each.
+
+### User Stories
+For each milestone, write features as user stories:
+- **P0** (must ship): As a [user], I want [capability] so that [benefit]
+- **P0**: As a [user], I want [capability] so that [benefit]
+- **P1** (should ship): As a [user], I want [capability] so that [benefit]
+
+### Open Questions
+Highlight any decisions that need async discussion. Tag the person who should weigh in.
+
+## Launch Plan
+How the feature gets to users — staged rollout or experiment.
+
+### Experiment Design (if applicable)
+- **Success criteria**: [Metric] improves by [X]%
+- **Eligibility**: Who is included in the experiment
+- **Test group**: [Description of the new experience]
+- **Control group**: [Description of the current experience]
+- **Split**: [Percentage split, e.g., 50/50]
+- **Duration**: [How long to run for statistical significance]
+
+### Rollout Plan
+- **Phase 1**: [% of users] — Monitor for [duration]
+- **Phase 2**: [% of users] — Monitor for [duration]
+- **Phase 3**: 100% — GA launch
+
+### Rollback Criteria
+What metric movement would trigger a rollback? Who makes that call?

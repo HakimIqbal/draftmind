@@ -1,45 +1,32 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Home,
   FileText,
   LayoutTemplate,
   Users,
-  Plug,
   BarChart3,
   Settings,
-  Pin,
   Search,
   PanelLeftClose,
+  LogOut,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { Avatar } from '@/components/ui/avatar';
-import { Kbd } from '@/components/ui/kbd';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { WorkspaceSwitcher } from './workspace-switcher';
+import { createClient } from '@/lib/supabase/client';
 import type { WorkspaceListItem } from '@/lib/db/queries/workspace';
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  badge?: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { href: '/home', label: 'Home', icon: Home },
-  { href: '/prds', label: 'My PRDs', icon: FileText, badge: '0' },
+const NAV_ITEMS = [
+  { href: '/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/prds', label: 'My PRDs', icon: FileText },
   { href: '/templates', label: 'Templates', icon: LayoutTemplate },
   { href: '/workspace/members', label: 'Team', icon: Users },
-  { href: '/settings/providers', label: 'Integrations', icon: Plug },
   { href: '/ai-runs', label: 'Analytics', icon: BarChart3 },
-  { href: '/settings/profile', label: 'Settings', icon: Settings },
-];
-
-const PINNED_PRDS = [
-  { id: '1', title: 'Q2 Growth Strategy PRD' },
-  { id: '2', title: 'Payment Integration RFC' },
 ];
 
 interface SidebarProps {
@@ -49,6 +36,7 @@ interface SidebarProps {
   currentWorkspaceId?: string;
   userName?: string;
   userEmail?: string;
+  recentPRDs?: { id: string; title: string }[];
 }
 
 export function Sidebar({
@@ -58,43 +46,63 @@ export function Sidebar({
   currentWorkspaceId,
   userName,
   userEmail,
+  recentPRDs,
 }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
-  if (collapsed) {
-    return null;
+  if (collapsed) return null;
+
+  const initials = (userName ?? 'U')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
   }
 
   return (
-    <aside className="flex h-screen w-[240px] shrink-0 flex-col border-r border-subtle bg-bg-canvas">
-      {/* Header: Logo + workspace + collapse */}
-      <div className="flex items-center justify-between px-lg py-md">
-        {workspaces && currentWorkspaceId ? (
-          <WorkspaceSwitcher workspaces={workspaces} currentWorkspaceId={currentWorkspaceId} />
-        ) : (
-          <span className="text-sm font-medium text-ink-primary">DraftMind</span>
-        )}
+    <aside className="flex h-screen w-[250px] shrink-0 flex-col border-r border-[#f0f0ee] bg-[#f8f8f7]">
+      {/* Brand */}
+      <div className="flex items-center justify-between px-5 pb-3 pt-5">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Image
+            src="/logo/logo.jpg"
+            width={26}
+            height={26}
+            alt="DraftMind"
+            className="rounded-lg"
+          />
+          <span className="text-[14px] font-bold text-[#1a1a1a]">DraftMind</span>
+        </Link>
         <button
           onClick={onToggleCollapse}
-          className="text-ink-tertiary transition-colors hover:text-ink-primary"
-          aria-label="Collapse sidebar"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-[#bbb] transition-colors hover:bg-white hover:text-[#666]"
         >
-          <PanelLeftClose size={16} />
+          <PanelLeftClose size={15} />
         </button>
       </div>
 
       {/* Search */}
-      <div className="px-sm pb-sm">
-        <button className="flex h-8 w-full items-center gap-sm rounded-md border border-subtle bg-bg-surface px-sm text-left font-mono text-xs text-ink-tertiary transition-colors hover:border-strong">
-          <Search size={14} />
-          <span className="flex-1">Search or ask AI</span>
-          <Kbd>⌘K</Kbd>
-        </button>
+      <div className="px-3 pb-2">
+        <Link
+          href="/search"
+          className="flex h-8 w-full items-center gap-2 rounded-lg bg-white px-3 text-[12px] text-[#aaa] shadow-sm transition-colors hover:text-[#666]"
+        >
+          <Search size={13} />
+          <span className="flex-1">Search...</span>
+        </Link>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-xs">
-        <ul className="space-y-px">
+      {/* Main Nav */}
+      <nav className="flex-1 overflow-y-auto px-3 pt-2">
+        <ul className="space-y-[2px]">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             return (
@@ -102,71 +110,104 @@ export function Sidebar({
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex h-8 items-center gap-sm rounded-md px-sm text-sm transition-colors',
+                    'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-all',
                     isActive
-                      ? 'border-l-2 border-accent bg-bg-surface text-ink-primary'
-                      : 'text-ink-secondary hover:bg-bg-surface hover:text-ink-primary',
+                      ? 'bg-white text-[#1a1a1a] shadow-sm'
+                      : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
                   )}
                 >
-                  <item.icon size={18} className="shrink-0" />
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {item.badge && (
-                    <span className="font-mono text-[11px] text-ink-tertiary">{item.badge}</span>
-                  )}
+                  <item.icon
+                    size={16}
+                    className={cn('shrink-0', isActive ? 'text-accent' : 'text-[#999]')}
+                  />
+                  {item.label}
                 </Link>
               </li>
             );
           })}
         </ul>
 
-        {/* Workspaces section */}
-        <div className="mt-lg">
-          <h3 className="mb-xs px-sm font-mono text-[11px] uppercase tracking-wider text-ink-tertiary">
-            Workspaces
-          </h3>
-          <ul className="space-y-px">
-            <li>
-              <button className="flex h-7 w-full items-center gap-sm rounded-md px-sm text-left text-sm text-ink-secondary transition-colors hover:bg-bg-surface hover:text-ink-primary">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                <span className="truncate">Algo Network</span>
-              </button>
-            </li>
-          </ul>
-        </div>
-
-        {/* Pinned section */}
-        <div className="mt-lg">
-          <h3 className="mb-xs px-sm font-mono text-[11px] uppercase tracking-wider text-ink-tertiary">
-            Pinned
-          </h3>
-          <ul className="space-y-px">
-            {PINNED_PRDS.map((prd) => (
-              <li key={prd.id}>
-                <button className="flex h-7 w-full items-center gap-sm rounded-md px-sm text-left text-sm text-ink-secondary transition-colors hover:bg-bg-surface hover:text-ink-primary">
-                  <Pin size={12} className="shrink-0 text-ink-tertiary" />
-                  <span className="truncate">{prd.title}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Recent PRDs */}
+        {recentPRDs && recentPRDs.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-[#aaa]">
+              Recent
+            </p>
+            <ul className="space-y-[2px]">
+              {recentPRDs.map((prd) => (
+                <li key={prd.id}>
+                  <Link
+                    href={`/prds/${prd.id}`}
+                    className={cn(
+                      'flex h-8 items-center gap-2 rounded-lg px-3 text-[12px] transition-colors',
+                      pathname === `/prds/${prd.id}`
+                        ? 'bg-white text-[#1a1a1a] shadow-sm'
+                        : 'text-[#888] hover:bg-white/60 hover:text-[#1a1a1a]',
+                    )}
+                  >
+                    <FileText size={12} className="shrink-0 text-[#bbb]" />
+                    <span className="truncate">{prd.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </nav>
 
-      {/* Bottom: User */}
-      <div className="border-t border-subtle px-sm py-sm">
-        <div className="flex items-center gap-sm rounded-md px-xs py-xs">
-          <Avatar name={userName ?? 'User'} size="sm" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm text-ink-primary">{userName ?? 'User'}</p>
-            <p className="truncate font-mono text-[11px] text-ink-tertiary">{userEmail ?? ''}</p>
+      {/* Bottom */}
+      <div className="border-t border-[#e8e8e6] px-3 py-3">
+        {/* Workspace switcher */}
+        {workspaces && currentWorkspaceId && (
+          <div className="mb-2">
+            <WorkspaceSwitcher workspaces={workspaces} currentWorkspaceId={currentWorkspaceId} />
           </div>
-          <Link
-            href="/settings/profile"
-            className="text-ink-tertiary transition-colors hover:text-ink-primary"
+        )}
+
+        {/* User */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white/60">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="truncate text-[12px] font-medium text-[#1a1a1a]">
+                  {userName ?? 'User'}
+                </p>
+              </div>
+              <ChevronDown size={12} className="text-[#bbb]" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            side="top"
+            align="start"
+            className="w-[220px] rounded-xl border-[#eee] p-0 shadow-xl"
           >
-            <Settings size={14} />
-          </Link>
-        </div>
+            <div className="border-b border-[#f0f0f0] px-4 py-3">
+              <p className="text-[12px] font-medium text-[#1a1a1a]">{userName ?? 'User'}</p>
+              <p className="text-[11px] text-[#aaa]">{userEmail ?? ''}</p>
+            </div>
+            <div className="py-1">
+              <Link
+                href="/settings/profile"
+                className="flex h-9 items-center gap-2.5 px-4 text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f4]"
+              >
+                <Settings size={14} className="text-[#999]" />
+                Settings
+              </Link>
+            </div>
+            <div className="border-t border-[#f0f0f0] py-1">
+              <button
+                onClick={handleLogout}
+                className="flex h-9 w-full items-center gap-2.5 px-4 text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f4]"
+              >
+                <LogOut size={14} className="text-[#999]" />
+                Log out
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </aside>
   );
