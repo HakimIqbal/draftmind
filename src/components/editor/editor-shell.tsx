@@ -94,9 +94,15 @@ export function EditorShell({
     [editorInstance, closeAIAssist],
   );
 
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
+
   const handleUpdate = useCallback(
     (content: Record<string, unknown>) => {
-      savePRDContent(prd.id, content);
+      setSaveStatus('saving');
+      savePRDContent(prd.id, content).then(() => {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      });
     },
     [prd.id],
   );
@@ -143,15 +149,34 @@ export function EditorShell({
 
         {/* Footer bar */}
         <div className="flex shrink-0 items-center gap-4 border-t border-subtle px-8 py-2 font-mono text-[11px] text-ink-tertiary">
-          <span>Saved {savedAgo}</span>
+          <span className="flex items-center gap-1.5">
+            {saveStatus === 'saving' ? (
+              <>
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+                Saving...
+              </>
+            ) : saveStatus === 'saved' ? (
+              <>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Saved
+              </>
+            ) : (
+              <>
+                <span className="h-1.5 w-1.5 rounded-full bg-ink-quaternary" />
+                Saved {savedAgo}
+              </>
+            )}
+          </span>
+          <span>&middot;</span>
           <span>{prd.word_count} words</span>
+          <span>&middot;</span>
           <span>{prd.read_time_minutes} min read</span>
           <button
             type="button"
-            className="ml-auto text-ink-tertiary transition-colors hover:text-ink-primary"
+            className="ml-auto rounded px-2 py-0.5 text-ink-tertiary transition-colors hover:bg-bg-elevated hover:text-ink-primary"
             onClick={() => setMarkdownMode(!markdownMode)}
           >
-            {markdownMode ? 'Toggle Rich Editor' : 'Toggle Markdown view'}
+            {markdownMode ? 'Rich Editor' : 'Markdown'}
           </button>
         </div>
       </div>

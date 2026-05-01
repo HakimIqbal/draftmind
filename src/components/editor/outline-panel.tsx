@@ -78,9 +78,20 @@ export function OutlinePanel({ prd, userId }: OutlinePanelProps) {
                       ? 'bg-bg-elevated text-ink-primary'
                       : 'hover:bg-bg-elevated/50 text-ink-secondary hover:text-ink-primary'
                   }`}
-                  onClick={() => setActiveSection(key)}
+                  onClick={() => {
+                    setActiveSection(key);
+                    // Scroll editor to the section heading
+                    const label = PRD_SECTION_LABELS[key];
+                    const headings = document.querySelectorAll('.tiptap-editor h2');
+                    for (const h of headings) {
+                      if (h.textContent?.trim() === label) {
+                        h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        break;
+                      }
+                    }
+                  }}
                 >
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-tertiary" />
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-ink-tertiary" />
                   {PRD_SECTION_LABELS[key]}
                 </button>
               </li>

@@ -23,19 +23,26 @@ function getGrade(score: number): string {
 }
 
 export function HealthScoreDisplay({ score, breakdown }: HealthScoreDisplayProps) {
+  const hasScore = score !== null && score > 0;
   const displayScore = score ?? 0;
 
   return (
     <div className="flex items-start gap-4">
       <div className="flex flex-col items-center gap-1">
-        <ProgressRing size={64} value={displayScore}>
+        <ProgressRing size={64} value={hasScore ? displayScore : 0}>
           <div className="flex flex-col items-center">
-            <span className="text-sm font-bold text-ink-primary">{displayScore}</span>
-            <span className="font-mono text-[10px] text-ink-tertiary">/100</span>
+            {hasScore ? (
+              <>
+                <span className="text-sm font-bold text-ink-primary">{displayScore}</span>
+                <span className="font-mono text-[10px] text-ink-tertiary">/100</span>
+              </>
+            ) : (
+              <span className="text-xs text-ink-tertiary">N/A</span>
+            )}
           </div>
         </ProgressRing>
         <span className="font-mono text-[11px] text-ink-tertiary">
-          {score !== null ? getGrade(displayScore) : 'N/A'}
+          {hasScore ? getGrade(displayScore) : 'Run AI Review'}
         </span>
       </div>
 
