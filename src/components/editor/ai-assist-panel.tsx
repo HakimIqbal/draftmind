@@ -69,9 +69,13 @@ export function AIAssistPanel({ selectedText, prdId, onInsert, onClose }: AIAssi
     }
   }
 
-  function handleCopy(text: string) {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+  async function handleCopy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Failed to copy to clipboard');
+    }
   }
 
   return (

@@ -13,6 +13,7 @@ import {
   MessageSquare,
   ClipboardList,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -103,19 +104,21 @@ export function ExportModal({ open, onOpenChange, prdId }: ExportModalProps) {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        alert(err.error ?? 'Export failed');
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as Record<string, string>).error ?? 'Export failed');
         return;
       }
-
-      const _contentType = res.headers.get('content-type') ?? '';
 
       // Text-based formats: show for copy or download
       if (format === 'slack' || format === 'jira') {
         const text = await res.text();
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          toast.error('Failed to copy to clipboard');
+        }
         return;
       }
 
@@ -133,9 +136,12 @@ export function ExportModal({ open, onOpenChange, prdId }: ExportModalProps) {
         return;
       }
 
-      // Binary formats (pdf/docx) — placeholder handling
-      const text = await res.text();
-      alert(text);
+      // Binary formats (pdf/docx)
+      const blob = await res.blob();
+      const ext = format === 'pdf' ? 'pdf' : 'docx';
+      downloadBlob(blob, `prd-export.${ext}`);
+    } catch {
+      toast.error('Export failed. Please try again.');
     } finally {
       setExporting(false);
     }

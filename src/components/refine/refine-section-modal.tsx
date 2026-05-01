@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -77,6 +78,7 @@ export function RefineSectionModal({
       setRefined(data.refined);
       setState('result');
     } catch {
+      toast.error('Failed to refine section. Please try again.');
       setState('idle');
     }
   }, [instruction, prdId, sectionKey]);

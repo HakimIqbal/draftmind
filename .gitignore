@@ -67,3 +67,7 @@ supabase/
 test-results/
 
 draftmind_claude_code_prompts.zip
+
+# build artifacts
+tsc
+draftmind@*

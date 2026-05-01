@@ -289,13 +289,31 @@ function simpleMarkdownToHTML(md: string): string {
   return output.join('\n');
 }
 
+function sanitizeUrl(url: string): string {
+  const decoded = url
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"');
+  try {
+    const parsed = new URL(decoded, 'https://placeholder.invalid');
+    if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) return '';
+  } catch {
+    if (!decoded.startsWith('/') && !decoded.startsWith('#')) return '';
+  }
+  return url;
+}
+
 function inline(text: string): string {
   let out = esc(text);
   out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   out = out.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
   out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
   out = out.replace(/~~(.+?)~~/g, '<del>$1</del>');
-  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, href: string) => {
+    const safe = sanitizeUrl(href);
+    return safe ? `<a href="${safe}" rel="noopener noreferrer">${label}</a>` : label;
+  });
   return out;
 }
 

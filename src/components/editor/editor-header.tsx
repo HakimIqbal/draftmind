@@ -63,6 +63,27 @@ export function EditorHeader({ prd, userName, workspaceId }: EditorHeaderProps) 
   const [templateName, setTemplateName] = useState(prd.title);
   const [templateDesc, setTemplateDesc] = useState('');
   const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  async function handleShare() {
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/prd/${prd.id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error('Failed to create share link');
+      const data = await res.json();
+      const shareUrl = `${window.location.origin}${data.url}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Share link copied to clipboard');
+    } catch {
+      toast.error('Failed to create share link');
+    } finally {
+      setSharing(false);
+    }
+  }
 
   async function handleSaveAsTemplate() {
     if (!templateName.trim()) return;
@@ -107,9 +128,9 @@ export function EditorHeader({ prd, userName, workspaceId }: EditorHeaderProps) 
               Version
             </Link>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => console.log('Share')}>
+          <Button variant="outline" size="sm" onClick={handleShare} disabled={sharing}>
             <Share2 size={14} className="mr-1.5" />
-            Share
+            {sharing ? 'Sharing...' : 'Share'}
           </Button>
 
           <DropdownMenu>
