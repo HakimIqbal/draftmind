@@ -424,10 +424,8 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
                     {!isCollapsed && (
                       <div className="grid gap-2 sm:grid-cols-2">
                         {filtered.map((t) => {
-                          const sectionCount =
-                            t.structure.sections?.length ??
-                            t.structure.sections_enabled?.length ??
-                            0;
+                          const sections = t.structure.sections ?? [];
+                          const sectionNames = sections.map((s: { name: string }) => s.name);
                           return (
                             <button
                               key={t.id}
@@ -438,9 +436,18 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
                               <p className="mt-1 line-clamp-2 text-[12px] text-[#999]">
                                 {t.description}
                               </p>
-                              <p className="mt-2 text-[11px] text-[#bbb]">
-                                {sectionCount} sections
-                              </p>
+                              {sectionNames.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-1">
+                                  {sectionNames.map((name: string, i: number) => (
+                                    <span
+                                      key={i}
+                                      className="rounded bg-[#f5f5f4] px-1.5 py-0.5 text-[10px] text-[#888]"
+                                    >
+                                      {name}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </button>
                           );
                         })}
