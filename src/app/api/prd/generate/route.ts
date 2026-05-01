@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
-import { getDefaultAIClient } from '@/lib/ai/client';
+import { updateProviderStats } from '@/lib/ai/client';
+import { PROVIDER_REGISTRY } from '@/lib/ai/providers';
+import { decryptApiKey } from '@/lib/utils/crypto';
 import { buildGeneratePRDPrompt } from '@/lib/ai/prompts/generate-prd';
 import { SYSTEM_PROMPT } from '@/lib/ai/prompts/system';
 import { AIGeneratedSectionsSchema } from '@/lib/ai/schema';
@@ -574,104 +577,139 @@ export async function POST(request: Request) {
       end_date?: string;
     };
 
-    // Try to get AI provider
-    let aiSections: AIGeneratedSections;
+    // Build prompt with ALL context from input payload
+    const stakeholderNames = inputPayload.stakeholders
+      ? inputPayload.stakeholders
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [];
+
+    const userPrompt = buildGeneratePRDPrompt({
+      brief: inputPayload.brief,
+      title: inputPayload.title,
+      ownerName: user.user_metadata?.full_name || user.email || 'User',
+      stakeholderNames,
+      startDate: inputPayload.start_date,
+      endDate: inputPayload.end_date,
+      problemStatement: inputPayload.problem_statement,
+      targetUsers: inputPayload.target_users,
+      teamMembers: inputPayload.team_members?.join(', '),
+      constraints: inputPayload.constraints,
+      successCriteria: inputPayload.success_criteria,
+      platform: inputPayload.platform,
+      priority: inputPayload.priority,
+      techStack: inputPayload.tech_stack,
+      designLink: inputPayload.design_link,
+    });
+
+    // Try ALL providers in priority order with real fallback
+    let aiSections: AIGeneratedSections = undefined!;
     let modelUsed = 'pending';
     let tokensUsed = 0;
     let providerId: string | null = null;
+    const providerErrors: string[] = [];
 
-    try {
-      const aiClient = await getDefaultAIClient(workspaceId);
-      modelUsed = aiClient.modelId;
-      providerId = aiClient.provider.id;
+    // Get all active providers
+    const adminClient = createAdminClient();
+    const { data: allProviders } = await adminClient
+      .from('providers')
+      .select(
+        'id, type, display_name, default_model, base_url, api_key_encrypted, status, priority',
+      )
+      .eq('status', 'active')
+      .order('priority', { ascending: true });
 
-      // Update status to running
-      await supabase
-        .from('ai_runs')
-        .update({ status: 'running', model_used: modelUsed })
-        .eq('id', aiRunId);
-
-      // Build prompt with ALL context from input payload
-      const stakeholderNames = inputPayload.stakeholders
-        ? inputPayload.stakeholders
-            .split(',')
-            .map((s: string) => s.trim())
-            .filter(Boolean)
-        : [];
-
-      const userPrompt = buildGeneratePRDPrompt({
-        brief: inputPayload.brief,
-        title: inputPayload.title,
-        ownerName: user.user_metadata?.full_name || user.email || 'User',
-        stakeholderNames,
-        startDate: inputPayload.start_date,
-        endDate: inputPayload.end_date,
-        problemStatement: inputPayload.problem_statement,
-        targetUsers: inputPayload.target_users,
-        teamMembers: inputPayload.team_members?.join(', '),
-        constraints: inputPayload.constraints,
-        successCriteria: inputPayload.success_criteria,
-        platform: inputPayload.platform,
-        priority: inputPayload.priority,
-        techStack: inputPayload.tech_stack,
-        designLink: inputPayload.design_link,
-      });
-
-      // Call AI
-      const result = await generateText({
-        model: aiClient.model,
-        system: SYSTEM_PROMPT,
-        prompt: userPrompt,
-        maxTokens: 16000,
-        temperature: 0.5,
-      });
-
-      tokensUsed = result.usage?.totalTokens ?? 0;
-
-      // Parse response — try to extract JSON from the text
-      let jsonText = result.text.trim();
-
-      // Strip markdown code fences if present
-      const fenceMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (fenceMatch) {
-        jsonText = fenceMatch[1]!.trim();
-      }
-
-      const parsed = JSON.parse(jsonText);
-
-      // Validate with Zod (lenient)
-      const validation = AIGeneratedSectionsSchema.safeParse(parsed);
-      if (validation.success) {
-        aiSections = validation.data;
-      } else {
-        // Use raw parsed data if it has at least the overview field
-        if (parsed.overview) {
-          aiSections = parsed as AIGeneratedSections;
-        } else {
-          throw new Error(`AI output validation failed: ${validation.error.message}`);
-        }
-      }
-    } catch (providerError) {
-      // No mock fallback — return real error
-      const providerErrMsg =
-        providerError instanceof Error ? providerError.message : String(providerError);
+    if (!allProviders || allProviders.length === 0) {
       const durationMs = Date.now() - startMs;
       await supabase
         .from('ai_runs')
         .update({
           status: 'error',
-          error_message: providerErrMsg,
+          error_message: 'No AI provider configured',
+          duration_ms: durationMs,
+        })
+        .eq('id', aiRunId);
+      return NextResponse.json({ error: 'No AI provider configured' }, { status: 503 });
+    }
+
+    let generationSucceeded = false;
+
+    for (const provider of allProviders) {
+      const config = PROVIDER_REGISTRY[provider.type];
+      if (!config) continue;
+
+      try {
+        const apiKey = decryptApiKey(provider.api_key_encrypted);
+        const model = config.createModel(
+          apiKey,
+          provider.default_model,
+          provider.base_url ?? undefined,
+        );
+
+        modelUsed = provider.default_model;
+        providerId = provider.id;
+
+        // Update status to running
+        await supabase
+          .from('ai_runs')
+          .update({ status: 'running', model_used: `${provider.display_name}/${modelUsed}` })
+          .eq('id', aiRunId);
+
+        // Call AI
+        const result = await generateText({
+          model,
+          system: SYSTEM_PROMPT,
+          prompt: userPrompt,
+          maxTokens: 16000,
+          temperature: 0.5,
+        });
+
+        tokensUsed = result.usage?.totalTokens ?? 0;
+
+        // Parse response
+        let jsonText = result.text.trim();
+        const fenceMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (fenceMatch) {
+          jsonText = fenceMatch[1]!.trim();
+        }
+
+        const parsed = JSON.parse(jsonText);
+
+        const validation = AIGeneratedSectionsSchema.safeParse(parsed);
+        if (validation.success) {
+          aiSections = validation.data;
+        } else if (parsed.overview) {
+          aiSections = parsed as AIGeneratedSections;
+        } else {
+          throw new Error(`AI output validation failed: ${validation.error.message}`);
+        }
+
+        // Update provider stats on success
+        updateProviderStats(provider.id, true, Date.now() - startMs).catch(() => {});
+        generationSucceeded = true;
+        break;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        providerErrors.push(`${provider.display_name}: ${msg}`);
+        updateProviderStats(provider.id, false, Date.now() - startMs, msg).catch(() => {});
+        continue; // Try next provider
+      }
+    }
+
+    if (!generationSucceeded) {
+      const allErrorsMsg = `All providers failed: ${providerErrors.join(' | ')}`;
+      const durationMs = Date.now() - startMs;
+      await supabase
+        .from('ai_runs')
+        .update({
+          status: 'error',
+          error_message: allErrorsMsg,
           duration_ms: durationMs,
         })
         .eq('id', aiRunId);
 
-      // Update provider stats on failure
-      if (providerId) {
-        const { updateProviderStats } = await import('@/lib/ai/client');
-        await updateProviderStats(providerId, false, durationMs, providerErrMsg).catch(() => {});
-      }
-
-      return NextResponse.json({ error: providerErrMsg }, { status: 500 });
+      return NextResponse.json({ error: allErrorsMsg }, { status: 500 });
     }
 
     // Convert to PRDDocument
