@@ -48,7 +48,7 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
 
   const dateRange =
     startDate && endDate
-      ? `The project timeline is from ${startDate} to ${endDate}. Use these dates to build realistic milestones.`
+      ? `The project timeline is from ${startDate} to ${endDate}. Use these dates to build realistic milestones with at least 4-5 phases.`
       : startDate
         ? `The project starts on ${startDate}. Estimate milestones from that date.`
         : 'No specific dates were provided. Use placeholder dates with [TO CONFIRM] markers.';
@@ -71,7 +71,7 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
     .filter(Boolean)
     .join('\n- ');
 
-  return `Generate a complete PRD based on the following brief. Output ONLY a valid JSON object — no markdown fences, no explanation, no text outside the JSON.
+  return `You are a senior product manager writing a comprehensive, production-quality PRD. Generate a detailed PRD based on the brief below. Output ONLY a valid JSON object — no markdown fences, no explanation.
 
 ## Metadata
 - Title: ${title}
@@ -89,24 +89,72 @@ ${localeInstruction}
 ## Brief
 ${brief}
 
-## Instructions
-Generate all 14 PRD sections. For any section where the brief does not provide enough information, fill in reasonable defaults and mark uncertain values with [TO CONFIRM].
+## Quality Requirements — CRITICAL
+You must write DETAILED, SPECIFIC content. Avoid generic filler text. Every section must demonstrate domain knowledge and thoughtful analysis.
 
-${targetUsers ? `Use the target users "${targetUsers}" to shape user stories and requirements.` : ''}
-${problemStatement ? `Use the problem statement to drive the overview and objectives.` : ''}
-${constraints ? `Incorporate the constraints into scope and risks sections.` : ''}
-${successCriteria ? `Use the success criteria to define success metrics.` : ''}
-${platform ? `Design requirements for the "${platform}" platform.` : ''}
-${techStack ? `Reference the tech stack "${techStack}" in technical requirements and non-functional requirements.` : ''}
-${teamMembers ? `Assign team members to DARCI roles: ${teamMembers}` : ''}
+### Overview (2-4 substantial paragraphs)
+- Paragraph 1: What the product/feature is and the core value proposition
+- Paragraph 2: Why it matters — market context, user pain, business opportunity
+- Paragraph 3: How it works at a high level — key capabilities and approach
+- Paragraph 4: Expected impact and success vision
 
-The JSON object must have exactly these keys:
+### Problem Statement (2-3 paragraphs with evidence)
+- Describe the SPECIFIC problem with concrete data points or user quotes
+- Explain who is affected and how severely
+- Quantify the business impact (lost revenue, user churn, inefficiency)
+
+### Objectives (at least 4, with measurable key results)
+- Each objective must have 2-3 specific, quantified key results
+- Include both goals AND non-goals
+- Key results must have baseline → target format where possible
+
+### User Stories (at least 5, detailed)
+- Each story must have 3-4 specific acceptance criteria
+- Cover different user personas and scenarios
+- Include edge cases and error scenarios
+- Prioritize with must/should/could
+
+### Functional Requirements (at least 6, detailed descriptions)
+- Each requirement needs a multi-sentence description explaining the behavior
+- Include specific details about UI behavior, data handling, edge cases
+- Reference dependencies between requirements
+
+### Non-Functional Requirements
+- Performance: specific load times, concurrent users, response times
+- Security: specific measures (encryption, auth, data protection)
+- Accessibility: WCAG level, specific accommodations
+- Scalability: growth projections, capacity planning
+
+### Success Metrics (at least 4)
+- Each metric needs a realistic baseline and target
+- Include leading AND lagging indicators
+- Specify measurement method and window
+
+### Timeline (at least 4 milestones)
+- Each milestone needs 2-3 specific deliverables
+- Include design, development, testing, and launch phases
+- Realistic dates based on the provided timeline
+
+### Risks (at least 4)
+- Each risk needs specific mitigation strategies (not generic "allocate more resources")
+- Include technical, business, and operational risks
+- Assign risk owners where team members are provided
+
+${targetUsers ? `Use the target users "${targetUsers}" to create specific, empathetic user stories.` : ''}
+${problemStatement ? `Ground the overview and problem statement in: "${problemStatement}"` : ''}
+${constraints ? `Incorporate these constraints into scope, risks, and requirements: "${constraints}"` : ''}
+${successCriteria ? `Use these success criteria to define measurable success metrics: "${successCriteria}"` : ''}
+${platform ? `Design all requirements specifically for the "${platform}" platform.` : ''}
+${techStack ? `Reference the tech stack "${techStack}" in technical requirements and architecture decisions.` : ''}
+${teamMembers ? `Assign team members to DARCI roles and risk ownership: ${teamMembers}` : ''}
+
+## Output JSON Schema
 
 {
-  "overview": "string — 2-4 paragraph executive summary",
-  "problem_statement": "string — clear description of the problem being solved",
+  "overview": "string — 2-4 detailed paragraphs as described above",
+  "problem_statement": "string — 2-3 paragraphs with evidence and quantified impact",
   "objectives": [
-    { "statement": "string", "measurable_outcome": "string", "priority": "must_have | should_have | nice_to_have" }
+    { "statement": "string — clear objective", "measurable_outcome": "string — specific KR with baseline/target", "priority": "must_have | should_have | nice_to_have" }
   ],
   "darci": {
     "decider": "string or null",
@@ -116,35 +164,35 @@ The JSON object must have exactly these keys:
     "informed": ["string"]
   },
   "scope": {
-    "in_scope": ["string — feature or capability included"],
-    "out_of_scope": ["string — explicitly excluded item"]
+    "in_scope": ["string — specific feature or capability"],
+    "out_of_scope": ["string — explicitly excluded with reason"]
   },
   "user_stories": [
-    { "role": "string", "want": "string", "benefit": "string", "acceptance_criteria": ["string"] }
+    { "role": "string", "want": "string — specific action", "benefit": "string — concrete outcome", "acceptance_criteria": ["string — testable criterion"] }
   ],
   "functional_reqs": [
-    { "priority": "must_have | should_have | nice_to_have", "title": "string", "description": "string" }
+    { "priority": "must_have | should_have | nice_to_have", "title": "string", "description": "string — 2-3 sentences with specific behavior details" }
   ],
   "nfr": {
-    "performance": "string or null",
-    "security": "string or null",
-    "accessibility": "string or null",
-    "scalability": "string or null"
+    "performance": "string — specific metrics (e.g., page load < 2s, API response < 500ms)",
+    "security": "string — specific measures (e.g., AES-256 encryption, OAuth 2.0, RBAC)",
+    "accessibility": "string — specific standards (e.g., WCAG 2.1 AA, screen reader support)",
+    "scalability": "string — specific targets (e.g., support 10K concurrent users, 99.9% uptime)"
   },
   "success_metrics": [
-    { "name": "string", "baseline": "string or null", "target": "string", "measurement_window": "string" }
+    { "name": "string", "baseline": "string — current value", "target": "string — goal value", "measurement_window": "string" }
   ],
   "timeline": [
-    { "title": "string — milestone name", "date": "string — YYYY-MM-DD", "deliverable": "string" }
+    { "title": "string — milestone name", "date": "string — YYYY-MM-DD", "deliverable": "string — specific deliverables" }
   ],
   "risks": [
-    { "description": "string", "likelihood": "low | medium | high", "impact": "low | medium | high", "mitigation": "string" }
+    { "description": "string — specific risk", "likelihood": "low | medium | high", "impact": "low | medium | high", "mitigation": "string — concrete mitigation steps" }
   ],
   "references": [
     { "type": "string", "url": "string", "title": "string" }
   ],
   "glossary": [
-    { "term": "string", "definition": "string" }
+    { "term": "string", "definition": "string — clear, non-circular definition" }
   ],
   "changelog": [
     { "version": 1, "date": "${startDate ?? new Date().toISOString().slice(0, 10)}", "author": "${ownerName}", "summary": "Initial draft generated by DraftMind AI" }
@@ -152,9 +200,10 @@ The JSON object must have exactly these keys:
 }
 
 Rules:
-- Generate at least 3 objectives, 4 user stories, 5 functional requirements, 3 success metrics, 3 timeline milestones, and 3 risks.
-- Use the owner name "${ownerName}" for the accountable role in DARCI unless the brief specifies otherwise.
-- Populate stakeholder names in DARCI roles where appropriate: ${stakeholderNames.join(', ') || '[TO CONFIRM]'}.
-- Each user story must have at least 2 acceptance criteria.
+- Generate at least 4 objectives (with 2+ key results each), 5 user stories (with 3+ ACs each), 6 functional requirements (with detailed descriptions), 4 success metrics, 4 timeline milestones, and 4 risks.
+- Use the owner name "${ownerName}" for the accountable role in DARCI.
+- Populate stakeholder names in DARCI roles: ${stakeholderNames.join(', ') || '[TO CONFIRM]'}.
+- NEVER write generic filler like "improve user experience" or "enhance performance". Be SPECIFIC.
+- Every metric must have realistic numbers, not placeholders.
 - Output valid JSON only.`;
 }
