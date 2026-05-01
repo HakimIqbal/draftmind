@@ -137,3 +137,32 @@ export async function restoreVersion(prdId: string, versionId: string) {
   revalidatePath(`/prds/${prdId}/version-history`);
   return { success: true, version: nextVersion };
 }
+
+export async function updatePRDStatus(prdId: string, status: string) {
+  await requireUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('prds')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', prdId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/prds/${prdId}`);
+  revalidatePath('/prds');
+  return { success: true };
+}
+
+export async function togglePRDPin(prdId: string, isPinned: boolean) {
+  await requireUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from('prds').update({ is_pinned: isPinned }).eq('id', prdId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/prds/${prdId}`);
+  revalidatePath('/prds');
+  return { success: true };
+}

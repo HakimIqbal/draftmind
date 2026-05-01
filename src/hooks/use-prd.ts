@@ -1,11 +1,10 @@
 'use client';
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { updatePRDStatus, togglePRDPin } from '@/app/(app)/prds/[prdId]/actions';
 
 export function usePRD(prdId: string) {
   const router = useRouter();
-  const supabase = createClient();
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -13,18 +12,18 @@ export function usePRD(prdId: string) {
 
   const updateStatus = useCallback(
     async (status: string) => {
-      await supabase.from('prds').update({ status }).eq('id', prdId);
+      await updatePRDStatus(prdId, status);
       refresh();
     },
-    [supabase, prdId, refresh],
+    [prdId, refresh],
   );
 
   const togglePin = useCallback(
     async (isPinned: boolean) => {
-      await supabase.from('prds').update({ is_pinned: isPinned }).eq('id', prdId);
+      await togglePRDPin(prdId, isPinned);
       refresh();
     },
-    [supabase, prdId, refresh],
+    [prdId, refresh],
   );
 
   return { updateStatus, togglePin, refresh };

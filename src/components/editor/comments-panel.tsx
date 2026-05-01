@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Textarea } from '@/components/ui/textarea';
+import { addComment, resolveComment, fetchComments } from '@/components/editor/comments-actions';
 
 interface Comment {
   id: string;
@@ -117,68 +117,34 @@ function CommentCard({
   );
 }
 
-export function CommentsPanel({ prdId, currentUserId }: CommentsPanelProps) {
+export function CommentsPanel({ prdId, currentUserId: _currentUserId }: CommentsPanelProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [filter, setFilter] = useState<'open' | 'resolved' | 'me'>('open');
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const supabase = useMemo(() => createClient(), []);
 
-  const fetchComments = useCallback(async () => {
-    const query = supabase
-      .from('comments')
-      .select('*, author:profiles!comments_author_id_fkey(full_name, avatar_color_seed)')
-      .eq('prd_id', prdId)
-      .order('created_at', { ascending: true });
+  const loadComments = useCallback(async () => {
+    const data = await fetchComments(prdId, filter);
+    setComments(data as Comment[]);
+  }, [prdId, filter]);
 
-    if (filter === 'open') query.is('resolved_at', null);
-    if (filter === 'resolved') query.not('resolved_at', 'is', null);
-
-    const { data } = await query;
-    let result = (data as Comment[]) ?? [];
-
-    if (filter === 'me') {
-      result = result.filter((c) => c.author_id === currentUserId);
-    }
-
-    setComments(result);
-  }, [prdId, filter, currentUserId, supabase]);
-
-  // Keep a ref to fetchComments so the realtime handler always calls the latest version
-  // without needing to re-subscribe when the filter changes.
-  const fetchCommentsRef = useRef(fetchComments);
+  const loadCommentsRef = useRef(loadComments);
   useEffect(() => {
-    fetchCommentsRef.current = fetchComments;
-  }, [fetchComments]);
+    loadCommentsRef.current = loadComments;
+  }, [loadComments]);
 
-  // Fetch comments on mount and when filter changes
   useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+    loadComments();
+  }, [loadComments]);
 
-  // Realtime subscription — depends only on prdId so the channel stays stable across filter changes
+  // Poll for new comments every 5 seconds (replaces realtime subscription)
   useEffect(() => {
-    const channel = supabase
-      .channel(`comments-${prdId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comments',
-          filter: `prd_id=eq.${prdId}`,
-        },
-        () => {
-          fetchCommentsRef.current();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [prdId, supabase]);
+    const interval = setInterval(() => {
+      loadCommentsRef.current();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [prdId]);
 
   const threads = useMemo(() => buildThreads(comments), [comments]);
   const openCount = useMemo(
@@ -191,22 +157,16 @@ export function CommentsPanel({ prdId, currentUserId }: CommentsPanelProps) {
     if (!body || submitting) return;
 
     setSubmitting(true);
-    await supabase.from('comments').insert({
-      prd_id: prdId,
-      author_id: currentUserId,
-      parent_id: replyTo,
-      body,
-    });
+    await addComment(prdId, body, replyTo);
     setNewComment('');
     setReplyTo(null);
     setSubmitting(false);
+    loadComments();
   };
 
   const handleResolve = async (commentId: string) => {
-    await supabase
-      .from('comments')
-      .update({ resolved_at: new Date().toISOString() })
-      .eq('id', commentId);
+    await resolveComment(commentId);
+    loadComments();
   };
 
   const handleReply = (parentId: string) => {

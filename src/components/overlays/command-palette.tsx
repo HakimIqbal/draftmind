@@ -6,7 +6,7 @@ import { FileText, LayoutTemplate, Sun, Moon, Settings, Search } from 'lucide-re
 import { Kbd } from '@/components/ui/kbd';
 import { Pill } from '@/components/ui/pill';
 import { useCommandPaletteStore } from '@/stores/command-palette-store';
-import { createClient } from '@/lib/supabase/client';
+import { searchPRDs } from '@/components/overlays/command-palette-actions';
 import { useRouter } from 'next/navigation';
 
 interface PrdItem {
@@ -35,15 +35,10 @@ export function CommandPalette() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, setOpen]);
 
-  // Fetch recent PRDs on mount
+  // Fetch recent PRDs on mount via server action
   const fetchPrds = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('prds')
-      .select('id, title, project_tag, status')
-      .order('updated_at', { ascending: false })
-      .limit(20);
-    if (data) setPrds(data);
+    const data = await searchPRDs();
+    setPrds(data as PrdItem[]);
   }, []);
 
   useEffect(() => {

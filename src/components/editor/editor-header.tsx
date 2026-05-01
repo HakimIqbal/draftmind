@@ -26,8 +26,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { createClient } from '@/lib/supabase/client';
 import { duplicatePRD, archivePRD, deletePRD } from '@/app/(app)/prds/[prdId]/actions';
+import { createTemplate } from '@/app/(app)/templates/actions';
 
 interface EditorHeaderProps {
   prd: {
@@ -61,7 +61,7 @@ function relativeTime(dateStr: string): string {
   return `${diffDay}d ago`;
 }
 
-export function EditorHeader({ prd, userName, workspaceId }: EditorHeaderProps) {
+export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: EditorHeaderProps) {
   const router = useRouter();
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -118,17 +118,19 @@ export function EditorHeader({ prd, userName, workspaceId }: EditorHeaderProps) 
     if (!templateName.trim()) return;
     setSaving(true);
     try {
-      const supabase = createClient();
-      await supabase.from('prd_templates').insert({
-        workspace_id: workspaceId ?? null,
+      const result = await createTemplate({
         name: templateName,
-        description: templateDesc || null,
+        description: templateDesc,
         category: 'custom',
-        structure: prd.content,
-        is_built_in: false,
+        sections: Object.keys((prd.content as Record<string, unknown>).sections ?? {}),
+        guidelines: {},
       });
-      toast.success('Template saved');
-      setSaveTemplateOpen(false);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success('Template saved');
+        setSaveTemplateOpen(false);
+      }
     } catch {
       toast.error('Failed to save template');
     } finally {
