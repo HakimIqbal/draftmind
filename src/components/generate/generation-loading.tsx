@@ -68,11 +68,10 @@ export function GenerationLoading({
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error || 'Generation failed');
+        setError('Generation failed. Please try again or contact your admin.');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error');
+    } catch {
+      setError('Unable to reach the server. Please check your connection and try again.');
     }
   }, [prdId, aiRunId]);
 
@@ -94,7 +93,7 @@ export function GenerationLoading({
     }
 
     if (run.status === 'error') {
-      setError(run.error || 'Generation failed');
+      setError('Generation failed. Please try again or contact your admin.');
       return;
     }
 

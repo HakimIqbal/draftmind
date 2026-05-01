@@ -190,8 +190,8 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
           techStack: techStack.trim() || undefined,
           designLink: designLink.trim() || undefined,
         });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong.');
+      } catch {
+        setError('Failed to create PRD. Please try again.');
       }
     });
   }
@@ -219,8 +219,8 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
           templateId: selectedTemplate.id,
           brief: templateBrief.trim(),
         });
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Something went wrong.');
+      } catch {
+        toast.error('Failed to create PRD. Please try again.');
       }
     });
   }

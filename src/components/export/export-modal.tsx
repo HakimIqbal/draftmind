@@ -104,8 +104,7 @@ export function ExportModal({ open, onOpenChange, prdId }: ExportModalProps) {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error((err as Record<string, string>).error ?? 'Export failed');
+        toast.error('Export failed. Please try again.');
         return;
       }
 
