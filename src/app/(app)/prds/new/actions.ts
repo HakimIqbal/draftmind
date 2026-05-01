@@ -109,6 +109,8 @@ export async function createPRDAndGenerate(data: {
       brief: data.brief,
       title: data.title,
       project_tag: data.projectTag,
+      start_date: data.startDate,
+      end_date: data.endDate,
       stakeholders: data.stakeholders,
       team_members: data.teamMemberNames,
       problem_statement: data.problemStatement,

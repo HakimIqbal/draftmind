@@ -560,6 +560,18 @@ export async function POST(request: Request) {
       brief: string;
       title: string;
       project_tag?: string;
+      stakeholders?: string;
+      team_members?: string[];
+      problem_statement?: string;
+      target_users?: string;
+      constraints?: string;
+      success_criteria?: string;
+      platform?: string;
+      priority?: string;
+      tech_stack?: string;
+      design_link?: string;
+      start_date?: string;
+      end_date?: string;
     };
 
     // Try to get AI provider
@@ -579,12 +591,30 @@ export async function POST(request: Request) {
         .update({ status: 'running', model_used: modelUsed })
         .eq('id', aiRunId);
 
-      // Build prompt
+      // Build prompt with ALL context from input payload
+      const stakeholderNames = inputPayload.stakeholders
+        ? inputPayload.stakeholders
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+        : [];
+
       const userPrompt = buildGeneratePRDPrompt({
         brief: inputPayload.brief,
         title: inputPayload.title,
         ownerName: user.user_metadata?.full_name || user.email || 'User',
-        stakeholderNames: [],
+        stakeholderNames,
+        startDate: inputPayload.start_date,
+        endDate: inputPayload.end_date,
+        problemStatement: inputPayload.problem_statement,
+        targetUsers: inputPayload.target_users,
+        teamMembers: inputPayload.team_members?.join(', '),
+        constraints: inputPayload.constraints,
+        successCriteria: inputPayload.success_criteria,
+        platform: inputPayload.platform,
+        priority: inputPayload.priority,
+        techStack: inputPayload.tech_stack,
+        designLink: inputPayload.design_link,
       });
 
       // Call AI
@@ -592,8 +622,8 @@ export async function POST(request: Request) {
         model: aiClient.model,
         system: SYSTEM_PROMPT,
         prompt: userPrompt,
-        maxTokens: 8000,
-        temperature: 0.7,
+        maxTokens: 16000,
+        temperature: 0.5,
       });
 
       tokensUsed = result.usage?.totalTokens ?? 0;
