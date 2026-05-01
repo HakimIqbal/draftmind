@@ -1,19 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import {
-  FileText,
-  Clock,
-  BarChart3,
-  Activity,
-  Plus,
-  ArrowRight,
-  LayoutTemplate,
-  Users,
-} from 'lucide-react';
+import { FileText, Clock, BarChart3, Activity, Plus, LayoutTemplate, Users } from 'lucide-react';
 import { ContinueWorkingCard } from './continue-working-card';
 import { ActivityFeed } from './activity-feed';
 import { NeedsAttentionCard } from './needs-attention-card';
@@ -79,12 +70,6 @@ export function HomeFeed({
           <p className="mt-2 text-[14px] text-[#888]">
             Your workspace is empty. Start by creating your first PRD.
           </p>
-        </div>
-
-        {/* Draft input */}
-        <div className="mt-8 rounded-xl border border-[#eee] bg-white p-6">
-          <p className="mb-3 text-[13px] font-medium text-[#1a1a1a]">Quick draft</p>
-          <DraftInput />
         </div>
 
         {/* Actions */}
@@ -166,11 +151,6 @@ export function HomeFeed({
         />
       </div>
 
-      {/* Draft */}
-      <div className="mt-5 rounded-xl border border-[#eee] bg-white p-5">
-        <DraftInput />
-      </div>
-
       {/* Two column layout */}
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr,320px]">
         {/* Main */}
@@ -216,38 +196,6 @@ export function HomeFeed({
 }
 
 // ─── Components ───
-
-function DraftInput() {
-  const router = useRouter();
-  const [brief, setBrief] = useState('');
-
-  function handleDraft() {
-    if (!brief.trim()) return;
-    router.push(`/prds/new?brief=${encodeURIComponent(brief.trim())}`);
-  }
-
-  return (
-    <div className="flex gap-2">
-      <input
-        className="focus:ring-accent/20 h-10 flex-1 rounded-lg border border-[#e5e5e3] bg-[#fafaf9] px-4 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:bg-white focus:outline-none focus:ring-1"
-        placeholder="Describe a feature or problem to draft a PRD..."
-        value={brief}
-        onChange={(e) => setBrief(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') handleDraft();
-        }}
-      />
-      <button
-        onClick={handleDraft}
-        disabled={!brief.trim()}
-        className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-25"
-      >
-        Draft
-        <ArrowRight size={13} />
-      </button>
-    </div>
-  );
-}
 
 function Stat({
   icon: Icon,
