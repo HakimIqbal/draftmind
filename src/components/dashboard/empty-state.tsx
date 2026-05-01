@@ -63,16 +63,16 @@ export function EmptyState() {
           </Card>
         </Link>
 
-        <Card className="cursor-pointer opacity-60">
-          <CardContent className="flex flex-col items-center gap-sm p-lg text-center">
-            <Upload size={24} className="text-ink-secondary" />
-            <p className="text-sm font-medium text-ink-primary">Import existing doc</p>
-            <p className="font-mono text-xs text-ink-tertiary">Coming soon</p>
-          </CardContent>
-        </Card>
+        <Link href="/templates">
+          <Card className="cursor-pointer transition-colors hover:border-strong">
+            <CardContent className="flex flex-col items-center gap-sm p-lg text-center">
+              <Upload size={24} className="text-ink-secondary" />
+              <p className="text-sm font-medium text-ink-primary">Browse templates</p>
+              <p className="font-mono text-xs text-ink-tertiary">30+ templates</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
-
-      <p className="mt-lg font-mono text-[11px] text-ink-tertiary">Watch 90-second demo &rarr;</p>
     </div>
   );
 }

@@ -349,7 +349,7 @@ export function prdToTiptap(prd: PRDDocument): TiptapDoc {
 /**
  * Parse a Tiptap document back into PRD structure.
  *
- * This is a "best-effort" parser for Phase 3. It splits the document by H2
+ * Best-effort parser. It splits the document by H2
  * headings and maps content back to the appropriate section. Rich text
  * sections (overview, problem_statement) store the raw Tiptap nodes.
  * Structured sections are parsed from text with simple heuristics.

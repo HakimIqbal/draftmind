@@ -7,9 +7,7 @@ import type { Editor } from '@tiptap/react';
  * Hook that monitors text selection in the Tiptap editor.
  * When the selection exceeds 10 characters, it calls `onSelect`
  * with the selected text. When selection is cleared, calls `onDeselect`.
- *
- * Phase 3 approach: no floating toolbar — just detect selection
- * and switch the right panel to AI Assist mode in the editor shell.
+ * Switches the right panel to AI Assist mode in the editor shell.
  */
 export function useSelectionDetector(
   editor: Editor | null,

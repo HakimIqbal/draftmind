@@ -108,9 +108,7 @@ export function EditorShell({
   );
 
   const handleMarkdownChange = useCallback((_text: string) => {
-    // Phase 3: store markdown as-is; real parsing will come later
-    // For now this is a no-op placeholder since we cannot convert
-    // raw markdown back to tiptap JSON yet.
+    // Markdown → Tiptap conversion not yet supported; view-only for now
   }, []);
 
   const editorContent = prd.tiptap_content ?? prd.content;
