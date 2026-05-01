@@ -62,6 +62,8 @@ export default async function EditorPage({
         updated_at: prd.updated_at,
       }}
       userName={userName}
+      userId={user.id}
+      workspaceId={workspace.id as string}
     />
   );
 }

@@ -18,6 +18,52 @@ export interface GeneratePRDInput {
   designLink?: string;
 }
 
+function detectBriefLanguage(brief: string): 'en' | 'id' {
+  const idWords = [
+    'dan',
+    'yang',
+    'untuk',
+    'dengan',
+    'dari',
+    'ini',
+    'itu',
+    'adalah',
+    'pada',
+    'ke',
+    'di',
+    'akan',
+    'telah',
+    'sudah',
+    'bisa',
+    'dapat',
+    'tidak',
+    'juga',
+    'atau',
+    'harus',
+    'oleh',
+    'saya',
+    'kami',
+    'mereka',
+    'agar',
+    'supaya',
+    'sehingga',
+    'karena',
+    'seperti',
+    'lebih',
+    'sangat',
+    'aplikasi',
+    'pengguna',
+    'fitur',
+    'sistem',
+    'membuat',
+    'menggunakan',
+  ];
+  const words = brief.toLowerCase().split(/\s+/);
+  const idCount = words.filter((w) => idWords.includes(w)).length;
+  const ratio = idCount / words.length;
+  return ratio > 0.1 ? 'id' : 'en';
+}
+
 export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
   const {
     brief,
@@ -39,12 +85,15 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
     designLink,
   } = input;
 
+  // Auto-detect language from brief if locale is 'mixed'
+  const effectiveLocale = locale === 'mixed' ? detectBriefLanguage(brief) : locale;
+
   const localeInstruction =
-    locale === 'en'
-      ? 'Write all content in English.'
-      : locale === 'id'
-        ? 'Write all content in Bahasa Indonesia.'
-        : 'Write content in a natural mix of English and Bahasa Indonesia, matching the language style of the brief.';
+    effectiveLocale === 'en'
+      ? 'Write ALL content strictly in English. Do NOT use Bahasa Indonesia.'
+      : effectiveLocale === 'id'
+        ? 'Write ALL content strictly in Bahasa Indonesia.'
+        : 'Write ALL content strictly in English. Do NOT use Bahasa Indonesia.';
 
   const dateRange =
     startDate && endDate

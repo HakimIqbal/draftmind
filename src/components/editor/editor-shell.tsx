@@ -29,6 +29,8 @@ export interface EditorShellProps {
     updated_at: string;
   };
   userName: string;
+  userId?: string;
+  workspaceId?: string;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -44,7 +46,12 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
-export function EditorShell({ prd, userName }: EditorShellProps) {
+export function EditorShell({
+  prd,
+  userName,
+  userId,
+  workspaceId: _workspaceId,
+}: EditorShellProps) {
   const {
     outlineCollapsed,
     copilotCollapsed,
@@ -113,7 +120,7 @@ export function EditorShell({ prd, userName }: EditorShellProps) {
           onExpand={(tab) => expandOutline(tab as 'outline' | 'comments' | 'info' | undefined)}
         />
       ) : (
-        <OutlinePanel prd={prd} />
+        <OutlinePanel prd={prd} userId={userId} />
       )}
 
       {/* Main editor area */}
@@ -160,7 +167,7 @@ export function EditorShell({ prd, userName }: EditorShellProps) {
           onClose={closeAIAssist}
         />
       ) : (
-        <AICopilotPanel />
+        <AICopilotPanel prdId={prd.id} />
       )}
     </div>
   );

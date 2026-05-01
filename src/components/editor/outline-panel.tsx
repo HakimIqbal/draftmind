@@ -7,6 +7,7 @@ import { PRD_SECTION_KEYS, PRD_SECTION_LABELS } from '@/types/prd';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { HealthScoreDisplay } from '@/components/editor/health-score-display';
+import { CommentsPanel } from '@/components/editor/comments-panel';
 
 interface OutlinePanelProps {
   prd: {
@@ -20,9 +21,10 @@ interface OutlinePanelProps {
     health_breakdown: Record<string, number> | null;
     updated_at: string;
   };
+  userId?: string;
 }
 
-export function OutlinePanel({ prd }: OutlinePanelProps) {
+export function OutlinePanel({ prd, userId }: OutlinePanelProps) {
   const { activeOutlineTab, setOutlineTab, toggleOutline } = useEditorStore();
   const [activeSection, setActiveSection] = useState<string>(PRD_SECTION_KEYS[0]);
 
@@ -87,8 +89,14 @@ export function OutlinePanel({ prd }: OutlinePanelProps) {
         </TabsContent>
 
         {/* Comments tab */}
-        <TabsContent value="comments" className="flex-1 px-4">
-          <p className="text-xs text-ink-tertiary">Comments panel &mdash; Task 3.8</p>
+        <TabsContent value="comments" className="flex-1 overflow-y-auto">
+          {userId ? (
+            <CommentsPanel prdId={prd.id} currentUserId={userId} />
+          ) : (
+            <div className="flex h-32 items-center justify-center px-4">
+              <span className="text-sm text-ink-tertiary">Sign in to comment</span>
+            </div>
+          )}
         </TabsContent>
 
         {/* Info tab */}
