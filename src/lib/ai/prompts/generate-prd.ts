@@ -125,18 +125,31 @@ You must write DETAILED, SPECIFIC content. Avoid generic filler text. Every sect
 - Accessibility: WCAG level, specific accommodations
 - Scalability: growth projections, capacity planning
 
-### Success Metrics (at least 4)
-- Each metric needs a realistic baseline and target
+### DARCI Matrix
+- Each role MUST have a "guidelines" field: 2-3 actionable sentences describing specific responsibilities
+- Guidelines must reference concrete tasks, tools, or workflows relevant to this project
+- Example: "Review all UX mockups for accessibility compliance before handoff. Conduct weekly sprint planning and prioritize backlog items. Approve final design decisions and resolve cross-team conflicts."
+
+### Success Metrics (at least 5-8)
+- Each metric needs a "definition" field explaining what it measures and why it matters
+- Include realistic baseline and ambitious but achievable target
 - Include leading AND lagging indicators
 - Specify measurement method and window
 
-### Timeline (at least 4 milestones)
-- Each milestone needs 2-3 specific deliverables
-- Include design, development, testing, and launch phases
+### Timeline (at least 5-7 phases)
+- Each phase needs an "activity" field: 2-3 sentences describing actionable steps, purpose, and expected outcomes
+- Each phase needs a "pic" field: person or team in charge
+- Each phase needs 2-3 specific deliverables
+- Cover: Planning, Design, Development, Testing, Staging, Launch, Post-Launch
 - Realistic dates based on the provided timeline
 
-### Risks (at least 4)
-- Each risk needs specific mitigation strategies (not generic "allocate more resources")
+### User Stories (at least 5-8)
+- Each story must have 3-4 acceptance criteria in Given/When/Then format
+- Example AC: "Given the user is on the dashboard, When they click 'Create PRD', Then they are redirected to the generation form within 1 second"
+- Cover different user personas and scenarios including edge cases
+
+### Risks (at least 4-5)
+- Each risk needs specific, concrete mitigation strategies (not generic "allocate more resources")
 - Include technical, business, and operational risks
 - Assign risk owners where team members are provided
 
@@ -157,18 +170,18 @@ ${teamMembers ? `Assign team members to DARCI roles and risk ownership: ${teamMe
     { "statement": "string — clear objective", "measurable_outcome": "string — specific KR with baseline/target", "priority": "must_have | should_have | nice_to_have" }
   ],
   "darci": {
-    "decider": "string or null",
-    "accountable": "string or null",
-    "responsible": ["string"],
-    "consulted": ["string"],
-    "informed": ["string"]
+    "decider": { "people": ["string"], "guidelines": "string — 2-3 sentences of specific responsibilities" },
+    "accountable": { "people": ["string"], "guidelines": "string" },
+    "responsible": { "people": ["string"], "guidelines": "string" },
+    "consulted": { "people": ["string"], "guidelines": "string" },
+    "informed": { "people": ["string"], "guidelines": "string" }
   },
   "scope": {
     "in_scope": ["string — specific feature or capability"],
     "out_of_scope": ["string — explicitly excluded with reason"]
   },
   "user_stories": [
-    { "role": "string", "want": "string — specific action", "benefit": "string — concrete outcome", "acceptance_criteria": ["string — testable criterion"] }
+    { "role": "string", "want": "string — specific action", "benefit": "string — concrete outcome", "acceptance_criteria": ["string — use Given/When/Then format"], "priority": "must | should | could" }
   ],
   "functional_reqs": [
     { "priority": "must_have | should_have | nice_to_have", "title": "string", "description": "string — 2-3 sentences with specific behavior details" }
@@ -180,10 +193,10 @@ ${teamMembers ? `Assign team members to DARCI roles and risk ownership: ${teamMe
     "scalability": "string — specific targets (e.g., support 10K concurrent users, 99.9% uptime)"
   },
   "success_metrics": [
-    { "name": "string", "baseline": "string — current value", "target": "string — goal value", "measurement_window": "string" }
+    { "name": "string", "definition": "string — what this metric measures and why it matters", "baseline": "string — current value", "target": "string — goal value with significance", "measurement_window": "string" }
   ],
   "timeline": [
-    { "title": "string — milestone name", "date": "string — YYYY-MM-DD", "deliverable": "string — specific deliverables" }
+    { "title": "string — phase name", "date": "string — YYYY-MM-DD", "activity": "string — 2-3 sentences: actionable steps, purpose, expected outcomes", "deliverable": "string — specific deliverables", "pic": "string — person or team in charge" }
   ],
   "risks": [
     { "description": "string — specific risk", "likelihood": "low | medium | high", "impact": "low | medium | high", "mitigation": "string — concrete mitigation steps" }
@@ -200,10 +213,11 @@ ${teamMembers ? `Assign team members to DARCI roles and risk ownership: ${teamMe
 }
 
 Rules:
-- Generate at least 4 objectives (with 2+ key results each), 5 user stories (with 3+ ACs each), 6 functional requirements (with detailed descriptions), 4 success metrics, 4 timeline milestones, and 4 risks.
-- Use the owner name "${ownerName}" for the accountable role in DARCI.
-- Populate stakeholder names in DARCI roles: ${stakeholderNames.join(', ') || '[TO CONFIRM]'}.
-- NEVER write generic filler like "improve user experience" or "enhance performance". Be SPECIFIC.
-- Every metric must have realistic numbers, not placeholders.
+- Generate at least 4 objectives (with 2+ key results each), 5-8 user stories (with 3+ ACs in Given/When/Then), 6+ functional requirements (with detailed descriptions), 5-8 success metrics (with definitions), 5-7 timeline phases (with activity descriptions and PIC), and 4-5 risks.
+- DARCI: each role MUST have "people" array AND "guidelines" string. Use "${ownerName}" for accountable. Populate stakeholders: ${stakeholderNames.join(', ') || '[TO CONFIRM]'}.
+- Problem statement and overview MUST be multi-paragraph narratives, NOT bullet lists.
+- NEVER write generic filler like "improve user experience" or "enhance performance". Be SPECIFIC with numbers, tools, and concrete outcomes.
+- Every metric must have a definition, realistic baseline numbers, and ambitious targets.
+- Timeline activities must describe actionable steps, purpose, and expected outcomes in 2-3 sentences.
 - Output valid JSON only.`;
 }

@@ -157,18 +157,25 @@ export function prdToTiptap(prd: PRDDocument): TiptapDoc {
   // ── DARCI Matrix ──
   nodes.push(heading(2, 'DARCI Matrix'));
   const { darci } = prd.sections;
-  const darciItems: string[] = [];
-  if (darci.decider.length > 0) darciItems.push(`**Decider:** ${darci.decider.join(', ')}`);
-  if (darci.accountable.length > 0)
-    darciItems.push(`**Accountable:** ${darci.accountable.join(', ')}`);
-  if (darci.responsible.length > 0)
-    darciItems.push(`**Responsible:** ${darci.responsible.join(', ')}`);
-  if (darci.consulted.length > 0) darciItems.push(`**Consulted:** ${darci.consulted.join(', ')}`);
-  if (darci.informed.length > 0) darciItems.push(`**Informed:** ${darci.informed.join(', ')}`);
-  if (darciItems.length > 0) {
-    nodes.push(bulletList(darciItems));
-  } else {
-    nodes.push(paragraph(''));
+  const darciRoles: Array<[string, typeof darci.decider]> = [
+    ['Decider', darci.decider],
+    ['Accountable', darci.accountable],
+    ['Responsible', darci.responsible],
+    ['Consulted', darci.consulted],
+    ['Informed', darci.informed],
+  ];
+  for (const [roleName, roleData] of darciRoles) {
+    const people = Array.isArray(roleData) ? roleData : (roleData?.people ?? []);
+    const guidelines = Array.isArray(roleData) ? '' : (roleData?.guidelines ?? '');
+    if (people.length > 0 || guidelines) {
+      nodes.push(heading(3, roleName));
+      if (people.length > 0) {
+        nodes.push(paragraph(`**${people.join(', ')}**`));
+      }
+      if (guidelines) {
+        nodes.push(paragraph(guidelines));
+      }
+    }
   }
 
   // ── Scope ──
@@ -245,9 +252,10 @@ export function prdToTiptap(prd: PRDDocument): TiptapDoc {
   if (prd.sections.success_metrics.length > 0) {
     nodes.push(
       table(
-        ['Metric', 'Baseline', 'Target', 'Window'],
+        ['Metric', 'Definition', 'Baseline', 'Target', 'Window'],
         prd.sections.success_metrics.map((m) => [
           m.name,
+          m.definition || '-',
           m.baseline,
           m.target,
           m.measurement_window,
@@ -263,8 +271,13 @@ export function prdToTiptap(prd: PRDDocument): TiptapDoc {
   if (prd.sections.timeline.length > 0) {
     for (const ms of prd.sections.timeline) {
       const statusTag = ms.status ? ` [${ms.status}]` : '';
-      nodes.push(paragraph(`**${ms.title}** — ${ms.date}${statusTag}`));
+      const picTag = ms.pic ? ` — PIC: ${ms.pic}` : '';
+      nodes.push(paragraph(`**${ms.title}** — ${ms.date}${statusTag}${picTag}`));
+      if (ms.activity) {
+        nodes.push(paragraph(ms.activity));
+      }
       if (ms.deliverables.length > 0) {
+        nodes.push(heading(4, 'Deliverables'));
         nodes.push(bulletList(ms.deliverables));
       }
     }
@@ -552,20 +565,50 @@ function parseDarci(
   nodes: TiptapNode[],
   existing: PRDDocument['sections']['darci'],
 ): PRDDocument['sections']['darci'] {
-  const result = { ...existing };
-  const items = extractListItems(nodes);
+  const result = JSON.parse(JSON.stringify(existing));
 
-  for (const item of items) {
-    const match = item.match(/^(?:\*\*)?(\w+)(?:\*\*)?:\s*(.+)$/i);
-    if (!match) continue;
-    const role = match[1]!.toLowerCase();
-    const people = match[2]!
-      .split(',')
-      .map((p) => p.trim())
-      .filter(Boolean);
-
-    if (role in result) {
-      (result as Record<string, string[]>)[role] = people;
+  let currentRole = '';
+  for (const node of nodes) {
+    if (node.type === 'heading' && (node.attrs?.level ?? 0) === 3) {
+      currentRole = extractText(node).toLowerCase().trim();
+    } else if (node.type === 'paragraph' && currentRole && currentRole in result) {
+      const text = extractText(node).trim();
+      if (!text) continue;
+      const roleData = result[currentRole];
+      if (Array.isArray(roleData)) {
+        // Legacy format — convert to new
+        const people = text
+          .replace(/^\*\*|\*\*$/g, '')
+          .split(',')
+          .map((p: string) => p.trim())
+          .filter(Boolean);
+        result[currentRole] = { people, guidelines: '' };
+      } else if (typeof roleData === 'object' && roleData !== null) {
+        if (!roleData.people || roleData.people.length === 0) {
+          roleData.people = text
+            .replace(/^\*\*|\*\*$/g, '')
+            .split(',')
+            .map((p: string) => p.trim())
+            .filter(Boolean);
+        } else {
+          roleData.guidelines = (roleData.guidelines ? roleData.guidelines + ' ' : '') + text;
+        }
+      }
+    } else if (node.type === 'bulletList' || node.type === 'orderedList') {
+      // Legacy fallback
+      for (const li of node.content ?? []) {
+        const item = extractText(li).trim();
+        const match = item.match(/^(?:\*\*)?(\w+)(?:\*\*)?:\s*(.+)$/i);
+        if (!match) continue;
+        const role = match[1]!.toLowerCase();
+        const people = match[2]!
+          .split(',')
+          .map((p: string) => p.trim())
+          .filter(Boolean);
+        if (role in result) {
+          result[role] = { people, guidelines: '' };
+        }
+      }
     }
   }
 
@@ -714,9 +757,10 @@ function parseSuccessMetrics(nodes: TiptapNode[]): PRDDocument['sections']['succ
           metrics.push({
             id: `SM-${String(metrics.length + 1).padStart(3, '0')}`,
             name: cells[0]!,
-            baseline: cells[1]!,
-            target: cells[2]!,
-            measurement_window: cells[3]!,
+            definition: cells.length >= 5 ? cells[1]! : '',
+            baseline: cells.length >= 5 ? cells[2]! : cells[1]!,
+            target: cells.length >= 5 ? cells[3]! : cells[2]!,
+            measurement_window: cells.length >= 5 ? cells[4]! : cells[3]!,
           });
         }
       }
@@ -730,6 +774,7 @@ function parseSuccessMetrics(nodes: TiptapNode[]): PRDDocument['sections']['succ
       metrics.push({
         id: `SM-${String(metrics.length + 1).padStart(3, '0')}`,
         name: item,
+        definition: '',
         baseline: '',
         target: '',
         measurement_window: '',
@@ -759,9 +804,12 @@ function parseTimeline(nodes: TiptapNode[]): PRDDocument['sections']['timeline']
           id: `MS-${String(milestones.length + 1).padStart(3, '0')}`,
           title: msMatch[1]!.trim(),
           date: msMatch[2]!,
+          activity: '',
           deliverables: [],
           status: (msMatch[3] as 'planned' | 'in_progress' | 'completed' | 'delayed') ?? 'planned',
         };
+      } else if (currentMilestone && !currentMilestone.activity) {
+        currentMilestone.activity = text;
       }
     } else if ((node.type === 'bulletList' || node.type === 'orderedList') && currentMilestone) {
       for (const li of node.content ?? []) {

@@ -256,14 +256,24 @@ export function prdToMarkdown(prd: PRDDocument): string {
   lines.push('## DARCI Matrix');
   lines.push('');
   const { darci } = prd.sections;
-  if (darci.decider.length > 0) lines.push(`- **Decider:** ${darci.decider.join(', ')}`);
-  if (darci.accountable.length > 0)
-    lines.push(`- **Accountable:** ${darci.accountable.join(', ')}`);
-  if (darci.responsible.length > 0)
-    lines.push(`- **Responsible:** ${darci.responsible.join(', ')}`);
-  if (darci.consulted.length > 0) lines.push(`- **Consulted:** ${darci.consulted.join(', ')}`);
-  if (darci.informed.length > 0) lines.push(`- **Informed:** ${darci.informed.join(', ')}`);
-  lines.push('');
+  const darciRoles: Array<[string, typeof darci.decider]> = [
+    ['Decider', darci.decider],
+    ['Accountable', darci.accountable],
+    ['Responsible', darci.responsible],
+    ['Consulted', darci.consulted],
+    ['Informed', darci.informed],
+  ];
+  for (const [roleName, roleData] of darciRoles) {
+    const people = Array.isArray(roleData) ? roleData : (roleData?.people ?? []);
+    const guidelines = Array.isArray(roleData) ? '' : (roleData?.guidelines ?? '');
+    if (people.length > 0 || guidelines) {
+      lines.push(`### ${roleName}`);
+      lines.push('');
+      if (people.length > 0) lines.push(`**${people.join(', ')}**`);
+      if (guidelines) lines.push(guidelines);
+      lines.push('');
+    }
+  }
 
   // ── Scope ──
   lines.push('## Scope');
@@ -338,11 +348,12 @@ export function prdToMarkdown(prd: PRDDocument): string {
   lines.push('## Success Metrics');
   lines.push('');
   if (prd.sections.success_metrics.length > 0) {
-    // Table header
-    lines.push('| Metric | Baseline | Target | Window |');
-    lines.push('| --- | --- | --- | --- |');
+    lines.push('| Metric | Definition | Baseline | Target | Window |');
+    lines.push('| --- | --- | --- | --- | --- |');
     for (const m of prd.sections.success_metrics) {
-      lines.push(`| ${m.name} | ${m.baseline} | ${m.target} | ${m.measurement_window} |`);
+      lines.push(
+        `| ${m.name} | ${m.definition || '-'} | ${m.baseline} | ${m.target} | ${m.measurement_window} |`,
+      );
     }
     lines.push('');
   }
@@ -352,9 +363,15 @@ export function prdToMarkdown(prd: PRDDocument): string {
   lines.push('');
   for (const ms of prd.sections.timeline) {
     const statusTag = ms.status ? ` [${ms.status}]` : '';
-    lines.push(`**${ms.title}** — ${ms.date}${statusTag}`);
+    const picTag = ms.pic ? ` — PIC: ${ms.pic}` : '';
+    lines.push(`**${ms.title}** — ${ms.date}${statusTag}${picTag}`);
     lines.push('');
+    if (ms.activity) {
+      lines.push(ms.activity);
+      lines.push('');
+    }
     if (ms.deliverables.length > 0) {
+      lines.push('Deliverables:');
       for (const d of ms.deliverables) {
         lines.push(`- ${d}`);
       }

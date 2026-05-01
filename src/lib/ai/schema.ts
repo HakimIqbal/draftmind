@@ -14,11 +14,30 @@ export const AIGeneratedSectionsSchema = z.object({
     }),
   ),
   darci: z.object({
-    decider: z.string().optional(),
-    accountable: z.string().optional(),
-    responsible: z.array(z.string()),
-    consulted: z.array(z.string()),
-    informed: z.array(z.string()),
+    decider: z
+      .union([
+        z.string(),
+        z.object({ people: z.array(z.string()), guidelines: z.string().default('') }),
+      ])
+      .optional(),
+    accountable: z
+      .union([
+        z.string(),
+        z.object({ people: z.array(z.string()), guidelines: z.string().default('') }),
+      ])
+      .optional(),
+    responsible: z.union([
+      z.array(z.string()),
+      z.object({ people: z.array(z.string()), guidelines: z.string().default('') }),
+    ]),
+    consulted: z.union([
+      z.array(z.string()),
+      z.object({ people: z.array(z.string()), guidelines: z.string().default('') }),
+    ]),
+    informed: z.union([
+      z.array(z.string()),
+      z.object({ people: z.array(z.string()), guidelines: z.string().default('') }),
+    ]),
   }),
   scope: z.object({
     in_scope: z.array(z.string()),
@@ -30,6 +49,7 @@ export const AIGeneratedSectionsSchema = z.object({
       want: z.string(),
       benefit: z.string(),
       acceptance_criteria: z.array(z.string()),
+      priority: z.string().optional(),
     }),
   ),
   functional_reqs: z.array(
@@ -50,6 +70,7 @@ export const AIGeneratedSectionsSchema = z.object({
   success_metrics: z.array(
     z.object({
       name: z.string(),
+      definition: z.string().optional(),
       baseline: z.string().optional(),
       target: z.string(),
       measurement_window: z.string(),
@@ -59,7 +80,10 @@ export const AIGeneratedSectionsSchema = z.object({
     z.object({
       title: z.string(),
       date: z.string(),
-      deliverable: z.string(),
+      activity: z.string().optional(),
+      deliverable: z.union([z.string(), z.array(z.string())]).optional(),
+      deliverables: z.array(z.string()).optional(),
+      pic: z.string().optional(),
     }),
   ),
   risks: z.array(

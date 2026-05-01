@@ -93,6 +93,20 @@ function collectAllText(prd: PRDDocument): string {
   return texts.filter(Boolean).join(' ');
 }
 
+function darciHasPeople(darci: PRDDocument['sections']['darci']): boolean {
+  for (const role of [
+    darci.decider,
+    darci.accountable,
+    darci.responsible,
+    darci.consulted,
+    darci.informed,
+  ]) {
+    const people = Array.isArray(role) ? role : (role?.people ?? []);
+    if (people.length > 0) return true;
+  }
+  return false;
+}
+
 // --- Dimension calculators ---
 
 function computeCompleteness(prd: PRDDocument): number {
@@ -100,9 +114,7 @@ function computeCompleteness(prd: PRDDocument): number {
     richTextHasContent(prd.sections.overview),
     richTextHasContent(prd.sections.problem_statement),
     prd.sections.objectives.length > 0,
-    prd.sections.darci.decider.length > 0 ||
-      prd.sections.darci.accountable.length > 0 ||
-      prd.sections.darci.responsible.length > 0,
+    darciHasPeople(prd.sections.darci),
     prd.sections.scope.in_scope.length > 0,
     prd.sections.user_stories.length > 0,
     prd.sections.functional_reqs.length > 0,

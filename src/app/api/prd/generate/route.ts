@@ -326,13 +326,30 @@ function aiSectionsToPRDDocument(
     key_results: [obj.measurable_outcome],
   }));
 
-  // DARCI
+  // DARCI — handle both old format (string/array) and new format (object with people/guidelines)
+  const parseDarciRole = (role: unknown) => {
+    if (!role) return { people: [], guidelines: '' };
+    if (typeof role === 'string') return { people: [role], guidelines: '' };
+    if (Array.isArray(role)) return { people: role, guidelines: '' };
+    if (typeof role === 'object' && role !== null) {
+      const r = role as Record<string, unknown>;
+      return {
+        people: Array.isArray(r.people)
+          ? (r.people as string[])
+          : r.people
+            ? [String(r.people)]
+            : [],
+        guidelines: typeof r.guidelines === 'string' ? r.guidelines : '',
+      };
+    }
+    return { people: [], guidelines: '' };
+  };
   prd.sections.darci = {
-    decider: sections.darci.decider ? [sections.darci.decider] : [],
-    accountable: sections.darci.accountable ? [sections.darci.accountable] : [],
-    responsible: sections.darci.responsible,
-    consulted: sections.darci.consulted,
-    informed: sections.darci.informed,
+    decider: parseDarciRole(sections.darci.decider),
+    accountable: parseDarciRole(sections.darci.accountable),
+    responsible: parseDarciRole(sections.darci.responsible),
+    consulted: parseDarciRole(sections.darci.consulted),
+    informed: parseDarciRole(sections.darci.informed),
   };
 
   // Scope
@@ -348,7 +365,9 @@ function aiSectionsToPRDDocument(
     want: story.want,
     benefit: story.benefit,
     acceptance_criteria: story.acceptance_criteria,
-    priority: 'should' as const,
+    priority: (story.priority && ['must', 'should', 'could', 'wont'].includes(story.priority)
+      ? story.priority
+      : 'should') as 'must' | 'should' | 'could' | 'wont',
   }));
 
   // Functional Requirements
@@ -374,6 +393,7 @@ function aiSectionsToPRDDocument(
   prd.sections.success_metrics = sections.success_metrics.map((m, i) => ({
     id: `SM-${String(i + 1).padStart(3, '0')}`,
     name: m.name,
+    definition: m.definition ?? '',
     baseline: m.baseline ?? '',
     target: m.target,
     measurement_window: m.measurement_window,
@@ -384,7 +404,13 @@ function aiSectionsToPRDDocument(
     id: `MS-${String(i + 1).padStart(3, '0')}`,
     title: ms.title,
     date: ms.date,
-    deliverables: [ms.deliverable],
+    activity: ms.activity ?? '',
+    deliverables: ms.deliverable
+      ? Array.isArray(ms.deliverable)
+        ? ms.deliverable
+        : [ms.deliverable]
+      : (ms.deliverables ?? []),
+    pic: ms.pic ?? '',
     status: 'planned' as const,
   }));
 

@@ -26,12 +26,17 @@ export const PRDObjectiveSchema = z.object({
   key_results: z.array(z.string()).default([]),
 });
 
+export const PRDDarciRoleSchema = z.object({
+  people: z.array(z.string()).default([]),
+  guidelines: z.string().default(''),
+});
+
 export const PRDDarciMatrixSchema = z.object({
-  decider: z.array(z.string()).default([]),
-  accountable: z.array(z.string()).default([]),
-  responsible: z.array(z.string()).default([]),
-  consulted: z.array(z.string()).default([]),
-  informed: z.array(z.string()).default([]),
+  decider: z.union([z.array(z.string()), PRDDarciRoleSchema]).default([]),
+  accountable: z.union([z.array(z.string()), PRDDarciRoleSchema]).default([]),
+  responsible: z.union([z.array(z.string()), PRDDarciRoleSchema]).default([]),
+  consulted: z.union([z.array(z.string()), PRDDarciRoleSchema]).default([]),
+  informed: z.union([z.array(z.string()), PRDDarciRoleSchema]).default([]),
 });
 
 export const PRDScopeSchema = z.object({
@@ -68,6 +73,7 @@ export const PRDNFRSchema = z.object({
 export const PRDMetricSchema = z.object({
   id: z.string(),
   name: z.string(),
+  definition: z.string().default(''),
   baseline: z.string(),
   target: z.string(),
   measurement_window: z.string(),
@@ -78,7 +84,9 @@ export const PRDMilestoneSchema = z.object({
   id: z.string(),
   title: z.string(),
   date: z.string(),
+  activity: z.string().default(''),
   deliverables: z.array(z.string()).default([]),
+  pic: z.string().optional(),
   status: z.enum(['planned', 'in_progress', 'completed', 'delayed']).default('planned'),
 });
 
@@ -185,11 +193,11 @@ export function createEmptyPRD(ownerId: string, title: string): PRDDocument {
       problem_statement: createEmptyRichText(),
       objectives: [],
       darci: {
-        decider: [],
-        accountable: [],
-        responsible: [],
-        consulted: [],
-        informed: [],
+        decider: { people: [], guidelines: '' },
+        accountable: { people: [], guidelines: '' },
+        responsible: { people: [], guidelines: '' },
+        consulted: { people: [], guidelines: '' },
+        informed: { people: [], guidelines: '' },
       },
       scope: { in_scope: [], out_of_scope: [] },
       user_stories: [],
