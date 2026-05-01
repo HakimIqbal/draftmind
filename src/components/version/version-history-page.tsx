@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
+import { restoreVersion } from '@/app/(app)/prds/[prdId]/actions';
 
 /* ---------- types ---------- */
 
@@ -169,8 +171,27 @@ function VersionDetailView({
   version: Version;
   prd: { id: string; current_version: number | null };
 }) {
+  const router = useRouter();
+  const [restoring, setRestoring] = useState(false);
   const author = extractAuthor(version.author);
   const isCurrent = version.version_number === prd.current_version;
+
+  async function handleRestore() {
+    setRestoring(true);
+    try {
+      const result = await restoreVersion(prd.id, version.id);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(`Restored to v${version.version_number}`);
+        router.refresh();
+      }
+    } catch {
+      toast.error('Failed to restore version');
+    } finally {
+      setRestoring(false);
+    }
+  }
 
   return (
     <Card>
@@ -197,8 +218,8 @@ function VersionDetailView({
           </div>
 
           {!isCurrent && (
-            <Button variant="outline" size="sm" onClick={() => toast.info('Coming soon')}>
-              Restore this version
+            <Button variant="outline" size="sm" onClick={handleRestore} disabled={restoring}>
+              {restoring ? 'Restoring...' : 'Restore this version'}
             </Button>
           )}
         </div>

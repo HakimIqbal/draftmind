@@ -37,11 +37,31 @@ export async function getDashboardStats(workspaceId: string): Promise<DashboardS
         )
       : 0;
 
+  // Calculate average cycle time: days from PRD creation to status 'final'
+  const { data: completedPRDs } = await supabase
+    .from('prds')
+    .select('created_at, updated_at')
+    .eq('workspace_id', workspaceId)
+    .eq('status', 'final')
+    .is('archived_at', null)
+    .order('updated_at', { ascending: false })
+    .limit(20);
+
+  let cycleTimeDays = 0;
+  if (completedPRDs && completedPRDs.length > 0) {
+    const totalDays = completedPRDs.reduce((sum, p) => {
+      const created = new Date(p.created_at).getTime();
+      const completed = new Date(p.updated_at).getTime();
+      return sum + (completed - created) / (1000 * 60 * 60 * 24);
+    }, 0);
+    cycleTimeDays = Math.round(totalDays / completedPRDs.length);
+  }
+
   return {
     activePRDs: activePRDs ?? 0,
     queueCount: queueCount ?? 0,
     avgHealth,
-    cycleTimeDays: 5, // placeholder — real calculation needs version timestamps
+    cycleTimeDays,
   };
 }
 

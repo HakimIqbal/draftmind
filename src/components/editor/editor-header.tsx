@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { History, Share2, MoreHorizontal, Save, Archive, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,11 +21,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
+import { duplicatePRD, archivePRD, deletePRD } from '@/app/(app)/prds/[prdId]/actions';
 
 interface EditorHeaderProps {
   prd: {
@@ -59,11 +62,37 @@ function relativeTime(dateStr: string): string {
 }
 
 export function EditorHeader({ prd, userName, workspaceId }: EditorHeaderProps) {
+  const router = useRouter();
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [templateName, setTemplateName] = useState(prd.title);
   const [templateDesc, setTemplateDesc] = useState('');
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+
+  async function handleDuplicate() {
+    const result = await duplicatePRD(prd.id);
+    if (result.error) {
+      toast.error(result.error);
+    } else if (result.id) {
+      toast.success('PRD duplicated');
+      router.push(`/prds/${result.id}`);
+    }
+  }
+
+  async function handleArchive() {
+    const result = await archivePRD(prd.id);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success('PRD archived');
+      router.push('/prds');
+    }
+  }
+
+  async function handleDelete() {
+    await deletePRD(prd.id);
+  }
 
   async function handleShare() {
     setSharing(true);
@@ -145,18 +174,18 @@ export function EditorHeader({ prd, userName, workspaceId }: EditorHeaderProps) 
                 <Save size={14} className="mr-2" />
                 Save as template
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info('Duplicate — coming soon')}>
+              <DropdownMenuItem onClick={handleDuplicate}>
                 <Copy size={14} className="mr-2" />
                 Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => toast.info('Archive — coming soon')}>
+              <DropdownMenuItem onClick={handleArchive}>
                 <Archive size={14} className="mr-2" />
                 Archive
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-red-muted"
-                onClick={() => toast.info('Delete — coming soon')}
+                onClick={() => setDeleteConfirmOpen(true)}
               >
                 <Trash2 size={14} className="mr-2" />
                 Delete
@@ -174,6 +203,30 @@ export function EditorHeader({ prd, userName, workspaceId }: EditorHeaderProps) 
           last edit {relativeTime(prd.updated_at)} &middot; {prd.read_time_minutes} min read
         </span>
       </div>
+
+      {/* Delete confirmation */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete PRD</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{prd.title}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              className="border-red-muted text-red-muted"
+              onClick={handleDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
         <DialogContent className="max-w-[480px]">

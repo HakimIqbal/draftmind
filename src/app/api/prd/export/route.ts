@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { requireUser } from '@/lib/auth/permissions';
 import { prdToMarkdown } from '@/lib/prd/markdown';
 import { prdToHTML } from '@/lib/export/html';
+import { exportPRDToDOCX } from '@/lib/export/docx';
+import { exportPRDToPDF } from '@/lib/export/pdf';
 import type { PRDDocument } from '@/lib/prd/schema';
 
 export async function POST(req: NextRequest) {
@@ -60,16 +62,23 @@ export async function POST(req: NextRequest) {
       }
 
       case 'pdf': {
-        return new NextResponse('PDF export requires Puppeteer (available in production)', {
-          status: 200,
-          headers: { 'Content-Type': 'text/plain' },
+        const pdfBuffer = await exportPRDToPDF(doc);
+        return new NextResponse(pdfBuffer, {
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${slugify(doc.metadata.title)}.pdf"`,
+          },
         });
       }
 
       case 'docx': {
-        return new NextResponse('DOCX export coming soon', {
-          status: 200,
-          headers: { 'Content-Type': 'text/plain' },
+        const docxBuffer = await exportPRDToDOCX(doc);
+        return new NextResponse(docxBuffer, {
+          headers: {
+            'Content-Type':
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition': `attachment; filename="${slugify(doc.metadata.title)}.docx"`,
+          },
         });
       }
 

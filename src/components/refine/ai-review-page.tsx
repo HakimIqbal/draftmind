@@ -64,12 +64,12 @@ export function AIReviewPage({
   const findings = rawFindings as unknown as Finding[];
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [running, setRunning] = useState(false);
+  const [fixingId, setFixingId] = useState<string | null>(null);
+  const [applyingAll, setApplyingAll] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const healthScore = (prd.health_score as number) ?? 0;
   const healthBreakdown = (prd.health_breakdown as Record<string, number> | null) ?? {};
-
-  const filteredFindings =
-    filter === 'all' ? findings : findings.filter((f) => f.severity === filter);
 
   const countBySeverity = (sev: string) => findings.filter((f) => f.severity === sev).length;
 
@@ -90,6 +90,67 @@ export function AIReviewPage({
       setRunning(false);
     }
   }
+
+  async function handleAutoFix(finding: Finding) {
+    const id = finding.id ?? finding.title;
+    setFixingId(id);
+    try {
+      const res = await fetch('/api/prd/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prdId: prd.id,
+          sectionKey: finding.section_key,
+          instruction: finding.suggested_fix || `Fix: ${finding.title}. ${finding.description}`,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      toast.success(`Fixed: ${finding.title}`);
+      setDismissedIds((prev) => new Set(prev).add(id));
+    } catch {
+      toast.error('Failed to auto-fix');
+    } finally {
+      setFixingId(null);
+    }
+  }
+
+  async function handleApplyAllFixes() {
+    setApplyingAll(true);
+    let fixed = 0;
+    for (const finding of findings) {
+      if (dismissedIds.has(finding.id ?? finding.title)) continue;
+      try {
+        const res = await fetch('/api/prd/refine', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prdId: prd.id,
+            sectionKey: finding.section_key,
+            instruction: finding.suggested_fix || `Fix: ${finding.title}. ${finding.description}`,
+          }),
+        });
+        if (res.ok) {
+          fixed++;
+          setDismissedIds((prev) => new Set(prev).add(finding.id ?? finding.title));
+        }
+      } catch {
+        // continue with next finding
+      }
+    }
+    toast.success(`Applied ${fixed} fix${fixed !== 1 ? 'es' : ''}`);
+    setApplyingAll(false);
+    router.refresh();
+  }
+
+  function handleDismiss(finding: Finding) {
+    const id = finding.id ?? finding.title;
+    setDismissedIds((prev) => new Set(prev).add(id));
+    toast.info('Finding dismissed');
+  }
+
+  const visibleFindings = findings.filter((f) => !dismissedIds.has(f.id ?? f.title));
+  const visibleFiltered =
+    filter === 'all' ? visibleFindings : visibleFindings.filter((f) => f.severity === filter);
 
   /* ---------- empty state ---------- */
   if (!hasReview) {
@@ -147,9 +208,10 @@ export function AIReviewPage({
               variant="outline"
               size="sm"
               className="border-accent text-accent"
-              onClick={() => toast.info('Feature coming soon')}
+              onClick={handleApplyAllFixes}
+              disabled={applyingAll || visibleFindings.length === 0}
             >
-              Apply all fixes
+              {applyingAll ? 'Applying...' : 'Apply all fixes'}
             </Button>
           </div>
         </div>
@@ -203,7 +265,7 @@ export function AIReviewPage({
       <div>
         <div className="mb-sm flex items-center justify-between">
           <span className="font-mono text-[11px] uppercase tracking-wider text-ink-secondary">
-            Findings &middot; {findings.length}
+            Findings &middot; {visibleFindings.length}
           </span>
           <div className="flex items-center gap-1">
             <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
@@ -222,12 +284,12 @@ export function AIReviewPage({
         </div>
 
         <div className="flex flex-col gap-2">
-          {filteredFindings.length === 0 && (
+          {visibleFiltered.length === 0 && (
             <p className="py-lg text-center text-sm text-ink-tertiary">
               No findings match the selected filter.
             </p>
           )}
-          {filteredFindings.map((finding, idx) => {
+          {visibleFiltered.map((finding, idx) => {
             const meta = SEVERITY_META[finding.severity] ?? { color: '#7A7468', label: 'LOW' };
             const sectionLabel =
               PRD_SECTION_LABELS[finding.section_key as PRDSectionKey] ?? finding.section_key;
@@ -262,15 +324,12 @@ export function AIReviewPage({
                       variant="outline"
                       size="sm"
                       className="border-accent text-accent"
-                      onClick={() => toast.info('Feature coming soon')}
+                      onClick={() => handleAutoFix(finding)}
+                      disabled={fixingId === (finding.id ?? finding.title) || applyingAll}
                     >
-                      Auto-fix
+                      {fixingId === (finding.id ?? finding.title) ? 'Fixing...' : 'Auto-fix'}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toast.info('Feature coming soon')}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => handleDismiss(finding)}>
                       Dismiss
                     </Button>
                   </div>
