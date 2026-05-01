@@ -11,6 +11,29 @@ import {
   getWorkspaceMembers,
 } from '@/app/(app)/prds/new/actions';
 
+function renderTemplateMarkdown(md: string): string {
+  const escaped = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  return escaped
+    .split('\n')
+    .map((line) => {
+      // Sub-headings (### )
+      const h3 = line.match(/^###\s+(.+)$/);
+      if (h3)
+        return `<h4 style="font-weight:600;font-size:12px;color:#1a1a1a;margin-top:12px;margin-bottom:4px">${h3[1]}</h4>`;
+      // Bold text
+      const out = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // Bullet points
+      if (out.match(/^\s*-\s/))
+        return `<div style="display:flex;gap:6px;margin:2px 0"><span style="color:#bbb">•</span><span>${out.replace(/^\s*-\s+/, '')}</span></div>`;
+      // Empty line
+      if (!out.trim()) return '<div style="height:6px"></div>';
+      // Regular text
+      return `<p style="margin:2px 0">${out}</p>`;
+    })
+    .join('');
+}
+
 interface GenerateFormProps {
   userId: string;
   workspaceId: string;
@@ -28,7 +51,7 @@ interface Template {
   name: string;
   description: string | null;
   category: string;
-  structure: { sections_enabled?: string[]; sections?: TemplateSection[] };
+  structure: { sections_enabled?: string[]; sections?: TemplateSection[]; instructions?: string };
   is_built_in: boolean;
 }
 
@@ -517,28 +540,52 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
               {CATEGORY_LABELS[previewTemplate.category] ?? previewTemplate.category}
             </p>
             <h2 className="mt-1 text-[20px] font-bold text-[#1a1a1a]">{previewTemplate.name}</h2>
-            <p className="mt-2 text-[13px] text-[#888]">{previewTemplate.description}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#888]">
+              {previewTemplate.description}
+            </p>
+
+            {previewTemplate.structure.instructions && (
+              <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/50 px-4 py-3">
+                <p className="text-[11px] font-semibold text-amber-700">Instructions</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-amber-800/80">
+                  {previewTemplate.structure.instructions}
+                </p>
+              </div>
+            )}
 
             <div className="mt-6">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
-                Sections (
-                {previewTemplate.structure.sections?.length ??
-                  previewTemplate.structure.sections_enabled?.length ??
-                  0}
-                )
-              </p>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
+                  Template Sections
+                </p>
+                <p className="text-[11px] text-[#bbb]">
+                  {previewTemplate.structure.sections?.length ??
+                    previewTemplate.structure.sections_enabled?.length ??
+                    0}{' '}
+                  sections
+                </p>
+              </div>
               <div className="space-y-3">
-                {(previewTemplate.structure.sections ?? []).map((s, i) => (
-                  <div key={i} className="rounded-lg border border-[#eee] bg-[#fafaf9] p-4">
-                    <h3 className="text-[13px] font-semibold text-[#1a1a1a]">{s.name}</h3>
-                    <p className="mt-1.5 text-[12px] leading-relaxed text-[#888]">{s.guidelines}</p>
-                  </div>
-                ))}
+                {(previewTemplate.structure.sections ?? []).map(
+                  (s: { name: string; guidelines?: string }, i: number) => (
+                    <div key={i} className="rounded-lg border border-[#eee] bg-[#fafaf9] p-4">
+                      <h3 className="text-[14px] font-semibold text-[#1a1a1a]">{s.name}</h3>
+                      {s.guidelines && (
+                        <div
+                          className="template-guidelines mt-2 text-[12px] leading-relaxed text-[#666]"
+                          dangerouslySetInnerHTML={{
+                            __html: renderTemplateMarkdown(s.guidelines),
+                          }}
+                        />
+                      )}
+                    </div>
+                  ),
+                )}
                 {/* Fallback for old format */}
                 {!previewTemplate.structure.sections &&
-                  (previewTemplate.structure.sections_enabled ?? []).map((s, i) => (
+                  (previewTemplate.structure.sections_enabled ?? []).map((s: string, i: number) => (
                     <div key={i} className="rounded-lg border border-[#eee] bg-[#fafaf9] p-4">
-                      <h3 className="text-[13px] font-semibold text-[#1a1a1a]">
+                      <h3 className="text-[14px] font-semibold text-[#1a1a1a]">
                         {s.replace(/_/g, ' ')}
                       </h3>
                     </div>
