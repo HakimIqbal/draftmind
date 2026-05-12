@@ -54,6 +54,7 @@ export function GenerationLoading({
   const [startTime] = useState(Date.now());
   const triggerRef = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const doneRef = useRef(false);
 
   // Trigger generation on mount if status is queued
   const triggerGeneration = useCallback(async () => {
@@ -67,23 +68,48 @@ export function GenerationLoading({
         body: JSON.stringify({ prdId, aiRunId }),
       });
 
-      if (!res.ok) {
-        setError('Generation failed. Please try again or contact your admin.');
+      // Don't set error here — let polling handle status.
+      // The fetch can return error (e.g. timeout) while AI is still running
+      // and polling will detect success. Setting error here causes flash.
+      if (!res.ok && !doneRef.current) {
+        // Wait 3s before showing error — give polling a chance to detect success
+        setTimeout(() => {
+          if (!doneRef.current) {
+            setError(
+              'AI provider could not generate the PRD. Try again — it often works on the second attempt.',
+            );
+          }
+        }, 3000);
       }
     } catch {
-      setError('Unable to reach the server. Please check your connection and try again.');
+      if (!doneRef.current) {
+        setTimeout(() => {
+          if (!doneRef.current) {
+            setError('Unable to reach the server. Please check your connection and try again.');
+          }
+        }, 3000);
+      }
     }
   }, [prdId, aiRunId]);
 
   // Poll ai_run status via server action
   const pollStatus = useCallback(async () => {
-    const run = await pollAIRunStatus(aiRunId);
+    let run;
+    try {
+      run = await pollAIRunStatus(aiRunId);
+    } catch {
+      // Server action may be stale after HMR — skip this poll
+      return;
+    }
 
     if (run.status === 'not_found') return;
 
     if (run.status === 'success') {
+      doneRef.current = true;
+      if (pollRef.current) clearInterval(pollRef.current);
       setCurrentStep(STEPS.length);
       setProgress(100);
+      setError(null); // Clear any transient error
       // Small delay to show completion state before redirecting
       setTimeout(() => {
         router.replace(`/prds/${prdId}`);
@@ -93,7 +119,12 @@ export function GenerationLoading({
     }
 
     if (run.status === 'error') {
-      setError('Generation failed. Please try again or contact your admin.');
+      if (!doneRef.current) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setError(
+          'AI provider could not generate the PRD. Try again — it often works on the second attempt.',
+        );
+      }
       return;
     }
 
@@ -136,14 +167,30 @@ export function GenerationLoading({
   if (error) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-md p-lg">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-lg text-center dark:border-red-900 dark:bg-red-950">
-          <p className="font-medium text-red-800 dark:text-red-200">Generation failed</p>
-          <p className="mt-xs text-sm text-red-600 dark:text-red-400">{error}</p>
-          <div className="mt-md flex justify-center gap-sm">
+        <div className="w-full max-w-md rounded-lg border border-subtle bg-bg-surface p-lg text-center shadow-sm">
+          <div className="mx-auto mb-md flex h-12 w-12 items-center justify-center rounded-full bg-bg-elevated">
+            <svg
+              className="h-6 w-6 text-ink-tertiary"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+              />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-ink-primary">Generation failed</p>
+          <p className="mt-xs text-sm text-ink-tertiary">{error}</p>
+          <div className="mt-lg flex justify-center gap-sm">
             <Button variant="outline" size="sm" onClick={() => router.replace(`/prds/${prdId}`)}>
               Back to PRD
             </Button>
             <Button
+              variant="outline"
               size="sm"
               onClick={() => {
                 setError(null);

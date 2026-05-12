@@ -11,8 +11,10 @@ interface AppShellProps {
   children: React.ReactNode;
   workspaces?: WorkspaceListItem[];
   currentWorkspaceId?: string;
+  currentUserRole?: string;
   userName?: string;
   userEmail?: string;
+  userAvatarUrl?: string;
   recentPRDs?: { id: string; title: string }[];
 }
 
@@ -20,8 +22,10 @@ export function AppShell({
   children,
   workspaces,
   currentWorkspaceId,
+  currentUserRole,
   userName,
   userEmail,
+  userAvatarUrl,
   recentPRDs,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -35,8 +39,10 @@ export function AppShell({
             onToggleCollapse={() => setSidebarOpen(false)}
             workspaces={workspaces}
             currentWorkspaceId={currentWorkspaceId}
+            currentUserRole={currentUserRole}
             userName={userName}
             userEmail={userEmail}
+            userAvatarUrl={userAvatarUrl}
             recentPRDs={recentPRDs}
           />
         ) : (
@@ -44,6 +50,7 @@ export function AppShell({
             onExpand={() => setSidebarOpen(true)}
             userName={userName}
             userEmail={userEmail}
+            userAvatarUrl={userAvatarUrl}
           />
         )}
         <div className="flex min-w-0 flex-1 flex-col">

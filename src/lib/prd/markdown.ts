@@ -11,20 +11,23 @@ interface TiptapNodeLike {
 }
 
 /**
- * Convert Tiptap JSON content to a plain-text / Markdown string.
- * Preserves basic formatting: paragraphs as newlines, lists as `- item`,
- * headings as `### heading`, bold as `**text**`, italic as `*text*`,
- * and links as `[text](url)`.
+ * Convert Tiptap JSON content to well-formatted Markdown.
+ * Preserves: headings, bold, italic, links, lists, tables, blockquotes, code.
  */
 export function tiptapToPlainText(content: TiptapContent | null | undefined): string {
   if (!content?.content) return '';
-  return content.content.map((node) => renderNode(node as unknown as TiptapNodeLike)).join('\n');
+  const blocks = content.content.map((node) => renderNode(node as unknown as TiptapNodeLike));
+  // Clean up: remove triple+ blank lines, trim
+  return blocks
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function renderNode(node: TiptapNodeLike, indent = ''): string {
   switch (node.type) {
     case 'doc':
-      return (node.content ?? []).map((n) => renderNode(n, indent)).join('\n');
+      return (node.content ?? []).map((n) => renderNode(n, indent)).join('\n\n');
 
     case 'heading': {
       const level = (node.attrs?.level as number) ?? 1;
@@ -32,8 +35,10 @@ function renderNode(node: TiptapNodeLike, indent = ''): string {
       return `${prefix} ${renderInline(node)}`;
     }
 
-    case 'paragraph':
-      return `${indent}${renderInline(node)}`;
+    case 'paragraph': {
+      const text = renderInline(node);
+      return `${indent}${text}`;
+    }
 
     case 'bulletList':
       return (node.content ?? []).map((li) => renderListItem(li, indent, '-')).join('\n');
@@ -44,7 +49,6 @@ function renderNode(node: TiptapNodeLike, indent = ''): string {
         .join('\n');
 
     case 'listItem': {
-      // Rendered by bulletList/orderedList; standalone fallback
       const inner = (node.content ?? []).map((n) => renderNode(n, indent)).join('\n');
       return inner;
     }
@@ -76,7 +80,6 @@ function renderNode(node: TiptapNodeLike, indent = ''): string {
       return renderTextWithMarks(node);
 
     default:
-      // Unknown node type: try to render children
       if (node.content) {
         return (node.content ?? []).map((n) => renderNode(n, indent)).join('\n');
       }
@@ -92,10 +95,8 @@ function renderListItem(node: TiptapNodeLike, indent: string, marker: string): s
   for (let i = 0; i < children.length; i++) {
     const child = children[i]!;
     if (i === 0) {
-      // First child gets the marker
       lines.push(`${indent}${marker} ${renderNode(child).trim()}`);
     } else {
-      // Subsequent children (nested lists, etc.) get indentation
       const nestedIndent = indent + '  ';
       lines.push(renderNode(child, nestedIndent));
     }
@@ -110,7 +111,6 @@ function renderInline(node: TiptapNodeLike): string {
 
 function renderTextWithMarks(node: TiptapNodeLike): string {
   if (node.type !== 'text' || !node.text) {
-    // Non-text inline nodes (e.g. hardBreak)
     if (node.type === 'hardBreak') return '\n';
     if (node.content) return renderInline(node);
     return '';
@@ -146,14 +146,17 @@ function renderTable(node: TiptapNodeLike): string {
   const rows = node.content ?? [];
   if (rows.length === 0) return '';
 
-  const tableData: string[][] = [];
+  const firstRowCells = rows[0]?.content ?? [];
+  const hasHeaderRow = firstRowCells.some((cell) => cell.type === 'tableHeader');
 
+  const tableData: string[][] = [];
   for (const row of rows) {
     const cells = (row.content ?? []).map((cell) => {
       const inner = (cell.content ?? [])
         .map((n) => renderNode(n))
         .join(' ')
-        .trim();
+        .trim()
+        .replace(/\n/g, ' '); // flatten newlines within cells
       return inner;
     });
     tableData.push(cells);
@@ -161,260 +164,140 @@ function renderTable(node: TiptapNodeLike): string {
 
   if (tableData.length === 0) return '';
 
-  // Calculate column widths
   const colCount = Math.max(...tableData.map((r) => r.length));
   const colWidths: number[] = Array(colCount).fill(3);
-
   for (const row of tableData) {
     for (let i = 0; i < row.length; i++) {
-      colWidths[i] = Math.max(colWidths[i] ?? 3, row[i]!.length);
+      colWidths[i] = Math.max(colWidths[i] ?? 3, (row[i] ?? '').length);
     }
   }
 
   const lines: string[] = [];
 
-  // Header row
-  const header = tableData[0]!;
-  lines.push('| ' + header.map((cell, i) => cell.padEnd(colWidths[i] ?? 3)).join(' | ') + ' |');
-
-  // Separator
-  lines.push('| ' + colWidths.map((w) => '-'.repeat(w)).join(' | ') + ' |');
-
-  // Data rows
-  for (let i = 1; i < tableData.length; i++) {
-    const row = tableData[i]!;
-    lines.push('| ' + row.map((cell, j) => cell.padEnd(colWidths[j] ?? 3)).join(' | ') + ' |');
+  if (hasHeaderRow) {
+    // Standard markdown table with header + separator
+    const header = tableData[0]!;
+    lines.push('| ' + header.map((cell, i) => cell.padEnd(colWidths[i] ?? 3)).join(' | ') + ' |');
+    lines.push('| ' + colWidths.map((w) => '-'.repeat(w)).join(' | ') + ' |');
+    for (let i = 1; i < tableData.length; i++) {
+      const row = tableData[i]!;
+      lines.push(
+        '| ' + row.map((cell, j) => (cell ?? '').padEnd(colWidths[j] ?? 3)).join(' | ') + ' |',
+      );
+    }
+  } else {
+    // No header row — render as bold key : value pairs (metadata table)
+    for (const row of tableData) {
+      if (row.length >= 2) {
+        lines.push(`**${row[0]}**: ${row.slice(1).join(', ')}`);
+      } else if (row.length === 1) {
+        lines.push(row[0]!);
+      }
+    }
   }
 
   return lines.join('\n');
 }
 
-// ── PRD → Markdown ──
+// ── PRD → Markdown (legacy fallback) ──
 
 export function prdToMarkdown(prd: PRDDocument): string {
   const lines: string[] = [];
 
-  // Title
   lines.push(`# ${prd.metadata.title}`);
   lines.push('');
 
-  // Metadata block
   if (prd.metadata.project_tag) {
     lines.push(`**Project:** ${prd.metadata.project_tag}`);
   }
+  if (prd.metadata.owner_name) {
+    lines.push(`**Owner:** ${prd.metadata.owner_name}`);
+  }
   if (prd.metadata.start_date || prd.metadata.end_date) {
-    const range = [prd.metadata.start_date, prd.metadata.end_date].filter(Boolean).join(' — ');
-    lines.push(`**Timeline:** ${range}`);
-  }
-  if (prd.metadata.stakeholders.length > 0) {
-    lines.push(`**Stakeholders:** ${prd.metadata.stakeholders.join(', ')}`);
+    lines.push(
+      `**Timeline:** ${[prd.metadata.start_date, prd.metadata.end_date].filter(Boolean).join(' — ')}`,
+    );
   }
   lines.push('');
 
-  // ── Overview ──
-  lines.push('## Overview');
-  lines.push('');
-  lines.push(tiptapToPlainText(prd.sections.overview.content));
-  lines.push('');
+  const sectionOrder = [
+    'overview',
+    'problem_statement',
+    'objectives',
+    'darci',
+    'scope',
+    'user_stories',
+    'functional_reqs',
+    'nfr',
+    'success_metrics',
+    'timeline',
+    'risks',
+    'references',
+    'glossary',
+    'changelog',
+  ];
 
-  // ── Problem Statement ──
-  lines.push('## Problem Statement');
-  lines.push('');
-  lines.push(tiptapToPlainText(prd.sections.problem_statement.content));
-  lines.push('');
+  const sectionLabels: Record<string, string> = {
+    overview: 'Overview',
+    problem_statement: 'Problem Statement',
+    objectives: 'Objectives',
+    darci: 'DARCI Matrix',
+    scope: 'Scope',
+    user_stories: 'User Stories',
+    functional_reqs: 'Functional Requirements',
+    nfr: 'Non-Functional Requirements',
+    success_metrics: 'Success Metrics',
+    timeline: 'Timeline',
+    risks: 'Risks',
+    references: 'References',
+    glossary: 'Glossary',
+    changelog: 'Changelog',
+  };
 
-  // ── Objectives ──
-  lines.push('## Objectives');
-  lines.push('');
-  if (prd.sections.objectives.length > 0) {
-    const goals = prd.sections.objectives.filter((o) => o.type === 'goal');
-    const nonGoals = prd.sections.objectives.filter((o) => o.type === 'non-goal');
+  for (const key of sectionOrder) {
+    const val = (prd.sections as Record<string, unknown>)[key];
+    if (!val) continue;
 
-    if (goals.length > 0) {
-      lines.push('### Goals');
-      lines.push('');
-      for (const obj of goals) {
-        lines.push(`- ${obj.description}`);
-        for (const kr of obj.key_results) {
-          lines.push(`  - KR: ${kr}`);
+    const label = sectionLabels[key] ?? key;
+    lines.push(`## ${label}`);
+    lines.push('');
+
+    if (typeof val === 'object' && val !== null && 'content' in (val as Record<string, unknown>)) {
+      const rich = val as { content?: { content?: { text?: string }[] } };
+      if (rich.content?.content) {
+        for (const node of rich.content.content) {
+          lines.push(node.text ?? '');
         }
       }
-      lines.push('');
-    }
-
-    if (nonGoals.length > 0) {
-      lines.push('### Non-Goals');
-      lines.push('');
-      for (const obj of nonGoals) {
-        lines.push(`- ${obj.description}`);
+    } else if (Array.isArray(val)) {
+      for (const item of val) {
+        if (typeof item === 'string') {
+          lines.push(`- ${item}`);
+        } else if (typeof item === 'object' && item !== null) {
+          const obj = item as Record<string, unknown>;
+          const text = (obj.description ??
+            obj.title ??
+            obj.term ??
+            obj.name ??
+            obj.summary ??
+            JSON.stringify(obj).slice(0, 100)) as string;
+          lines.push(`- ${text}`);
+        }
       }
-      lines.push('');
-    }
-  }
-
-  // ── DARCI Matrix ──
-  lines.push('## DARCI Matrix');
-  lines.push('');
-  const { darci } = prd.sections;
-  const darciRoles: Array<[string, typeof darci.decider]> = [
-    ['Decider', darci.decider],
-    ['Accountable', darci.accountable],
-    ['Responsible', darci.responsible],
-    ['Consulted', darci.consulted],
-    ['Informed', darci.informed],
-  ];
-  for (const [roleName, roleData] of darciRoles) {
-    const people = Array.isArray(roleData) ? roleData : (roleData?.people ?? []);
-    const guidelines = Array.isArray(roleData) ? '' : (roleData?.guidelines ?? '');
-    if (people.length > 0 || guidelines) {
-      lines.push(`### ${roleName}`);
-      lines.push('');
-      if (people.length > 0) lines.push(`**${people.join(', ')}**`);
-      if (guidelines) lines.push(guidelines);
-      lines.push('');
-    }
-  }
-
-  // ── Scope ──
-  lines.push('## Scope');
-  lines.push('');
-  lines.push('### In Scope');
-  lines.push('');
-  for (const item of prd.sections.scope.in_scope) {
-    lines.push(`- ${item}`);
-  }
-  lines.push('');
-  lines.push('### Out of Scope');
-  lines.push('');
-  for (const item of prd.sections.scope.out_of_scope) {
-    lines.push(`- ${item}`);
-  }
-  lines.push('');
-
-  // ── User Stories ──
-  lines.push('## User Stories');
-  lines.push('');
-  for (const story of prd.sections.user_stories) {
-    lines.push(
-      `**${story.id}** [${story.priority}] As a ${story.role}, I want ${story.want}, so that ${story.benefit}`,
-    );
-    lines.push('');
-    if (story.acceptance_criteria.length > 0) {
-      for (const ac of story.acceptance_criteria) {
-        lines.push(`- AC: ${ac}`);
+    } else if (typeof val === 'object' && val !== null) {
+      for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+        const text =
+          typeof v === 'string'
+            ? v
+            : Array.isArray(v)
+              ? (v as string[]).join(', ')
+              : JSON.stringify(v).slice(0, 80);
+        lines.push(`**${k}**: ${text}`);
       }
-      lines.push('');
     }
-  }
 
-  // ── Functional Requirements ──
-  lines.push('## Functional Requirements');
-  lines.push('');
-  for (const req of prd.sections.functional_reqs) {
-    lines.push(`**${req.id}** [${req.priority}] ${req.title}`);
-    lines.push('');
-    lines.push(req.description);
-    if (req.dependencies.length > 0) {
-      lines.push('');
-      lines.push(`Dependencies: ${req.dependencies.join(', ')}`);
-    }
     lines.push('');
   }
 
-  // ── Non-Functional Requirements ──
-  lines.push('## Non-Functional Requirements');
-  lines.push('');
-  const { nfr } = prd.sections;
-  const nfrCategories: Array<[string, string[]]> = [
-    ['Performance', nfr.performance],
-    ['Security', nfr.security],
-    ['Accessibility', nfr.accessibility],
-    ['Scalability', nfr.scalability],
-    ['Reliability', nfr.reliability],
-    ['Compliance', nfr.compliance],
-  ];
-  for (const [label, items] of nfrCategories) {
-    if (items && items.length > 0) {
-      lines.push(`### ${label}`);
-      lines.push('');
-      for (const item of items) {
-        lines.push(`- ${item}`);
-      }
-      lines.push('');
-    }
-  }
-
-  // ── Success Metrics ──
-  lines.push('## Success Metrics');
-  lines.push('');
-  if (prd.sections.success_metrics.length > 0) {
-    lines.push('| Metric | Definition | Baseline | Target | Window |');
-    lines.push('| --- | --- | --- | --- | --- |');
-    for (const m of prd.sections.success_metrics) {
-      lines.push(
-        `| ${m.name} | ${m.definition || '-'} | ${m.baseline} | ${m.target} | ${m.measurement_window} |`,
-      );
-    }
-    lines.push('');
-  }
-
-  // ── Timeline ──
-  lines.push('## Timeline');
-  lines.push('');
-  for (const ms of prd.sections.timeline) {
-    const statusTag = ms.status ? ` [${ms.status}]` : '';
-    const picTag = ms.pic ? ` — PIC: ${ms.pic}` : '';
-    lines.push(`**${ms.title}** — ${ms.date}${statusTag}${picTag}`);
-    lines.push('');
-    if (ms.activity) {
-      lines.push(ms.activity);
-      lines.push('');
-    }
-    if (ms.deliverables.length > 0) {
-      lines.push('Deliverables:');
-      for (const d of ms.deliverables) {
-        lines.push(`- ${d}`);
-      }
-      lines.push('');
-    }
-  }
-
-  // ── Risks ──
-  lines.push('## Risks');
-  lines.push('');
-  for (const risk of prd.sections.risks) {
-    lines.push(`**${risk.id}** [${risk.likelihood}/${risk.impact}] ${risk.description}`);
-    lines.push('');
-    lines.push(`Mitigation: ${risk.mitigation}`);
-    if (risk.owner) lines.push(`Owner: ${risk.owner}`);
-    lines.push('');
-  }
-
-  // ── References ──
-  lines.push('## References');
-  lines.push('');
-  for (const ref of prd.sections.references) {
-    let line = `- [${ref.title}](${ref.url}) (${ref.type})`;
-    if (ref.description) line += ` — ${ref.description}`;
-    lines.push(line);
-  }
-  lines.push('');
-
-  // ── Glossary ──
-  lines.push('## Glossary');
-  lines.push('');
-  for (const entry of prd.sections.glossary) {
-    lines.push(`- **${entry.term}:** ${entry.definition}`);
-  }
-  lines.push('');
-
-  // ── Changelog ──
-  lines.push('## Changelog');
-  lines.push('');
-  for (const entry of prd.sections.changelog) {
-    lines.push(`- **v${entry.version}** (${entry.date}) by ${entry.author}: ${entry.summary}`);
-  }
-  lines.push('');
-
-  return lines.join('\n');
+  return lines.join('\n').trim();
 }

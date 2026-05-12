@@ -20,10 +20,7 @@ describe('Pill', () => {
       reviewed: '#6B8E5A',
       refined: '#4A8C5C',
       final: '#E8743C',
-      blocked: '#B85843',
       approved: '#6B8E5A',
-      shipped: '#4A7CB8',
-      archived: '#4A4640',
     };
 
     for (const [status, color] of Object.entries(expectedColors)) {

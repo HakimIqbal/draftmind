@@ -45,9 +45,14 @@ const TYPE_LABELS: Record<string, string> = {
   mention: 'Mention',
   review_request: 'Review',
   approval_needed: 'Approval',
-  comment_reply: 'Comment',
+  comment_reply: 'Reply',
+  comment_added: 'Comment',
   ai_suggestion_ready: 'AI',
   workspace_invite: 'Invite',
+  prd_duplicated: 'Duplicate',
+  member_joined: 'Team',
+  member_removed: 'Workspace',
+  invitation_declined: 'Invite',
   integration_event: 'Announcement',
 };
 
@@ -57,8 +62,12 @@ export function NotificationsInbox() {
   const router = useRouter();
 
   const fetchData = useCallback(async () => {
-    const data = await getNotifications();
-    setNotifications(data);
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
+    } catch {
+      // Server action may be stale after HMR
+    }
   }, []);
 
   useEffect(() => {
@@ -218,14 +227,6 @@ export function NotificationsInbox() {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-[#f0f0f0] px-4 py-2.5">
-        <button
-          onClick={() => router.push('/settings/notifications')}
-          className="text-[12px] text-[#999] hover:text-[#555]"
-        >
-          Notification preferences
-        </button>
-      </div>
     </div>
   );
 }

@@ -1004,7 +1004,6 @@ export type Database = {
         | 'prd_created'
         | 'prd_edited'
         | 'prd_status_changed'
-        | 'prd_archived'
         | 'prd_exported'
         | 'comment_added'
         | 'comment_resolved'
@@ -1195,7 +1194,6 @@ export const Constants = {
         'prd_created',
         'prd_edited',
         'prd_status_changed',
-        'prd_archived',
         'prd_exported',
         'comment_added',
         'comment_resolved',

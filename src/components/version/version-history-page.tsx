@@ -13,6 +13,7 @@ import { restoreVersion } from '@/app/(app)/prds/[prdId]/actions';
 interface Author {
   full_name: string;
   avatar_color_seed: string | null;
+  avatar_url: string | null;
 }
 
 interface Version {
@@ -127,6 +128,7 @@ export function VersionHistoryPage({ prd, versions }: VersionHistoryPageProps) {
                       <Avatar
                         name={author.full_name}
                         seed={author.avatar_color_seed ?? undefined}
+                        avatarUrl={author.avatar_url}
                         size="sm"
                       />
                       <span className="truncate font-mono text-[11px] text-ink-tertiary">
@@ -134,7 +136,10 @@ export function VersionHistoryPage({ prd, versions }: VersionHistoryPageProps) {
                       </span>
                     </>
                   )}
-                  <span className="ml-auto shrink-0 font-mono text-[11px] text-ink-tertiary">
+                  <span
+                    className="ml-auto shrink-0 font-mono text-[11px] text-ink-tertiary"
+                    suppressHydrationWarning
+                  >
                     {relativeTime(v.created_at)}
                   </span>
                 </div>
@@ -205,7 +210,7 @@ function VersionDetailView({
               <span className="rounded bg-bg-surface px-1.5 py-0.5 font-mono text-[10px] text-ink-tertiary">
                 {SOURCE_LABELS[version.source] ?? version.source}
               </span>
-              <span className="font-mono text-[11px] text-ink-tertiary">
+              <span className="font-mono text-[11px] text-ink-tertiary" suppressHydrationWarning>
                 {new Date(version.created_at).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
@@ -230,6 +235,7 @@ function VersionDetailView({
             <Avatar
               name={author.full_name}
               seed={author.avatar_color_seed ?? undefined}
+              avatarUrl={author.avatar_url}
               size="md"
             />
             <span className="text-sm text-ink-secondary">{author.full_name}</span>

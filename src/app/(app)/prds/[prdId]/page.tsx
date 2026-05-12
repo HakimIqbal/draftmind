@@ -1,9 +1,12 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
+import { logWarn } from '@/lib/logging/system-log';
 import { GenerationLoading } from '@/components/generate/generation-loading';
 import { EditorShell } from '@/components/editor/editor-shell';
+
+export const dynamic = 'force-dynamic';
 
 export default async function EditorPage({
   params,
@@ -18,11 +21,26 @@ export default async function EditorPage({
 
   const { prdId } = await params;
   const { generating } = await searchParams;
+
+  // Validate UUID format to prevent DB errors
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(prdId)) {
+    notFound();
+  }
+
   const supabase = await createClient();
 
-  const { data: prd } = await supabase.from('prds').select('*').eq('id', prdId).single();
+  const { data: prd } = await supabase
+    .from('prds')
+    .select('*')
+    .eq('id', prdId)
+    .eq('workspace_id', workspace.id)
+    .single();
 
-  if (!prd) redirect('/prds');
+  if (!prd) {
+    logWarn('page.prd', `PRD not found: ${prdId}`, { prdId }, user.id);
+    notFound();
+  }
 
   if (generating === 'true') {
     const { data: aiRun } = await supabase
@@ -45,8 +63,39 @@ export default async function EditorPage({
   const userName =
     (user.user_metadata as Record<string, string> | undefined)?.full_name ?? user.email ?? 'User';
 
+  // Fetch current user's avatar for presence display
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('avatar_url')
+    .eq('id', user.id)
+    .single();
+  const userAvatar =
+    userProfile?.avatar_url ??
+    (user.user_metadata as Record<string, string> | undefined)?.avatar_url ??
+    null;
+
+  // Fetch active AI providers for copilot model selector (admin client bypasses RLS)
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const adminSupa = createAdminClient();
+  const { data: providersList } = await adminSupa
+    .from('providers')
+    .select('id, display_name, default_model')
+    .eq('status', 'active')
+    .order('priority', { ascending: true });
+
+  // Permission: only workspace admin or PRD owner can change status
+  const isAdmin = workspace.currentRole === 'admin';
+  const isOwner = prd.owner_id === user.id;
+  const canChangeStatus = isAdmin || isOwner;
+
   return (
     <EditorShell
+      canChangeStatus={canChangeStatus}
+      aiProviders={(providersList ?? []).map((p) => ({
+        id: p.id,
+        display_name: p.display_name,
+        default_model: p.default_model,
+      }))}
       prd={{
         id: prd.id,
         title: prd.title,
@@ -60,8 +109,11 @@ export default async function EditorPage({
         content: prd.content as Record<string, unknown>,
         tiptap_content: prd.tiptap_content as Record<string, unknown> | null,
         updated_at: prd.updated_at,
+        hidden_sections: (prd as Record<string, unknown>).hidden_sections as string[] | null,
       }}
       userName={userName}
+      userEmail={user.email ?? undefined}
+      userAvatar={userAvatar}
       userId={user.id}
       workspaceId={workspace.id as string}
     />

@@ -1,5 +1,6 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
+import { createClient } from '@/lib/supabase/server';
 import { getPRDsByWorkspace, getPRDCountByWorkspace } from '@/lib/db/queries/prd';
 import { redirect } from 'next/navigation';
 import { PRDListPageClient } from './client';
@@ -23,8 +24,13 @@ export default async function PRDListPage({ searchParams }: Props) {
 
   // If workspace has 0 PRDs, show empty state
   if (totalCount === 0) {
+    const supabase = await createClient();
+    const { count: templateCount } = await supabase
+      .from('prd_templates')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_built_in', true);
     const { EmptyState } = await import('@/components/dashboard/empty-state');
-    return <EmptyState />;
+    return <EmptyState templateCount={templateCount ?? 0} />;
   }
 
   const { items, total } = await getPRDsByWorkspace(wsId, { status, search, sort });

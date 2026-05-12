@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { FileText, LayoutTemplate, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
-export function EmptyState() {
+export function EmptyState({ templateCount = 0 }: { templateCount?: number }) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center p-lg">
-      {/* Illustration placeholder */}
+      {/* Document illustration */}
       <div className="mb-lg">
         <svg
           width="120"
@@ -58,7 +58,7 @@ export function EmptyState() {
             <CardContent className="flex flex-col items-center gap-sm p-lg text-center">
               <LayoutTemplate size={24} className="text-ink-secondary" />
               <p className="text-sm font-medium text-ink-primary">Start from template</p>
-              <p className="font-mono text-xs text-ink-tertiary">12 patterns</p>
+              <p className="font-mono text-xs text-ink-tertiary">{templateCount}+ templates</p>
             </CardContent>
           </Card>
         </Link>
@@ -68,7 +68,7 @@ export function EmptyState() {
             <CardContent className="flex flex-col items-center gap-sm p-lg text-center">
               <Upload size={24} className="text-ink-secondary" />
               <p className="text-sm font-medium text-ink-primary">Browse templates</p>
-              <p className="font-mono text-xs text-ink-tertiary">30+ templates</p>
+              <p className="font-mono text-xs text-ink-tertiary">{templateCount}+ templates</p>
             </CardContent>
           </Card>
         </Link>

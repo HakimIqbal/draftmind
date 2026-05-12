@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { Users, Building2, FileText, Sparkles, TrendingUp } from 'lucide-react';
 
 export const metadata = { title: 'Admin — DraftMind' };
+export const dynamic = 'force-dynamic';
 
 export default async function AdminAnalyticsPage() {
   const admin = createAdminClient();
@@ -15,8 +16,8 @@ export default async function AdminAnalyticsPage() {
       .from('profiles')
       .select('id')
       .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
-    admin.from('prds').select('status').is('archived_at', null),
-    admin.from('ai_runs').select('run_type'),
+    admin.from('prds').select('status'),
+    admin.from('ai_runs').select('type'),
   ]);
 
   const statusCounts: Record<string, number> = {};
@@ -26,27 +27,11 @@ export default async function AdminAnalyticsPage() {
 
   const typeCounts: Record<string, number> = {};
   (runsByTypeR.data ?? []).forEach((r) => {
-    typeCounts[r.run_type] = (typeCounts[r.run_type] || 0) + 1;
+    typeCounts[r.type] = (typeCounts[r.type] || 0) + 1;
   });
 
-  const statuses = [
-    'draft',
-    'in_review',
-    'reviewed',
-    'refined',
-    'final',
-    'approved',
-    'shipped',
-    'archived',
-  ];
-  const runTypes = [
-    'generate_prd',
-    'ai_review',
-    'refine_section',
-    'regenerate_prd',
-    'inline_suggest',
-    'quick_action',
-  ];
+  const statuses = ['draft', 'in_review', 'reviewed', 'refined', 'approved', 'final'];
+  const runTypes = ['generate_prd', 'ai_review', 'refine_section', 'inline_suggest'];
 
   return (
     <div>

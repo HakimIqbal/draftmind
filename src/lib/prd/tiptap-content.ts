@@ -106,239 +106,242 @@ function table(headerRow: string[], dataRows: string[][]): TiptapNode {
 export function prdToTiptap(prd: PRDDocument): TiptapDoc {
   const nodes: TiptapNode[] = [];
 
-  // Title as H1
-  nodes.push(heading(1, prd.metadata.title));
+  // ── Document Header ──
+  nodes.push(heading(1, 'PRODUCT REQUIREMENTS DOCUMENT'));
 
-  // ── Overview ──
-  nodes.push(heading(2, 'Overview'));
+  const metaRows: string[][] = [['Product Name', prd.metadata.title]];
+  if (prd.metadata.owner_name) {
+    metaRows.push(['Document Owner', prd.metadata.owner_name]);
+  }
+  if (prd.metadata.developers && prd.metadata.developers.length > 0) {
+    const devList = prd.metadata.developers
+      .map((d) => `${d.name}${d.role ? ` (${d.role})` : ''}`)
+      .join('\n');
+    metaRows.push(['Developer', devList]);
+  }
+  if (prd.metadata.stakeholder_names && prd.metadata.stakeholder_names.length > 0) {
+    metaRows.push(['Stakeholder', prd.metadata.stakeholder_names.join(', ')]);
+  }
+  metaRows.push(['Doc Stage', 'Draft']);
+  if (prd.metadata.start_date) {
+    metaRows.push(['Start Date', prd.metadata.start_date]);
+  }
+  if (prd.metadata.end_date) {
+    metaRows.push(['End Date', prd.metadata.end_date]);
+  }
+  metaRows.push(['Created Date', new Date().toISOString().slice(0, 10)]);
+  // Metadata table without header row — data rows only
+  nodes.push({
+    type: 'table',
+    content: metaRows.map((row) => tableRow(row)),
+  });
+
+  // ── Overview ── (skip if empty)
   if (prd.sections.overview.content?.content?.length) {
+    nodes.push(heading(2, 'Overview'));
     nodes.push(...(prd.sections.overview.content.content as unknown as TiptapNode[]));
-  } else {
-    nodes.push(paragraph(''));
   }
 
-  // ── Problem Statement ──
-  nodes.push(heading(2, 'Problem Statement'));
+  // ── Problem Statement ── (skip if empty)
   if (prd.sections.problem_statement.content?.content?.length) {
+    nodes.push(heading(2, 'Problem Statement'));
     nodes.push(...(prd.sections.problem_statement.content.content as unknown as TiptapNode[]));
-  } else {
-    nodes.push(paragraph(''));
   }
 
-  // ── Objectives ──
-  nodes.push(heading(2, 'Objectives'));
-  if (prd.sections.objectives.length > 0) {
+  // ── Objectives ── (skip if empty)
+  if (Array.isArray(prd.sections.objectives) && prd.sections.objectives.length > 0) {
+    nodes.push(heading(2, 'Objectives'));
     const goals = prd.sections.objectives.filter((o) => o.type === 'goal');
     const nonGoals = prd.sections.objectives.filter((o) => o.type === 'non-goal');
 
     if (goals.length > 0) {
       nodes.push(heading(3, 'Goals'));
-      nodes.push(
-        bulletList(
-          goals.map((obj) => {
-            let text = obj.description;
-            if (obj.key_results.length > 0) {
-              text += ` (KRs: ${obj.key_results.join('; ')})`;
-            }
-            return text;
-          }),
-        ),
-      );
+      for (const obj of goals) {
+        nodes.push(bulletList([obj.description ?? '']));
+        if ((obj.key_results ?? []).length > 0) {
+          // Sub-bullets for key results
+          const subItems: TiptapNode[] = (obj.key_results ?? []).map((kr) => ({
+            type: 'listItem',
+            content: [paragraph(kr)],
+          }));
+          nodes.push({
+            type: 'bulletList',
+            content: subItems,
+          });
+        }
+      }
     }
 
     if (nonGoals.length > 0) {
       nodes.push(heading(3, 'Non-Goals'));
-      nodes.push(bulletList(nonGoals.map((obj) => obj.description)));
-    }
-  } else {
-    nodes.push(paragraph(''));
-  }
-
-  // ── DARCI Matrix ──
-  nodes.push(heading(2, 'DARCI Matrix'));
-  const { darci } = prd.sections;
-  const darciRoles: Array<[string, typeof darci.decider]> = [
-    ['Decider', darci.decider],
-    ['Accountable', darci.accountable],
-    ['Responsible', darci.responsible],
-    ['Consulted', darci.consulted],
-    ['Informed', darci.informed],
-  ];
-  for (const [roleName, roleData] of darciRoles) {
-    const people = Array.isArray(roleData) ? roleData : (roleData?.people ?? []);
-    const guidelines = Array.isArray(roleData) ? '' : (roleData?.guidelines ?? '');
-    if (people.length > 0 || guidelines) {
-      nodes.push(heading(3, roleName));
-      if (people.length > 0) {
-        nodes.push(paragraph(`**${people.join(', ')}**`));
-      }
-      if (guidelines) {
-        nodes.push(paragraph(guidelines));
-      }
+      nodes.push(bulletList(nonGoals.map((obj) => obj.description ?? '')));
     }
   }
 
-  // ── Scope ──
-  nodes.push(heading(2, 'Scope'));
-  nodes.push(heading(3, 'In Scope'));
-  if (prd.sections.scope.in_scope.length > 0) {
-    nodes.push(bulletList(prd.sections.scope.in_scope));
-  } else {
-    nodes.push(paragraph(''));
-  }
-  nodes.push(heading(3, 'Out of Scope'));
-  if (prd.sections.scope.out_of_scope.length > 0) {
-    nodes.push(bulletList(prd.sections.scope.out_of_scope));
-  } else {
-    nodes.push(paragraph(''));
-  }
-
-  // ── User Stories ──
-  nodes.push(heading(2, 'User Stories'));
-  if (prd.sections.user_stories.length > 0) {
-    for (const story of prd.sections.user_stories) {
-      nodes.push(
-        paragraph(
-          `**${story.id}** [${story.priority}] As a ${story.role}, I want ${story.want}, so that ${story.benefit}`,
-        ),
-      );
-      if (story.acceptance_criteria.length > 0) {
-        nodes.push(bulletList(story.acceptance_criteria.map((ac) => `AC: ${ac}`)));
-      }
+  // ── DARCI Matrix (as table like PRD samples) ── (skip if no darci)
+  if (prd.sections.darci) {
+    nodes.push(heading(2, 'DARCI Matrix'));
+    const { darci } = prd.sections;
+    const darciRoles: Array<[string, typeof darci.decider]> = [
+      ['Decider', darci.decider],
+      ['Accountable', darci.accountable],
+      ['Responsible', darci.responsible],
+      ['Consulted', darci.consulted],
+      ['Informed', darci.informed],
+    ];
+    const darciRows: string[][] = [];
+    for (const [roleName, roleData] of darciRoles) {
+      const people = Array.isArray(roleData) ? roleData : (roleData?.people ?? []);
+      const guidelines = Array.isArray(roleData) ? '' : (roleData?.guidelines ?? '');
+      darciRows.push([roleName, people.join(', ') || '[TO CONFIRM]', guidelines || '-']);
     }
-  } else {
-    nodes.push(paragraph(''));
+    nodes.push(table(['Role', 'People', 'Guidelines'], darciRows));
   }
 
-  // ── Functional Requirements ──
-  nodes.push(heading(2, 'Functional Requirements'));
-  if (prd.sections.functional_reqs.length > 0) {
-    for (const req of prd.sections.functional_reqs) {
-      nodes.push(paragraph(`**${req.id}** [${req.priority}] ${req.title}`));
-      nodes.push(paragraph(req.description));
-      if (req.dependencies.length > 0) {
-        nodes.push(paragraph(`Dependencies: ${req.dependencies.join(', ')}`));
-      }
+  // ── Scope ── (skip if empty)
+  if (
+    prd.sections.scope &&
+    ((prd.sections.scope.in_scope ?? []).length > 0 ||
+      (prd.sections.scope.out_of_scope ?? []).length > 0)
+  ) {
+    nodes.push(heading(2, 'Scope'));
+    if ((prd.sections.scope.in_scope ?? []).length > 0) {
+      nodes.push(heading(3, 'In Scope'));
+      nodes.push(bulletList(prd.sections.scope.in_scope));
     }
-  } else {
-    nodes.push(paragraph(''));
+    if ((prd.sections.scope.out_of_scope ?? []).length > 0) {
+      nodes.push(heading(3, 'Out of Scope'));
+      nodes.push(bulletList(prd.sections.scope.out_of_scope));
+    }
   }
 
-  // ── Non-Functional Requirements ──
-  nodes.push(heading(2, 'Non-Functional Requirements'));
+  // ── User Stories ── (skip if empty)
+  if (Array.isArray(prd.sections.user_stories) && prd.sections.user_stories.length > 0) {
+    nodes.push(heading(2, 'User Stories'));
+    const storyRows: string[][] = prd.sections.user_stories.map((story) => [
+      story.id ?? '',
+      `As a ${story.role ?? ''}, I want ${story.want ?? (story as Record<string, unknown>).action ?? ''}, so that ${story.benefit ?? ''}`,
+      (story.acceptance_criteria ?? []).join('\n'),
+      story.priority ?? '',
+    ]);
+    nodes.push(table(['ID', 'User Story', 'Acceptance Criteria', 'Priority'], storyRows));
+  }
+
+  // ── Functional Requirements ── (skip if empty)
+  if (Array.isArray(prd.sections.functional_reqs) && prd.sections.functional_reqs.length > 0) {
+    nodes.push(heading(2, 'Functional Requirements'));
+    const reqRows: string[][] = prd.sections.functional_reqs.map((req) => [
+      req.id ?? '',
+      req.title ?? '',
+      req.description ?? '',
+      req.priority ?? '',
+    ]);
+    nodes.push(table(['ID', 'Title', 'Description', 'Priority'], reqRows));
+  }
+
+  // ── Non-Functional Requirements ── (skip if empty)
   const { nfr } = prd.sections;
-  const nfrItems: string[] = [];
-  const nfrCategories: Array<[string, string[]]> = [
-    ['Performance', nfr.performance],
-    ['Security', nfr.security],
-    ['Accessibility', nfr.accessibility],
-    ['Scalability', nfr.scalability],
-    ['Reliability', nfr.reliability],
-    ['Compliance', nfr.compliance],
-  ];
-  for (const [label, items] of nfrCategories) {
-    if (items && items.length > 0) {
-      nfrItems.push(`**${label}:** ${items.join('; ')}`);
+  const nfrRows: string[][] = [];
+  if (nfr) {
+    const nfrCategories: Array<[string, string[]]> = [
+      ['Performance', nfr.performance ?? []],
+      ['Security', nfr.security ?? []],
+      ['Accessibility', nfr.accessibility ?? []],
+      ['Scalability', nfr.scalability ?? []],
+      ['Reliability', nfr.reliability ?? []],
+      ['Compliance', nfr.compliance ?? []],
+    ];
+    for (const [label, items] of nfrCategories) {
+      if (items && items.length > 0) {
+        nfrRows.push([label, items.join('; ')]);
+      }
     }
   }
-  if (nfrItems.length > 0) {
-    nodes.push(bulletList(nfrItems));
-  } else {
-    nodes.push(paragraph(''));
+  if (nfrRows.length > 0) {
+    nodes.push(heading(2, 'Non-Functional Requirements'));
+    nodes.push(table(['Category', 'Requirements'], nfrRows));
   }
 
-  // ── Success Metrics ──
-  nodes.push(heading(2, 'Success Metrics'));
-  if (prd.sections.success_metrics.length > 0) {
+  // ── Success Metrics ── (skip if empty)
+  if (Array.isArray(prd.sections.success_metrics) && prd.sections.success_metrics.length > 0) {
+    nodes.push(heading(2, 'Success Metrics'));
     nodes.push(
       table(
         ['Metric', 'Definition', 'Baseline', 'Target', 'Window'],
         prd.sections.success_metrics.map((m) => [
-          m.name,
+          m.name ?? '',
           m.definition || '-',
-          m.baseline,
-          m.target,
-          m.measurement_window,
+          m.baseline ?? '-',
+          m.target ?? '-',
+          m.measurement_window ?? '-',
         ]),
       ),
     );
-  } else {
-    nodes.push(paragraph(''));
   }
 
-  // ── Timeline ──
-  nodes.push(heading(2, 'Timeline'));
-  if (prd.sections.timeline.length > 0) {
-    for (const ms of prd.sections.timeline) {
-      const statusTag = ms.status ? ` [${ms.status}]` : '';
-      const picTag = ms.pic ? ` — PIC: ${ms.pic}` : '';
-      nodes.push(paragraph(`**${ms.title}** — ${ms.date}${statusTag}${picTag}`));
-      if (ms.activity) {
-        nodes.push(paragraph(ms.activity));
-      }
-      if (ms.deliverables.length > 0) {
-        nodes.push(heading(4, 'Deliverables'));
-        nodes.push(bulletList(ms.deliverables));
-      }
-    }
-  } else {
-    nodes.push(paragraph(''));
+  // ── Timeline ── (skip if empty)
+  if (Array.isArray(prd.sections.timeline) && prd.sections.timeline.length > 0) {
+    nodes.push(heading(2, 'Timeline'));
+    const timelineRows: string[][] = prd.sections.timeline.map((ms) => [
+      ms.date ?? '',
+      ms.title ?? '',
+      ms.activity || '-',
+      (ms.deliverables ?? []).join(', ') || '-',
+      ms.pic || '-',
+    ]);
+    nodes.push(table(['Date', 'Phase', 'Activity', 'Deliverables', 'PIC'], timelineRows));
   }
 
-  // ── Risks ──
-  nodes.push(heading(2, 'Risks'));
-  if (prd.sections.risks.length > 0) {
-    for (const risk of prd.sections.risks) {
-      nodes.push(
-        paragraph(`**${risk.id}** [${risk.likelihood}/${risk.impact}] ${risk.description}`),
-      );
-      nodes.push(paragraph(`Mitigation: ${risk.mitigation}`));
-      if (risk.owner) {
-        nodes.push(paragraph(`Owner: ${risk.owner}`));
-      }
-    }
-  } else {
-    nodes.push(paragraph(''));
+  // ── Risks ── (skip if empty)
+  if (Array.isArray(prd.sections.risks) && prd.sections.risks.length > 0) {
+    nodes.push(heading(2, 'Risks'));
+    const riskRows: string[][] = prd.sections.risks.map((risk) => [
+      risk.id ?? '',
+      risk.description ?? '',
+      `${risk.likelihood ?? '-'}/${risk.impact ?? '-'}`,
+      risk.mitigation ?? '',
+    ]);
+    nodes.push(table(['ID', 'Risk', 'Likelihood/Impact', 'Mitigation'], riskRows));
   }
 
-  // ── References ──
-  nodes.push(heading(2, 'References'));
-  if (prd.sections.references.length > 0) {
+  // ── References ── (skip if empty)
+  if (Array.isArray(prd.sections.references) && prd.sections.references.length > 0) {
+    nodes.push(heading(2, 'References'));
     nodes.push(
       bulletList(
         prd.sections.references.map((ref) => {
-          let text = `**${ref.title}** (${ref.type}): ${ref.url}`;
+          let text = `**${ref.title ?? 'Untitled'}** (${ref.type ?? 'other'}): ${ref.url ?? ''}`;
           if (ref.description) text += ` — ${ref.description}`;
           return text;
         }),
       ),
     );
-  } else {
-    nodes.push(paragraph(''));
   }
 
-  // ── Glossary ──
-  nodes.push(heading(2, 'Glossary'));
-  if (prd.sections.glossary.length > 0) {
+  // ── Glossary ── (skip if empty)
+  if (Array.isArray(prd.sections.glossary) && prd.sections.glossary.length > 0) {
+    nodes.push(heading(2, 'Glossary'));
     nodes.push(
-      bulletList(prd.sections.glossary.map((entry) => `**${entry.term}:** ${entry.definition}`)),
-    );
-  } else {
-    nodes.push(paragraph(''));
-  }
-
-  // ── Changelog ──
-  nodes.push(heading(2, 'Changelog'));
-  if (prd.sections.changelog.length > 0) {
-    nodes.push(
-      bulletList(
-        prd.sections.changelog.map(
-          (entry) => `v${entry.version} (${entry.date}) by ${entry.author}: ${entry.summary}`,
-        ),
+      table(
+        ['Term', 'Definition'],
+        prd.sections.glossary.map((entry) => [entry.term ?? '', entry.definition ?? '']),
       ),
     );
-  } else {
-    nodes.push(paragraph(''));
+  }
+
+  // ── Changelog ── (skip if empty)
+  if (Array.isArray(prd.sections.changelog) && prd.sections.changelog.length > 0) {
+    nodes.push(
+      table(
+        ['Version', 'Date', 'Author', 'Summary'],
+        prd.sections.changelog.map((entry) => [
+          `v${entry.version ?? '?'}`,
+          entry.date ?? '',
+          entry.author ?? '',
+          entry.summary ?? '',
+        ]),
+      ),
+    );
   }
 
   return { type: 'doc', content: nodes };
@@ -358,10 +361,21 @@ export function tiptapToPRD(doc: TiptapDoc, existingPRD: PRDDocument): PRDDocume
   const result: PRDDocument = JSON.parse(JSON.stringify(existingPRD));
   const sections = splitByH2(doc.content);
 
-  // Extract title from H1 if present
+  // Extract title: skip the "PRODUCT REQUIREMENTS DOCUMENT" H1, use the subtitle paragraph
   const h1 = doc.content.find((n) => n.type === 'heading' && (n.attrs?.level ?? 0) === 1);
   if (h1) {
-    result.metadata.title = extractText(h1);
+    const h1Text = extractText(h1);
+    // If H1 is the generic header, look for the next paragraph as the real title
+    if (h1Text.toUpperCase().includes('PRODUCT REQUIREMENTS DOCUMENT')) {
+      const h1Index = doc.content.indexOf(h1);
+      const nextNode = doc.content[h1Index + 1];
+      if (nextNode && nextNode.type === 'paragraph') {
+        const titleText = extractText(nextNode).trim();
+        if (titleText) result.metadata.title = titleText;
+      }
+    } else {
+      result.metadata.title = h1Text;
+    }
   }
 
   for (const [sectionTitle, sectionNodes] of sections) {
@@ -518,6 +532,20 @@ function extractListItems(nodes: TiptapNode[]): string[] {
 
 function countWords(nodes: TiptapNode[]): number {
   const text = nodes.map(extractText).join(' ');
+  return text.split(/\s+/).filter((w) => w.length > 0).length;
+}
+
+/**
+ * Count total words from a raw tiptap JSON document (Record<string, unknown>).
+ * Works directly on the JSON stored in the database — no parsing needed.
+ */
+export function countTiptapWords(doc: Record<string, unknown>): number {
+  function extract(node: Record<string, unknown>): string {
+    if (typeof node.text === 'string') return node.text;
+    if (!Array.isArray(node.content)) return '';
+    return (node.content as Record<string, unknown>[]).map(extract).join(' ');
+  }
+  const text = extract(doc);
   return text.split(/\s+/).filter((w) => w.length > 0).length;
 }
 

@@ -4,12 +4,6 @@
 .pnp.js
 .yarn/install-state.gz
 
-# testing
-/coverage
-/test-results
-/playwright-report
-/blob-report
-
 # next.js
 /.next/
 /out/
@@ -17,57 +11,62 @@
 # production
 /build
 
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# testing
+/coverage
+/test-results
+/playwright-report
+/blob-report
 
 # env files
 .env
 .env*.local
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-# supabase
-supabase/.temp/
-supabase/.branches/
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# claude code
 /.claude/
-/.husky/
 
+# vercel
+.vercel
 
-# OS
-Thumbs.db
+# supabase
+supabase/
 
+# misc
+*.pem
+
+# build artifacts
+tsc
+draftmind@*
+
+# reference / non-app files (not needed in repo)
+PRD Sample/
+contoh isi template PRD/
+icon-providers/
+providerAI/
+claude_code_prompts/
+draftmind_claude_code_prompts.zip
 00_MASTER_BRIEF.md
 01_PHASE1_FOUNDATION.md
 02_PHASE2_AUTH_DASHBOARD.md
 03_PHASE3_GENERATE_EDITOR.md
 04_PHASE4_REMAINING.md
-
-claude_code_prompts/
-
-
-supabase/
-test-results/
-
-draftmind_claude_code_prompts.zip
-
-# build artifacts
-tsc
-draftmind@*
+docs/PROJECT_REVIEW.md

@@ -61,6 +61,7 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        aria-describedby={undefined}
         className={cn(contentVariants({ size }), className)}
         {...props}
       >

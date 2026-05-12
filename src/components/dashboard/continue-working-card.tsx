@@ -21,7 +21,7 @@ export function ContinueWorkingCard({ prd }: { prd: ContinueWorkingPRD }) {
             <span className="truncate text-[11px] text-[#bbb]">{prd.project_tag}</span>
           )}
         </div>
-        <p className="mt-1.5 text-[11px] text-[#bbb]">
+        <p className="mt-1.5 text-[11px] text-[#bbb]" suppressHydrationWarning>
           {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
         </p>
       </div>

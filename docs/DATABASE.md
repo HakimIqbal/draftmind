@@ -39,7 +39,7 @@ erDiagram
 
 ---
 
-## Tables (15 Total)
+## Tables (16 Total)
 
 ### Identity and Workspace
 
@@ -47,20 +47,23 @@ erDiagram
 
 Extends `auth.users`. Created automatically on signup via trigger.
 
-| Column                  | Type        | Notes                                         |
-| ----------------------- | ----------- | --------------------------------------------- |
-| id                      | uuid PK     | References `auth.users(id)` ON DELETE CASCADE |
-| email                   | text UNIQUE |                                               |
-| full_name               | text        |                                               |
-| avatar_initials         | text        | e.g. "MR"                                     |
-| avatar_color_seed       | text        | Deterministic color                           |
-| role_self_reported      | text        | "Product Manager", "Business Analyst", etc.   |
-| experience_level        | text        | "Beginner" / "Intermediate" / "Expert"        |
-| primary_use_cases       | text[]      | ["Feature PRD", "RFC", ...]                   |
-| default_locale          | text        | 'en' or 'id'                                  |
-| onboarding_completed_at | timestamptz |                                               |
-| created_at              | timestamptz |                                               |
-| updated_at              | timestamptz |                                               |
+| Column                  | Type        | Notes                                          |
+| ----------------------- | ----------- | ---------------------------------------------- |
+| id                      | uuid PK     | References `auth.users(id)` ON DELETE CASCADE  |
+| email                   | text UNIQUE |                                                |
+| full_name               | text        |                                                |
+| avatar_initials         | text        | e.g. "MR"                                      |
+| avatar_color_seed       | text        | Deterministic color                            |
+| role_self_reported      | text        | "Product Manager", "Business Analyst", etc.    |
+| experience_level        | text        | "Beginner" / "Intermediate" / "Expert"         |
+| primary_use_cases       | text[]      | ["Feature PRD", "RFC", ...]                    |
+| default_locale          | text        | 'en' or 'id'                                   |
+| is_super_admin          | boolean     | Default false. Super admin access              |
+| force_password_change   | boolean     | Default false. Forces password change on login |
+| avatar_url              | text        | URL to uploaded avatar image                   |
+| onboarding_completed_at | timestamptz |                                                |
+| created_at              | timestamptz |                                                |
+| updated_at              | timestamptz |                                                |
 
 #### `workspaces`
 
@@ -210,23 +213,30 @@ Extends `auth.users`. Created automatically on signup via trigger.
 
 #### `providers`
 
-| Column            | Type            | Notes                                                                           |
-| ----------------- | --------------- | ------------------------------------------------------------------------------- |
-| id                | uuid PK         |                                                                                 |
-| workspace_id      | uuid FK         |                                                                                 |
-| type              | provider_type   | 'anthropic' / 'openai' / 'gemini' / 'groq' / 'sumopod' / 'ganrouter' / 'custom' |
-| display_name      | text            |                                                                                 |
-| base_url          | text            | For OpenAI-compatible custom providers                                          |
-| api_key_encrypted | text            | Encrypted at rest, server-only                                                  |
-| default_model     | text            |                                                                                 |
-| available_models  | text[]          |                                                                                 |
-| is_default        | boolean         | One default per workspace (unique index)                                        |
-| status            | provider_status | 'active' / 'disconnected' / 'error'                                             |
-| status_reason     | text            | Error message                                                                   |
-| last_used_at      | timestamptz     |                                                                                 |
-| created_by        | uuid FK         |                                                                                 |
-| created_at        | timestamptz     |                                                                                 |
-| updated_at        | timestamptz     |                                                                                 |
+| Column              | Type            | Notes                                                                           |
+| ------------------- | --------------- | ------------------------------------------------------------------------------- |
+| id                  | uuid PK         |                                                                                 |
+| workspace_id        | uuid FK         | Nullable — null = global provider                                               |
+| type                | provider_type   | 'anthropic' / 'openai' / 'gemini' / 'groq' / 'sumopod' / 'ganrouter' / 'custom' |
+| display_name        | text            |                                                                                 |
+| base_url            | text            | For OpenAI-compatible custom providers                                          |
+| api_key_encrypted   | text            | Encrypted at rest, server-only                                                  |
+| default_model       | text            |                                                                                 |
+| available_models    | text[]          |                                                                                 |
+| is_default          | boolean         | One default per workspace (unique index)                                        |
+| priority            | integer         | Default 0. Lower = higher priority for fallback routing                         |
+| use_for             | text[]          | What this provider is used for (e.g., ['generate', 'review'])                   |
+| status              | provider_status | 'active' / 'disconnected' / 'error'                                             |
+| status_reason       | text            | Error message                                                                   |
+| total_requests      | integer         | Default 0. Total API requests made                                              |
+| successful_requests | integer         | Default 0. Successful API requests                                              |
+| failed_requests     | integer         | Default 0. Failed API requests                                                  |
+| avg_latency_ms      | integer         | Default 0. Rolling average latency                                              |
+| last_error          | text            | Last error message from API call                                                |
+| last_used_at        | timestamptz     |                                                                                 |
+| created_by          | uuid FK         |                                                                                 |
+| created_at          | timestamptz     |                                                                                 |
+| updated_at          | timestamptz     |                                                                                 |
 
 **Indexes:** `idx_providers_one_default` (unique partial index)
 
@@ -274,6 +284,24 @@ Extends `auth.users`. Created automatically on signup via trigger.
 | dismissed_by   | uuid FK          |                           |
 | created_at     | timestamptz      |                           |
 
+### System
+
+#### `system_logs`
+
+Server-side error and warning logs for debugging and monitoring.
+
+| Column       | Type        | Notes                            |
+| ------------ | ----------- | -------------------------------- |
+| id           | uuid PK     |                                  |
+| level        | text        | 'error' / 'warn' / 'info'        |
+| source       | text        | e.g. 'ai.generate', 'auth.login' |
+| message      | text        |                                  |
+| metadata     | jsonb       | Additional context               |
+| user_id      | uuid FK     | Nullable                         |
+| workspace_id | uuid FK     | Nullable                         |
+| resolved_at  | timestamptz | When the issue was resolved      |
+| created_at   | timestamptz |                                  |
+
 ### Activity and Notifications
 
 #### `activity_log`
@@ -289,7 +317,7 @@ Extends `auth.users`. Created automatically on signup via trigger.
 | metadata      | jsonb         |                                                         |
 | created_at    | timestamptz   |                                                         |
 
-**activity_type enum values:** `prd_created`, `prd_edited`, `prd_status_changed`, `prd_archived`, `prd_exported`, `comment_added`, `comment_resolved`, `review_requested`, `review_approved`, `review_rejected`, `ai_generation_completed`, `ai_review_completed`, `ai_refinement_applied`, `member_invited`, `member_joined`, `member_role_changed`, `member_removed`, `workspace_created`, `workspace_settings_changed`, `provider_added`, `provider_disconnected`, `login`, `logout`, `public_share_created`, `public_share_viewed`
+**activity_type enum values:** `prd_created`, `prd_edited`, `prd_status_changed`, `prd_archived`, `prd_exported`, `prd_duplicated`, `prd_deleted`, `prd_pinned`, `prd_unpinned`, `prd_restored`, `prd_shared`, `comment_added`, `comment_resolved`, `review_requested`, `review_approved`, `review_rejected`, `ai_generation_completed`, `ai_review_completed`, `ai_refinement_applied`, `member_invited`, `member_joined`, `member_role_changed`, `member_removed`, `workspace_created`, `workspace_settings_changed`, `provider_added`, `provider_updated`, `provider_disconnected`, `provider_removed`, `template_created`, `template_updated`, `template_deleted`, `login`, `logout`, `profile_updated`, `password_reset`, `password_changed`, `avatar_updated`, `public_share_created`, `public_share_viewed`, `announcement_created`, `announcement_updated`, `version_created`, `version_restored`
 
 **Indexes:** `idx_activity_workspace_time`, `idx_activity_actor`
 
@@ -394,5 +422,25 @@ Generic trigger function that sets `updated_at = now()` on any UPDATE operation.
 | `ai_run_type`       | generate_prd, refine_section, regenerate_prd, ai_review, inline_suggest, quick_action                             |
 | `ai_run_status`     | queued, running, success, error, cancelled                                                                        |
 | `finding_severity`  | high, medium, low                                                                                                 |
-| `activity_type`     | (24 values, see activity_log section)                                                                             |
+| `activity_type`     | (43 values, see activity_log section)                                                                             |
 | `notification_type` | mention, review_request, approval_needed, comment_reply, ai_suggestion_ready, integration_event, workspace_invite |
+
+---
+
+## Realtime
+
+The `prds` table is added to the `supabase_realtime` publication for real-time subscriptions (migration 0017).
+
+---
+
+## Views
+
+### `providers_safe`
+
+A read-only view of the `providers` table that excludes `api_key_encrypted`. Used by client-facing queries to avoid exposing encrypted keys.
+
+---
+
+## Migrations
+
+There are 17 migration files in `supabase/migrations/`, from `0001_init_schema.sql` through `0017_realtime_prds.sql`.

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { encryptApiKey } from '@/lib/utils/crypto';
 import { PROVIDER_REGISTRY } from '@/lib/ai/providers';
 import { revalidatePath } from 'next/cache';
+import { logWarn } from '@/lib/logging/system-log';
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -114,10 +115,15 @@ export async function testProviderConnection(data: {
     const latency = Date.now() - start;
     return { success: true, message: `Connected to ${config.displayName}`, latency };
   } catch (err) {
-    return {
-      success: false,
-      message: err instanceof Error ? err.message : 'Connection failed',
-    };
+    // Error details logged to system_logs, not exposed to UI
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('401') || msg.includes('Unauthorized') || msg.includes('invalid')) {
+      return { success: false, message: 'Invalid API key. Please check and try again.' };
+    }
+    if (msg.includes('404') || msg.includes('not found')) {
+      return { success: false, message: 'Provider endpoint not found. Check base URL.' };
+    }
+    return { success: false, message: 'Failed to connect. Verify API key and settings.' };
   }
 }
 
@@ -155,54 +161,82 @@ export async function addProvider(data: {
 
   if (error) return { error: error.message };
 
+  logWarn(
+    'admin.provider',
+    `provider_added: ${data.displayName} (${data.type})`,
+    { display_name: data.displayName, type: data.type },
+    user.id,
+  );
+
   revalidatePath('/admin/providers');
   return { success: true };
 }
 
 export async function disconnectProvider(providerId: string) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
   await admin.from('providers').update({ status: 'disconnected' }).eq('id', providerId);
+  logWarn('admin.provider', `provider_disconnected: ${providerId}`, { providerId }, user.id);
+
   revalidatePath('/admin/providers');
   return { success: true };
 }
 
 export async function activateProvider(providerId: string) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
   await admin.from('providers').update({ status: 'active' }).eq('id', providerId);
+  logWarn('admin.provider', `provider_activated: ${providerId}`, { providerId }, user.id);
+
   revalidatePath('/admin/providers');
   return { success: true };
 }
 
 export async function deleteProvider(providerId: string) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
   await admin.from('providers').delete().eq('id', providerId);
+  logWarn('admin.provider', `provider_deleted: ${providerId}`, { providerId }, user.id);
+
   revalidatePath('/admin/providers');
   return { success: true };
 }
 
 export async function updateProviderPriority(providerId: string, priority: number) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
   await admin
     .from('providers')
     .update({ priority, is_default: priority === 1 })
     .eq('id', providerId);
+
+  logWarn(
+    'admin.provider',
+    `provider_priority_changed: ${providerId} → ${priority}`,
+    { providerId, priority },
+    user.id,
+  );
+
   revalidatePath('/admin/providers');
   return { success: true };
 }
 
 export async function updateProviderUseFor(providerId: string, useFor: string) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
   await admin.from('providers').update({ use_for: useFor }).eq('id', providerId);
+  logWarn(
+    'admin.provider',
+    `provider_use_for_changed: ${providerId} → ${useFor}`,
+    { providerId, use_for: useFor },
+    user.id,
+  );
+
   revalidatePath('/admin/providers');
   return { success: true };
 }

@@ -66,6 +66,7 @@ export interface WorkspaceListItem {
   name: string;
   slug: string;
   icon_pattern: string;
+  icon_custom_url: string | null;
   role: string;
 }
 
@@ -83,7 +84,7 @@ export async function getUserWorkspaces(userId: string): Promise<WorkspaceListIt
   const wsIds = members.map((m) => m.workspace_id);
   const { data: workspaces } = await supabase
     .from('workspaces')
-    .select('id, name, slug, icon_pattern')
+    .select('id, name, slug, icon_pattern, icon_custom_url')
     .in('id', wsIds);
 
   if (!workspaces) return [];
@@ -95,6 +96,7 @@ export async function getUserWorkspaces(userId: string): Promise<WorkspaceListIt
       name: ws?.name ?? 'Unknown',
       slug: ws?.slug ?? '',
       icon_pattern: ws?.icon_pattern ?? 'circle',
+      icon_custom_url: ws?.icon_custom_url ?? null,
       role: m.role,
     };
   });

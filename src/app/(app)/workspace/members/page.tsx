@@ -1,66 +1,61 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
-import { MembersTable } from '@/components/workspace/members-table';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { redirect } from 'next/navigation';
+import { WorkspaceMembersTab } from '@/components/workspace/workspace-members-tab';
+import type { WorkspaceMemberItem, WorkspaceInvitationItem } from '@/app/(app)/workspace/page';
 
-export interface WorkspaceMember {
-  user_id: string;
-  role: string;
-  joined_at: string;
-  last_active_at: string | null;
-  profile: {
-    full_name: string | null;
-    email: string;
-    avatar_color_seed: string | null;
-  };
-}
-
-export interface WorkspaceInvitation {
-  id: string;
-  email: string;
-  role: string;
-  created_at: string;
-  expires_at: string;
-  accepted_at: string | null;
-  revoked_at: string | null;
-}
+export const dynamic = 'force-dynamic';
 
 export default async function WorkspaceMembersPage() {
   const user = await requireUser();
   const workspace = await getCurrentWorkspace(user.id);
-
-  if (!workspace) {
-    return null;
-  }
+  if (!workspace) redirect('/dashboard');
 
   const supabase = await createClient();
 
-  // Fetch workspace members with profile info
-  const { data: members } = await supabase
-    .from('workspace_members')
-    .select(
-      'user_id, role, joined_at, last_active_at, profile:profiles(full_name, email, avatar_color_seed)',
-    )
-    .eq('workspace_id', workspace.id)
-    .order('joined_at', { ascending: true });
+  const [membersR, invitationsR] = await Promise.all([
+    supabase
+      .from('workspace_members')
+      .select(
+        'user_id, role, joined_at, last_active_at, profile:profiles(full_name, email, avatar_color_seed, avatar_url, role_self_reported)',
+      )
+      .eq('workspace_id', workspace.id)
+      .order('joined_at', { ascending: true }),
+    supabase
+      .from('workspace_invitations')
+      .select('id, email, role, created_at, expires_at, accepted_at, revoked_at')
+      .eq('workspace_id', workspace.id)
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .gte('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false }),
+  ]);
 
-  // Fetch pending invitations (not accepted, not revoked, not expired)
-  const { data: invitations } = await supabase
-    .from('workspace_invitations')
-    .select('id, email, role, created_at, expires_at, accepted_at, revoked_at')
-    .eq('workspace_id', workspace.id)
-    .is('accepted_at', null)
-    .is('revoked_at', null)
-    .gte('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false });
+  // Check disabled/banned status for workspace members
+  const memberIds = (membersR.data ?? []).map((m) => m.user_id);
+  const disabledIds = new Set<string>();
+  if (memberIds.length > 0) {
+    const admin = createAdminClient();
+    const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    if (authData?.users) {
+      for (const u of authData.users) {
+        if (memberIds.includes(u.id) && u.banned_until && new Date(u.banned_until) > new Date()) {
+          disabledIds.add(u.id);
+        }
+      }
+    }
+  }
 
   return (
-    <MembersTable
+    <WorkspaceMembersTab
       workspaceId={workspace.id}
       currentUserId={user.id}
       currentUserRole={workspace.currentRole}
-      members={(members as unknown as WorkspaceMember[]) ?? []}
-      invitations={(invitations as WorkspaceInvitation[]) ?? []}
+      members={(membersR.data as unknown as WorkspaceMemberItem[]) ?? []}
+      invitations={(invitationsR.data as WorkspaceInvitationItem[]) ?? []}
+      disabledUserIds={[...disabledIds]}
     />
   );
 }

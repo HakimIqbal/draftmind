@@ -12,15 +12,16 @@ export default async function AIReviewRoute({ params }: { params: Promise<{ prdI
   if (!prd) redirect('/prds');
 
   // Get most recent AI review run
-  const { data: aiRun } = await supabase
+  const { data: aiRuns } = await supabase
     .from('ai_runs')
     .select('id, status, completed_at')
     .eq('prd_id', prdId)
     .eq('type', 'ai_review')
     .eq('status', 'success')
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
+
+  const aiRun = aiRuns?.[0] ?? null;
 
   // Get findings if review exists
   let findings: Array<Record<string, unknown>> = [];

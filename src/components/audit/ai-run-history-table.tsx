@@ -6,13 +6,14 @@ import Link from 'next/link';
 
 interface AiRun {
   id: string;
-  run_type: string;
+  type: string;
   prd_id: string | null;
-  prd_title: string | null;
-  model: string | null;
+  model_used: string | null;
   duration_ms: number | null;
-  token_count: number | null;
+  total_tokens: number | null;
   status: string;
+  error_message: string | null;
+  input_payload: { title?: string } | null;
   created_at: string;
 }
 
@@ -37,6 +38,7 @@ const STATUS_CONFIG: Record<string, { dot: string; label: string; pulse?: boolea
   success: { dot: 'bg-[#6B8E5A]', label: 'Success' },
   error: { dot: 'bg-[#B85843]', label: 'Error' },
   running: { dot: 'bg-amber-500', label: 'Running', pulse: true },
+  queued: { dot: 'bg-ink-quaternary', label: 'Queued', pulse: true },
 };
 
 function formatRelativeTime(dateStr: string): string {
@@ -63,17 +65,35 @@ function formatTokens(count: number | null): string {
   return count.toLocaleString();
 }
 
-function formatType(type: string): string {
-  return type.charAt(0).toUpperCase() + type.slice(1);
+function formatType(type: string | null | undefined): string {
+  if (!type) return 'Unknown';
+  // Map DB type names to display labels
+  const typeMap: Record<string, string> = {
+    generate_prd: 'Generation',
+    regenerate_prd: 'Generation',
+    refine_section: 'Refine',
+    ai_review: 'Review',
+    inline_suggest: 'Suggest',
+    quick_action: 'Suggest',
+  };
+  return typeMap[type] ?? type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
   const [filter, setFilter] = useState<FilterKey>('all');
 
-  const filtered = useMemo(
-    () => (filter === 'all' ? runs : runs.filter((r) => r.run_type === filter)),
-    [runs, filter],
-  );
+  const filtered = useMemo(() => {
+    if (filter === 'all') return runs;
+    const typeMap: Record<FilterKey, string[]> = {
+      all: [],
+      generation: ['generate_prd', 'regenerate_prd'],
+      refine: ['refine_section'],
+      review: ['ai_review'],
+      suggest: ['inline_suggest', 'quick_action'],
+    };
+    const types = typeMap[filter] ?? [];
+    return runs.filter((r) => types.includes(r.type ?? ''));
+  }, [runs, filter]);
 
   return (
     <div className="mx-auto max-w-5xl px-lg py-lg">
@@ -106,10 +126,13 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
             <tbody>
               {filtered.map((run) => {
                 const statusCfg = STATUS_CONFIG[run.status] ?? {
-                  dot: 'bg-[#6B8E5A]',
-                  label: 'Success',
+                  dot: 'bg-ink-tertiary',
+                  label: run.status ?? 'Unknown',
                 };
-                const dotColor = TYPE_COLORS[run.run_type] ?? 'bg-ink-tertiary';
+                const dotColor = TYPE_COLORS[run.type] ?? 'bg-ink-tertiary';
+                const prdTitle = (run.input_payload as Record<string, unknown> | null)?.title as
+                  | string
+                  | undefined;
 
                 return (
                   <tr
@@ -122,29 +145,32 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
                     <td className="px-sm">
                       <span className="inline-flex items-center gap-1.5 rounded-sm border border-subtle px-2 py-0.5 font-mono text-xs">
                         <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
-                        {formatType(run.run_type)}
+                        {formatType(run.type)}
                       </span>
                     </td>
                     <td className="max-w-[200px] truncate px-sm text-sm">
-                      {run.prd_id && run.prd_title ? (
+                      {run.prd_id ? (
                         <Link
                           href={`/prds/${run.prd_id}`}
                           className="decoration-subtle text-ink-primary underline underline-offset-2 hover:decoration-ink-secondary"
                         >
-                          {run.prd_title}
+                          {prdTitle ?? 'View PRD'}
                         </Link>
                       ) : (
                         <span className="text-ink-tertiary">{'\u2014'}</span>
                       )}
                     </td>
                     <td className="px-sm font-mono text-[11px] text-ink-secondary">
-                      {run.model ?? '\u2014'}
+                      {run.model_used ?? '\u2014'}
                     </td>
                     <td className="px-sm font-mono text-[11px] text-ink-secondary">
                       {formatDuration(run.duration_ms)}
                     </td>
-                    <td className="px-sm font-mono text-[11px] text-ink-secondary">
-                      {formatTokens(run.token_count)}
+                    <td
+                      className="px-sm font-mono text-[11px] text-ink-secondary"
+                      suppressHydrationWarning
+                    >
+                      {formatTokens(run.total_tokens)}
                     </td>
                     <td className="px-sm">
                       <span className="inline-flex items-center gap-1.5 text-xs">

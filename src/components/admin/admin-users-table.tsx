@@ -1,10 +1,15 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Search, Shield, ShieldOff, UserX, UserPlus, X, Eye, EyeOff } from 'lucide-react';
+import { Search, Shield, ShieldOff, UserX, UserPlus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
-import { toggleSuperAdmin, toggleUserStatus, createUser } from '@/app/(admin)/admin/actions';
+import {
+  toggleSuperAdmin,
+  toggleUserStatus,
+  createUser,
+  resetUserPassword,
+} from '@/app/(admin)/admin/actions';
 
 interface AdminUser {
   id: string;
@@ -13,7 +18,9 @@ interface AdminUser {
   role_self_reported: string | null;
   is_super_admin: boolean;
   onboarding_completed_at: string | null;
+  is_disabled: boolean;
   created_at: string;
+  avatar_url: string | null;
 }
 
 export function AdminUsersTable({ users }: { users: AdminUser[] }) {
@@ -40,6 +47,14 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
       const result = await toggleUserStatus(userId);
       if (result.error) toast.error(result.error);
       else toast.success(result.disabled ? 'User disabled' : 'User enabled');
+    });
+  }
+
+  function handleResetPassword(userId: string) {
+    startTransition(async () => {
+      const result = await resetUserPassword(userId);
+      if (result.error) toast.error(result.error);
+      else toast.success('Password reset to default. User will be forced to change on next login.');
     });
   }
 
@@ -105,7 +120,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
               >
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
-                    <Avatar name={u.full_name ?? 'User'} size="sm" />
+                    <Avatar name={u.full_name ?? 'User'} size="sm" avatarUrl={u.avatar_url} />
                     <div>
                       <p className="text-[13px] font-medium text-[#1a1a1a]">
                         {u.full_name ?? 'No name'}
@@ -127,15 +142,21 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-1.5">
                     <div
-                      className={`h-1.5 w-1.5 rounded-full ${u.onboarding_completed_at ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                      className={`h-1.5 w-1.5 rounded-full ${u.is_disabled ? 'bg-red-400' : u.onboarding_completed_at ? 'bg-emerald-400' : 'bg-amber-400'}`}
                     />
-                    <span className="text-[12px] text-[#666]">
-                      {u.onboarding_completed_at ? 'Active' : 'Pending'}
+                    <span
+                      className={`text-[12px] ${u.is_disabled ? 'text-red-500' : 'text-[#666]'}`}
+                    >
+                      {u.is_disabled
+                        ? 'Disabled'
+                        : u.onboarding_completed_at
+                          ? 'Active'
+                          : 'Pending'}
                     </span>
                   </div>
                 </td>
                 <td className="px-5 py-3.5">
-                  <span className="text-[12px] text-[#999]">
+                  <span className="text-[12px] text-[#999]" suppressHydrationWarning>
                     {new Date(u.created_at).toLocaleDateString()}
                   </span>
                 </td>
@@ -150,10 +171,18 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                       {u.is_super_admin ? <ShieldOff size={14} /> : <Shield size={14} />}
                     </button>
                     <button
+                      onClick={() => handleResetPassword(u.id)}
+                      disabled={isPending}
+                      className="rounded-md p-1.5 text-[#bbb] transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-40"
+                      title="Reset password to default"
+                    >
+                      <KeyRound size={14} />
+                    </button>
+                    <button
                       onClick={() => handleToggleStatus(u.id)}
                       disabled={isPending}
-                      className="rounded-md p-1.5 text-[#bbb] transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
-                      title="Disable user"
+                      className={`rounded-md p-1.5 transition-colors disabled:opacity-40 ${u.is_disabled ? 'text-red-400 hover:bg-emerald-50 hover:text-emerald-600' : 'text-[#bbb] hover:bg-red-50 hover:text-red-500'}`}
+                      title={u.is_disabled ? 'Enable user' : 'Disable user'}
                     >
                       <UserX size={14} />
                     </button>
@@ -197,19 +226,24 @@ function CreateUserModal({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('Product Manager');
+  const [customRole, setCustomRole] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const isOther = role === 'Other';
+  const finalRole = isOther ? customRole : role;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password || !fullName) return;
+    if (isOther && !customRole.trim()) return;
 
     startTransition(async () => {
       const result = await createUser({
         email,
         password,
         full_name: fullName,
-        role_self_reported: role,
+        role_self_reported: finalRole,
         is_super_admin: isAdmin,
       });
 
@@ -296,6 +330,16 @@ function CreateUserModal({
               <option>Founder / CEO</option>
               <option>Other</option>
             </select>
+            {isOther && (
+              <input
+                type="text"
+                value={customRole}
+                onChange={(e) => setCustomRole(e.target.value)}
+                placeholder="Enter custom role..."
+                required
+                className="focus:ring-accent/30 mt-2 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
+              />
+            )}
           </div>
           <div>
             <label className="flex cursor-pointer items-center gap-2.5">
@@ -322,7 +366,9 @@ function CreateUserModal({
             </button>
             <button
               type="submit"
-              disabled={isPending || !email || !password || !fullName}
+              disabled={
+                isPending || !email || !password || !fullName || (isOther && !customRole.trim())
+              }
               className="flex-1 rounded-lg bg-[#1a1a1a] py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
               {isPending ? 'Creating...' : 'Create user'}

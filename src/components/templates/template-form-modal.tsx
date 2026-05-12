@@ -34,7 +34,7 @@ import type { Template } from '@/app/(app)/templates/page';
 const CATEGORY_OPTIONS = [
   { value: 'feature', label: 'Feature' },
   { value: 'experiment', label: 'Experiment' },
-  { value: 'rfc', label: 'RFC' },
+  { value: 'rfc', label: 'Technical Proposal' },
   { value: 'one-pager', label: 'One-pager' },
   { value: 'research', label: 'Research' },
   { value: 'custom', label: 'Custom' },

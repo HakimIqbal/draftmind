@@ -1,23 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  Sparkles,
-  PenLine,
-  BarChart3,
-  LayoutTemplate,
-  Users,
-  Kanban,
-  FileOutput,
-  History,
-  MessageSquare,
-  ChevronRight,
-  FileText,
-  Target,
-  ListChecks,
-  TrendingUp,
-  ArrowRight,
-} from 'lucide-react';
+import { Sparkles, PenLine, FileOutput, ChevronRight, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { PRD_SECTION_KEYS } from '@/types/prd';
+import { FeatureShowcase } from '@/components/landing/feature-showcase';
+
+const EXPORT_FORMATS = ['PDF', 'Word', 'HTML', 'Markdown', 'Slack', 'Jira'] as const;
 
 export default async function LandingPage() {
   const supabase = await createClient();
@@ -25,6 +13,14 @@ export default async function LandingPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
+
+  // Real-time stats
+  const sectionCount = PRD_SECTION_KEYS.length;
+  const exportCount = EXPORT_FORMATS.length;
+  const { count: templateCount } = await supabase
+    .from('prd_templates')
+    .select('*', { count: 'exact', head: true });
+
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
@@ -53,6 +49,12 @@ export default async function LandingPage() {
             >
               Features
             </a>
+            <a
+              href="#tech"
+              className="text-[13px] text-ink-tertiary transition-colors hover:text-ink-primary"
+            >
+              Tech Stack
+            </a>
           </div>
           <div className="w-[120px]" />
         </div>
@@ -63,9 +65,10 @@ export default async function LandingPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(200,120,60,0.07),transparent)]" />
         <div className="relative mx-auto max-w-[1140px] px-8 pb-32 pt-24">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
-              Product Requirement Documents
-            </p>
+            <div className="border-accent/20 bg-accent/5 mx-auto mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
+              <Sparkles size={14} className="text-accent" />
+              <span className="text-[12px] font-medium text-accent">AI-Powered PRD Generator</span>
+            </div>
             <h1 className="font-display text-[44px] font-bold leading-[1.08] tracking-tight text-ink-primary sm:text-[56px]">
               Draft PRDs that
               <br />
@@ -73,17 +76,17 @@ export default async function LandingPage() {
                 your team can ship.
               </span>
             </h1>
-            <p className="mx-auto mt-6 max-w-[500px] text-[16px] leading-[1.75] text-ink-secondary">
-              DraftMind turns a one-line brief into a structured PRD — complete with goals, user
-              stories, acceptance criteria, and success metrics. Review, refine, and approve as a
-              team.
+            <p className="mx-auto mt-6 max-w-[520px] text-[16px] leading-[1.75] text-ink-secondary">
+              Turn a one-line brief into a complete, enterprise-grade PRD - with goals, user
+              stories, DARCI matrix, acceptance criteria, and success metrics. Review, refine, and
+              approve as a team.
             </p>
-            <div className="mt-10">
+            <div className="mt-10 flex items-center justify-center gap-4">
               <Link
                 href={isLoggedIn ? '/dashboard' : '/login'}
                 className="shadow-ink-primary/15 hover:shadow-ink-primary/20 group inline-flex h-12 items-center gap-2 rounded-xl bg-ink-primary px-7 text-[14px] font-medium text-white shadow-xl transition-all hover:shadow-2xl"
               >
-                {isLoggedIn ? 'Go to Dashboard' : 'Get started'}
+                {isLoggedIn ? 'Go to Dashboard' : 'Start for free'}
                 {isLoggedIn ? (
                   <ArrowRight size={16} />
                 ) : (
@@ -93,192 +96,103 @@ export default async function LandingPage() {
                   />
                 )}
               </Link>
+              <a
+                href="#how-it-works"
+                className="inline-flex h-12 items-center gap-2 rounded-xl border border-black/10 px-6 text-[14px] font-medium text-ink-secondary transition-all hover:border-black/20 hover:bg-[#fafaf9]"
+              >
+                See how it works
+              </a>
             </div>
-          </div>
 
-          {/* PRD preview — shows what a generated PRD looks like */}
-          <div className="relative mx-auto mt-20 max-w-3xl">
-            <div className="rounded-2xl border border-black/[0.08] bg-white shadow-2xl shadow-black/[0.06]">
-              {/* Header bar */}
-              <div className="flex items-center justify-between border-b border-black/[0.06] px-6 py-4 sm:px-8">
-                <div className="flex items-center gap-3">
-                  <FileText size={16} className="text-ink-tertiary" />
-                  <span className="text-[13px] font-medium text-ink-primary">
-                    Checkout Flow Redesign
-                  </span>
-                  <span className="rounded-md bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-600">
-                    APPROVED
-                  </span>
-                </div>
-                <div className="hidden items-center gap-4 sm:flex">
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span className="font-mono text-[11px] text-ink-tertiary">Health 92%</span>
-                  </div>
-                  <span className="font-mono text-[11px] text-ink-tertiary">v4</span>
-                </div>
+            {/* Stats - real-time */}
+            <div className="mx-auto mt-14 flex max-w-md items-center justify-center gap-8 border-t border-black/[0.06] pt-8">
+              <div className="text-center">
+                <p className="font-display text-[24px] font-bold text-ink-primary">
+                  {sectionCount}
+                </p>
+                <p className="text-[11px] text-ink-tertiary">PRD Sections</p>
               </div>
-
-              {/* PRD content skeleton */}
-              <div className="grid sm:grid-cols-[1fr,220px]">
-                {/* Main content */}
-                <div className="space-y-6 p-6 sm:p-8">
-                  {/* Section: Overview */}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Target size={13} className="text-accent" />
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
-                        Overview & Goals
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="bg-ink-primary/[0.05] h-[6px] w-full rounded-full" />
-                      <div className="bg-ink-primary/[0.05] h-[6px] w-[88%] rounded-full" />
-                      <div className="bg-ink-primary/[0.05] h-[6px] w-[65%] rounded-full" />
-                    </div>
-                  </div>
-                  {/* Section: User Stories */}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Users size={13} className="text-accent" />
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
-                        User Stories
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <div className="bg-ink-primary/[0.15] mt-1 h-1.5 w-1.5 shrink-0 rounded-full" />
-                        <div className="bg-ink-primary/[0.05] h-[6px] w-[90%] rounded-full" />
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="bg-ink-primary/[0.15] mt-1 h-1.5 w-1.5 shrink-0 rounded-full" />
-                        <div className="bg-ink-primary/[0.05] h-[6px] w-[75%] rounded-full" />
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="bg-ink-primary/[0.15] mt-1 h-1.5 w-1.5 shrink-0 rounded-full" />
-                        <div className="bg-ink-primary/[0.05] h-[6px] w-[82%] rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                  {/* Section: Requirements */}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <ListChecks size={13} className="text-accent" />
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
-                        Requirements
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="bg-ink-primary/[0.05] h-[6px] w-[95%] rounded-full" />
-                      <div className="bg-ink-primary/[0.05] h-[6px] w-[70%] rounded-full" />
-                    </div>
-                  </div>
-                  {/* Section: Success Metrics */}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp size={13} className="text-accent" />
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-accent">
-                        Success Metrics
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="bg-ink-primary/[0.05] h-[6px] w-[80%] rounded-full" />
-                      <div className="bg-ink-primary/[0.05] h-[6px] w-[60%] rounded-full" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sidebar — outline + metadata */}
-                <div className="hidden border-l border-black/[0.06] p-6 sm:block">
-                  <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-ink-tertiary">
-                    Sections
-                  </p>
-                  <div className="mt-3 space-y-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1 w-1 rounded-full bg-accent" />
-                      <span className="text-[11px] text-ink-secondary">Overview & Goals</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-ink-tertiary/40 h-1 w-1 rounded-full" />
-                      <span className="text-[11px] text-ink-tertiary">User Stories</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-ink-tertiary/40 h-1 w-1 rounded-full" />
-                      <span className="text-[11px] text-ink-tertiary">Requirements</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-ink-tertiary/40 h-1 w-1 rounded-full" />
-                      <span className="text-[11px] text-ink-tertiary">Success Metrics</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-ink-tertiary/40 h-1 w-1 rounded-full" />
-                      <span className="text-[11px] text-ink-tertiary">Timeline</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 space-y-3 border-t border-black/[0.06] pt-4">
-                    <div>
-                      <p className="font-mono text-[9px] uppercase tracking-widest text-ink-tertiary">
-                        Owner
-                      </p>
-                      <p className="mt-1 text-[11px] text-ink-secondary">Muhammad Iqbal</p>
-                    </div>
-                    <div>
-                      <p className="font-mono text-[9px] uppercase tracking-widest text-ink-tertiary">
-                        Updated
-                      </p>
-                      <p className="mt-1 text-[11px] text-ink-secondary">2 hours ago</p>
-                    </div>
-                    <div>
-                      <p className="font-mono text-[9px] uppercase tracking-widest text-ink-tertiary">
-                        Words
-                      </p>
-                      <p className="mt-1 text-[11px] text-ink-secondary">1,847</p>
-                    </div>
-                  </div>
-                </div>
+              <div className="h-8 w-px bg-black/[0.06]" />
+              <div className="text-center">
+                <p className="font-display text-[24px] font-bold text-ink-primary">
+                  {templateCount ?? 0}+
+                </p>
+                <p className="text-[11px] text-ink-tertiary">Templates</p>
+              </div>
+              <div className="h-8 w-px bg-black/[0.06]" />
+              <div className="text-center">
+                <p className="font-display text-[24px] font-bold text-ink-primary">{exportCount}</p>
+                <p className="text-[11px] text-ink-tertiary">Export Formats</p>
               </div>
             </div>
-            {/* Glow */}
-            <div className="bg-accent/[0.06] absolute -left-20 -top-20 -z-10 h-64 w-64 rounded-full blur-[100px]" />
-            <div className="bg-accent/[0.04] absolute -bottom-16 -right-16 -z-10 h-48 w-48 rounded-full blur-[80px]" />
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="scroll-mt-16 border-t border-black/[0.06] py-24">
+      <section id="how-it-works" className="scroll-mt-16 border-t border-black/[0.06] py-28">
         <div className="mx-auto max-w-[1140px] px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             How it works
           </p>
-          <h2 className="mt-3 text-center font-display text-[28px] font-bold text-ink-primary">
-            From brief to approved PRD
+          <h2 className="mt-3 text-center font-display text-[32px] font-bold text-ink-primary">
+            Three steps to a shipping-ready PRD
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-center text-[14px] text-ink-secondary">
-            Stop spending days writing PRDs from scratch. DraftMind automates the structure so you
-            can focus on the product decisions.
+          <p className="mx-auto mt-4 max-w-lg text-center text-[15px] leading-relaxed text-ink-secondary">
+            Stop spending days writing PRDs from scratch. DraftMind handles the structure - you
+            focus on product decisions.
           </p>
 
-          <div className="mx-auto mt-16 grid max-w-4xl gap-6 sm:grid-cols-3">
-            <StepCard
-              number="01"
-              title="Brief it"
-              description='Write one sentence — "Reduce checkout abandonment by 15%". DraftMind generates a full PRD with all standard sections.'
-              icon={PenLine}
-            />
-            <StepCard
-              number="02"
-              title="Refine it"
-              description="Edit any section inline. Use AI to expand, rewrite, or improve. Your team can comment and suggest changes."
-              icon={Sparkles}
-            />
-            <StepCard
-              number="03"
-              title="Ship it"
-              description="Run AI quality review. Move through Draft → Review → Approved. Export to PDF or share a link with stakeholders."
-              icon={FileOutput}
-            />
+          <div className="relative mx-auto mt-20 max-w-4xl">
+            {/* Connecting line - desktop only */}
+            <div className="from-accent/0 via-accent/20 to-accent/0 absolute left-[16.67%] right-[16.67%] top-10 hidden h-px bg-gradient-to-r sm:block" />
+
+            <div className="grid gap-12 sm:grid-cols-3 sm:gap-8">
+              {/* Step 1 */}
+              <div className="group text-center">
+                <div className="border-accent/15 from-accent/[0.08] to-accent/[0.02] group-hover:border-accent/25 group-hover:shadow-accent/10 relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border bg-gradient-to-b shadow-sm transition-all group-hover:shadow-md">
+                  <PenLine size={28} className="text-accent" />
+                  <div className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white shadow-sm">
+                    1
+                  </div>
+                </div>
+                <h3 className="font-display text-[18px] font-bold text-ink-primary">Brief it</h3>
+                <p className="mx-auto mt-3 max-w-[260px] text-[13px] leading-[1.8] text-ink-secondary">
+                  Describe your product goal in one line. DraftMind generates a complete 14-section
+                  PRD with DARCI matrix, user stories, and success metrics.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="group text-center">
+                <div className="border-accent/15 from-accent/[0.08] to-accent/[0.02] group-hover:border-accent/25 group-hover:shadow-accent/10 relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border bg-gradient-to-b shadow-sm transition-all group-hover:shadow-md">
+                  <Sparkles size={28} className="text-accent" />
+                  <div className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white shadow-sm">
+                    2
+                  </div>
+                </div>
+                <h3 className="font-display text-[18px] font-bold text-ink-primary">Refine it</h3>
+                <p className="mx-auto mt-3 max-w-[260px] text-[13px] leading-[1.8] text-ink-secondary">
+                  Edit with a rich text editor. Use AI copilot to expand or rewrite sections. Your
+                  team adds comments and suggestions inline.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="group text-center">
+                <div className="border-accent/15 from-accent/[0.08] to-accent/[0.02] group-hover:border-accent/25 group-hover:shadow-accent/10 relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border bg-gradient-to-b shadow-sm transition-all group-hover:shadow-md">
+                  <FileOutput size={28} className="text-accent" />
+                  <div className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white shadow-sm">
+                    3
+                  </div>
+                </div>
+                <h3 className="font-display text-[18px] font-bold text-ink-primary">Ship it</h3>
+                <p className="mx-auto mt-3 max-w-[260px] text-[13px] leading-[1.8] text-ink-secondary">
+                  Run AI quality review with health scoring. Move through Draft, Review, to
+                  Approved. Export to PDF, Word, or share a public link.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -286,125 +200,236 @@ export default async function LandingPage() {
       {/* Features */}
       <section
         id="features"
-        className="scroll-mt-16 border-t border-black/[0.06] bg-[#fafaf9] py-24"
+        className="scroll-mt-16 border-t border-black/[0.06] bg-[#fafaf9] py-28"
       >
         <div className="mx-auto max-w-[1140px] px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Features
           </p>
-          <h2 className="mt-3 text-center font-display text-[28px] font-bold text-ink-primary">
+          <h2 className="mt-3 text-center font-display text-[32px] font-bold text-ink-primary">
             Everything a PRD tool should have
           </h2>
+          <p className="mx-auto mt-4 max-w-lg text-center text-[15px] leading-relaxed text-ink-secondary">
+            From AI generation to team collaboration - explore what DraftMind can do.
+          </p>
+          <div className="relative mx-auto mt-16 max-w-3xl">
+            <FeatureShowcase />
+            <div className="bg-accent/[0.06] absolute -left-20 -top-20 -z-10 h-64 w-64 rounded-full blur-[100px]" />
+            <div className="bg-accent/[0.04] absolute -bottom-16 -right-16 -z-10 h-48 w-48 rounded-full blur-[80px]" />
+          </div>
+        </div>
+      </section>
 
-          <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <FeatureCard
-              icon={Sparkles}
-              title="AI Generation"
-              description="One-line brief to complete PRD — goals, user stories, acceptance criteria, success metrics, and timeline."
+      {/* AI Providers */}
+      <section id="tech" className="scroll-mt-16 border-t border-black/[0.06] py-24">
+        <div className="mx-auto max-w-[1140px] px-8">
+          <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
+            Powered by
+          </p>
+          <h2 className="mt-3 text-center font-display text-[28px] font-bold text-ink-primary">
+            Choose your AI provider
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-center text-[14px] text-ink-secondary">
+            Bring your own API key. Switch between providers anytime - your PRDs, your choice.
+          </p>
+
+          <div className="mx-auto mt-14 grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <AIProviderCard
+              name="OpenAI"
+              models="GPT-4o, GPT-4o Mini, o1-preview"
+              iconSrc="/icons/providers/openai.png"
             />
-            <FeatureCard
-              icon={PenLine}
-              title="Rich Editor"
-              description="Block-based editor with slash commands, inline AI, markdown shortcuts, and auto-save."
+            <AIProviderCard
+              name="Anthropic"
+              models="Claude Opus 4.6, Sonnet 4.6, Haiku 4.5"
+              iconSrc="/icons/providers/anthropic.png"
             />
-            <FeatureCard
-              icon={BarChart3}
-              title="Quality Review"
-              description="AI scores your PRD on completeness, clarity, consistency, and measurability. One-click fixes."
+            <AIProviderCard
+              name="Groq"
+              models="Llama 3.3 70B, Llama 3.1 8B"
+              iconSrc="/icons/providers/GroqAI.png"
             />
-            <FeatureCard
-              icon={LayoutTemplate}
-              title="Templates"
-              description="Feature PRD, Experiment Brief, Technical RFC, Bug Report — start from proven structures."
+            <AIProviderCard
+              name="Sumopod"
+              models="GPT-4o, Claude 3 Haiku, DeepSeek"
+              iconSrc="/icons/providers/sumopod.jpg"
             />
-            <FeatureCard
-              icon={Users}
-              title="Team Collaboration"
-              description="Invite your team, assign roles (Admin, Editor, Commenter, Viewer), and track changes."
-            />
-            <FeatureCard
-              icon={Kanban}
-              title="Pipeline Board"
-              description="Kanban view: Draft → In Review → Refined → Final. See every PRD status at a glance."
-            />
-            <FeatureCard
-              icon={History}
-              title="Version History"
-              description="Every edit is tracked. Compare versions side by side, restore any previous state."
-            />
-            <FeatureCard
-              icon={FileOutput}
-              title="Multi-format Export"
-              description="Export to PDF, Markdown, HTML, DOCX, JSON, or generate a shareable public link."
-            />
-            <FeatureCard
-              icon={MessageSquare}
-              title="Inline Comments"
-              description="Threaded comments on any section. Mention teammates. Resolve discussions when done."
+            <AIProviderCard
+              name="GaNRouter"
+              models="Multi-model router (Claude, GPT)"
+              initial="G"
             />
           </div>
         </div>
       </section>
 
-      {/* Bottom */}
-      <section className="border-t border-black/[0.06] py-16">
-        <div className="mx-auto max-w-lg px-8 text-center">
-          <Image
-            src="/logo/logo.jpg"
-            width={40}
-            height={40}
-            alt="DraftMind"
-            className="mx-auto mb-4 rounded-xl"
-          />
-          <p className="font-display text-xl font-bold text-ink-primary">DraftMind</p>
-          <p className="mt-1.5 text-[13px] text-ink-tertiary">Think Less. Draft Smarter.</p>
+      {/* Export Formats */}
+      <section className="border-t border-black/[0.06] bg-[#fafaf9] py-24">
+        <div className="mx-auto max-w-[1140px] px-8">
+          <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
+            Export
+          </p>
+          <h2 className="mt-3 text-center font-display text-[28px] font-bold text-ink-primary">
+            6 export formats, zero friction
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-center text-[14px] text-ink-secondary">
+            Share your PRD anywhere - from stakeholder presentations to engineering handoffs.
+          </p>
+
+          <div className="mx-auto mt-14 grid max-w-3xl gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <ExportCard
+              label="PDF"
+              description=".pdf document"
+              iconSrc="/icons/export/icon-pdf.png"
+            />
+            <ExportCard
+              label="Word"
+              description=".docx document"
+              iconSrc="/icons/export/icon-word.png"
+            />
+            <ExportCard
+              label="HTML"
+              description=".html file"
+              iconSrc="/icons/export/icon-html.png"
+            />
+            <ExportCard
+              label="Markdown"
+              description=".md file"
+              iconSrc="/icons/export/icon-markdown.png"
+            />
+            <ExportCard
+              label="Slack"
+              description="Copy to Slack"
+              iconSrc="/icons/export/icon-slack.png"
+            />
+            <ExportCard
+              label="Jira"
+              description="Copy to Jira"
+              iconSrc="/icons/export/icon-jira.png"
+            />
+          </div>
+
+          <p className="mt-8 text-center text-[12px] text-ink-tertiary">
+            Plus public share links for read-only stakeholder access
+          </p>
         </div>
       </section>
+
+      {/* Built with + Security */}
+      <section className="border-t border-black/[0.06] py-24">
+        <div className="mx-auto max-w-[1140px] px-8">
+          <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
+            Built with
+          </p>
+          <h2 className="mt-3 text-center font-display text-[32px] font-bold text-ink-primary">
+            Modern, production-ready tools
+          </h2>
+
+          {/* Tech grid */}
+          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-4 gap-4 sm:grid-cols-8">
+            {[
+              { name: 'Next.js 15', icon: '/icons/tech/icon-nextjs.png' },
+              { name: 'React 19', icon: '/icons/tech/icon-react.png' },
+              { name: 'TypeScript', icon: '/icons/tech/icon-typescript.png' },
+              { name: 'Supabase', icon: '/icons/tech/icon-supabase.png' },
+              { name: 'PostgreSQL', icon: '/icons/tech/icon-postgresql.png' },
+              { name: 'Tiptap Editor', icon: '/icons/tech/icon-tiptap.png' },
+              { name: 'LangSmith', icon: '/icons/tech/icon-langsmith.webp' },
+              { name: 'Vercel AI SDK', icon: '/icons/tech/icon-vercel-ai.webp' },
+            ].map((t) => (
+              <div
+                key={t.name}
+                className="group flex flex-col items-center gap-2.5 rounded-xl border border-black/[0.06] bg-white px-3 py-4 transition-all hover:border-black/[0.1] hover:shadow-md hover:shadow-black/[0.03]"
+              >
+                <Image
+                  src={t.icon}
+                  alt={t.name}
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 object-contain"
+                />
+                <span className="text-center text-[11px] font-medium leading-tight text-ink-secondary">
+                  {t.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Spacer before footer */}
+
+      {/* Footer */}
+      <footer className="border-t border-black/[0.06] py-10">
+        <div className="mx-auto max-w-[1140px] px-8 text-center">
+          <div className="flex items-center justify-center gap-2.5">
+            <Image
+              src="/logo/logo.jpg"
+              width={20}
+              height={20}
+              alt="DraftMind"
+              className="rounded"
+            />
+            <span className="text-[12px] text-ink-tertiary">&copy; 2026 DraftMind</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
-function FeatureCard({
-  icon: Icon,
-  title,
-  description,
+function AIProviderCard({
+  name,
+  models,
+  iconSrc,
+  initial,
 }: {
-  icon: React.ElementType;
-  title: string;
-  description: string;
+  name: string;
+  models: string;
+  iconSrc?: string;
+  initial?: string;
 }) {
   return (
-    <div className="group rounded-2xl border border-black/[0.06] bg-white p-6 transition-all hover:border-black/[0.1] hover:shadow-lg hover:shadow-black/[0.04]">
-      <div className="bg-accent/10 group-hover:bg-accent/15 mb-4 flex h-10 w-10 items-center justify-center rounded-xl text-accent transition-colors">
-        <Icon size={20} />
+    <div className="group rounded-2xl border border-black/[0.06] bg-white p-5 text-center transition-all hover:border-black/[0.1] hover:shadow-lg hover:shadow-black/[0.04]">
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-[#f5f5f4]">
+        {iconSrc ? (
+          <Image
+            src={iconSrc}
+            alt={name}
+            width={28}
+            height={28}
+            className="h-7 w-7 object-contain"
+          />
+        ) : (
+          <span className="text-[16px] font-bold text-ink-tertiary">{initial}</span>
+        )}
       </div>
-      <h3 className="text-[14px] font-semibold text-ink-primary">{title}</h3>
-      <p className="mt-2 text-[13px] leading-[1.75] text-ink-secondary">{description}</p>
+      <h3 className="text-[13px] font-semibold text-ink-primary">{name}</h3>
+      <p className="mt-1 text-[11px] leading-relaxed text-ink-tertiary">{models}</p>
     </div>
   );
 }
 
-function StepCard({
-  number,
-  title,
+function ExportCard({
+  label,
   description,
-  icon: Icon,
+  iconSrc,
 }: {
-  number: string;
-  title: string;
+  label: string;
   description: string;
-  icon: React.ElementType;
+  iconSrc: string;
 }) {
   return (
-    <div className="group rounded-2xl border border-black/[0.06] bg-white p-8 text-center transition-all hover:shadow-lg hover:shadow-black/[0.04]">
-      <div className="group-hover:bg-accent/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fafaf9] text-accent transition-colors">
-        <Icon size={24} />
-      </div>
-      <span className="text-accent/40 font-mono text-[11px] font-bold tracking-widest">
-        {number}
-      </span>
-      <h3 className="mt-1.5 font-display text-[16px] font-semibold text-ink-primary">{title}</h3>
-      <p className="mt-2.5 text-[13px] leading-[1.75] text-ink-secondary">{description}</p>
+    <div className="group flex flex-col items-center rounded-xl border border-black/[0.06] bg-white px-4 py-5 text-center transition-all hover:border-black/[0.1] hover:shadow-md hover:shadow-black/[0.03]">
+      <Image
+        src={iconSrc}
+        alt={label}
+        width={32}
+        height={32}
+        className="mb-2.5 h-8 w-8 object-contain"
+      />
+      <h3 className="text-[13px] font-semibold text-ink-primary">{label}</h3>
+      <p className="mt-0.5 text-[11px] text-ink-tertiary">{description}</p>
     </div>
   );
 }

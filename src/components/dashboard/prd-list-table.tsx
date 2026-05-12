@@ -1,9 +1,19 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, LayoutGrid, List, Kanban } from 'lucide-react';
+import {
+  LayoutGrid,
+  List,
+  Kanban,
+  FileEdit,
+  Eye,
+  MessageSquare,
+  Sparkles,
+  CheckCircle2,
+  Shield,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Chip } from '@/components/ui/chip';
 import { Pill } from '@/components/ui/pill';
@@ -12,13 +22,13 @@ import { cn } from '@/lib/utils/cn';
 import type { PRDListItem } from '@/lib/db/queries/prd';
 
 const STATUS_FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Drafts' },
-  { value: 'in_review', label: 'In Review' },
-  { value: 'reviewed', label: 'Reviewed' },
-  { value: 'refined', label: 'Refined' },
-  { value: 'final', label: 'Final' },
-  { value: 'archived', label: 'Archived' },
+  { value: 'all', label: 'All', icon: null },
+  { value: 'draft', label: 'Drafts', icon: FileEdit },
+  { value: 'in_review', label: 'In Review', icon: Eye },
+  { value: 'reviewed', label: 'Reviewed', icon: MessageSquare },
+  { value: 'refined', label: 'Refined', icon: Sparkles },
+  { value: 'approved', label: 'Approved', icon: CheckCircle2 },
+  { value: 'final', label: 'Final', icon: Shield },
 ] as const;
 
 function HealthDot({ score }: { score: number | null }) {
@@ -36,36 +46,29 @@ interface PRDListTableProps {
   items: PRDListItem[];
   total: number;
   currentStatus: string;
-  currentSearch: string;
+  currentSearch?: string;
   onFilterChange: (status: string) => void;
-  onSearchChange: (search: string) => void;
+  onSearchChange?: (search: string) => void;
 }
 
 export function PRDListTable({
   items,
   total,
   currentStatus,
-  currentSearch,
+  currentSearch: _currentSearch,
   onFilterChange,
-  onSearchChange,
+  onSearchChange: _onSearchChange,
 }: PRDListTableProps) {
   const router = useRouter();
-  const [searchValue, setSearchValue] = useState(currentSearch);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [, startTransition] = useTransition();
 
-  const handleSearchInput = useCallback(
-    (value: string) => {
-      setSearchValue(value);
-      const timeout = setTimeout(() => {
-        startTransition(() => {
-          onSearchChange(value);
-        });
-      }, 300);
-      return () => clearTimeout(timeout);
-    },
-    [onSearchChange],
-  );
+  const statusCounts = useMemo(() => {
+    const map: Record<string, number> = { all: total };
+    for (const item of items) {
+      map[item.status] = (map[item.status] ?? 0) + 1;
+    }
+    return map;
+  }, [items, total]);
 
   return (
     <div>
@@ -112,31 +115,23 @@ export function PRDListTable({
         </div>
       </div>
 
-      {/* Filters + Search */}
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-1.5">
-          {STATUS_FILTERS.map((f) => (
+      {/* Filters */}
+      <div className="mb-5 flex flex-wrap gap-1.5">
+        {STATUS_FILTERS.map((f) => {
+          const count = statusCounts[f.value] ?? 0;
+          const Icon = f.icon;
+          return (
             <Chip
               key={f.value}
               active={currentStatus === f.value}
               onClick={() => onFilterChange(f.value)}
             >
+              {Icon && <Icon size={12} className="mr-1 inline-block opacity-60" />}
               {f.label}
+              {count > 0 && <span className="ml-1 text-[10px] opacity-50">{count}</span>}
             </Chip>
-          ))}
-        </div>
-        <div className="relative w-56 shrink-0">
-          <Search
-            size={13}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#bbb]"
-          />
-          <input
-            placeholder="Search..."
-            value={searchValue}
-            onChange={(e) => handleSearchInput(e.target.value)}
-            className="focus:ring-accent/30 h-8 w-full rounded-lg border border-[#e5e5e3] bg-white pl-8 pr-3 text-[12px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
-          />
-        </div>
+          );
+        })}
       </div>
 
       {/* Content */}
@@ -185,7 +180,13 @@ export function PRDListTable({
                   <td className="px-5 py-3.5">
                     {prd.owner && (
                       <div className="flex items-center gap-2">
-                        <Avatar name={prd.owner.full_name ?? 'User'} size="sm" />
+                        <Avatar
+                          name={prd.owner.full_name ?? 'User'}
+                          size="sm"
+                          avatarUrl={
+                            (prd.owner as Record<string, unknown>).avatar_url as string | null
+                          }
+                        />
                         <span className="text-[12px] text-[#888]">
                           {prd.owner.full_name ?? 'Unknown'}
                         </span>
@@ -196,7 +197,7 @@ export function PRDListTable({
                     <HealthDot score={prd.health_score} />
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className="text-[12px] text-[#bbb]">
+                    <span className="text-[12px] text-[#bbb]" suppressHydrationWarning>
                       {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
                     </span>
                   </td>
@@ -224,8 +225,14 @@ export function PRDListTable({
               <div className="mt-auto flex items-center justify-between pt-4">
                 {prd.owner && (
                   <div className="flex items-center gap-2">
-                    <Avatar name={prd.owner.full_name ?? 'User'} size="sm" />
-                    <span className="text-[11px] text-[#888]">{prd.owner.full_name}</span>
+                    <Avatar
+                      name={prd.owner.full_name ?? 'User'}
+                      size="sm"
+                      avatarUrl={(prd.owner as Record<string, unknown>).avatar_url as string | null}
+                    />
+                    <span className="text-[11px] text-[#888]">
+                      {prd.owner.full_name ?? 'Unknown'}
+                    </span>
                   </div>
                 )}
                 <span className="text-[11px] text-[#bbb]">

@@ -4,3 +4,5 @@ export { RequirementNode } from './requirement-node';
 export { RiskNode } from './risk-node';
 export { MetricNode } from './metric-node';
 export { AISuggestionMark } from './ai-suggestion-mark';
+export { CommentMark } from './comment-mark';
+export { SectionVisibility } from './section-visibility';

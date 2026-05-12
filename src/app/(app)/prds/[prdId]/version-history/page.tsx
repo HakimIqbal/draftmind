@@ -21,7 +21,9 @@ export default async function VersionHistoryRoute({
 
   const { data: versions } = await supabase
     .from('prd_versions')
-    .select('*, author:profiles!prd_versions_created_by_fkey(full_name, avatar_color_seed)')
+    .select(
+      '*, author:profiles!prd_versions_created_by_fkey(full_name, avatar_color_seed, avatar_url)',
+    )
     .eq('prd_id', prdId)
     .order('version_number', { ascending: false });
 

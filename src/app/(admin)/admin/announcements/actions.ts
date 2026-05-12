@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { logWarn } from '@/lib/logging/system-log';
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -62,6 +63,12 @@ export async function publishAnnouncement(data: {
   const { error } = await admin.from('notifications').insert(notifications);
 
   if (error) return { error: error.message };
+
+  logWarn(
+    'admin.announcement',
+    `announcement_published: "${data.title}" to ${userIds.length} users`,
+    { title: data.title, target: data.target, recipient_count: userIds.length },
+  );
 
   revalidatePath('/admin/announcements');
   return { success: true, count: userIds.length };

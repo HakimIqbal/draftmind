@@ -1,9 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { History, Share2, MoreHorizontal, Save, Archive, Copy, Trash2 } from 'lucide-react';
+import {
+  History,
+  Share2,
+  MoreHorizontal,
+  Save,
+  Copy,
+  Trash2,
+  Download,
+  Check,
+  Link2,
+  Sparkles,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
@@ -14,7 +24,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -26,8 +35,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { duplicatePRD, archivePRD, deletePRD } from '@/app/(app)/prds/[prdId]/actions';
+import { duplicatePRD, deletePRD, updatePRDStatus } from '@/app/(app)/prds/[prdId]/actions';
 import { createTemplate } from '@/app/(app)/templates/actions';
+
+const PRD_STATUSES = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'in_review', label: 'In Review' },
+  { value: 'reviewed', label: 'Reviewed' },
+  { value: 'refined', label: 'Refined' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'final', label: 'Final' },
+] as const;
 
 interface EditorHeaderProps {
   prd: {
@@ -46,6 +64,8 @@ interface EditorHeaderProps {
   };
   userName: string;
   workspaceId?: string;
+  canChangeStatus?: boolean;
+  onToggleHistory?: () => void;
 }
 
 function relativeTime(dateStr: string): string {
@@ -61,7 +81,13 @@ function relativeTime(dateStr: string): string {
   return `${diffDay}d ago`;
 }
 
-export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: EditorHeaderProps) {
+export function EditorHeader({
+  prd,
+  userName,
+  workspaceId: _workspaceId,
+  canChangeStatus,
+  onToggleHistory,
+}: EditorHeaderProps) {
   const router = useRouter();
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -69,6 +95,30 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
   const [templateDesc, setTemplateDesc] = useState('');
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState('');
+  const [currentStatus, setCurrentStatus] = useState(prd.status);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+
+  async function handleStatusChange(newStatus: string) {
+    if (newStatus === currentStatus || statusUpdating) return;
+    setStatusUpdating(true);
+    const prev = currentStatus;
+    setCurrentStatus(newStatus);
+    const result = await updatePRDStatus(prd.id, newStatus);
+    if (result.error) {
+      toast.error(result.error);
+      setCurrentStatus(prev);
+    } else {
+      toast.success(
+        `Status changed to ${PRD_STATUSES.find((s) => s.value === newStatus)?.label ?? newStatus}`,
+      );
+    }
+    setStatusUpdating(false);
+  }
 
   async function handleDuplicate() {
     const result = await duplicatePRD(prd.id);
@@ -77,16 +127,6 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
     } else if (result.id) {
       toast.success('PRD duplicated');
       router.push(`/prds/${result.id}`);
-    }
-  }
-
-  async function handleArchive() {
-    const result = await archivePRD(prd.id);
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success('PRD archived');
-      router.push('/prds');
     }
   }
 
@@ -104,13 +144,50 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
       });
       if (!res.ok) throw new Error('Failed to create share link');
       const data = await res.json();
-      const shareUrl = `${window.location.origin}${data.url}`;
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success('Share link copied to clipboard');
+      const url = `${window.location.origin}${data.url}`;
+      setShareUrl(url);
+      setShareDialogOpen(true);
+      setCopied(false);
     } catch {
       toast.error('Failed to create share link');
     } finally {
       setSharing(false);
+    }
+  }
+
+  async function copyShareUrl() {
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast.success('Link copied!');
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleExport(format: string) {
+    setExporting(format);
+    try {
+      const res = await fetch('/api/prd/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prdId: prd.id, format }),
+      });
+      if (!res.ok) throw new Error('Export failed');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const ext = format === 'markdown' ? 'md' : format;
+      a.download = `${prd.title.replace(/[^a-zA-Z0-9]/g, '-')}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported as ${format.toUpperCase()}`);
+      setExportOpen(false);
+    } catch {
+      toast.error('Export failed. Please try again.');
+    } finally {
+      setExporting('');
     }
   }
 
@@ -143,8 +220,31 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Pill status={prd.status as Parameters<typeof Pill>[0]['status']} />
-          <span className="font-mono text-xs text-ink-tertiary">v{prd.current_version}</span>
+          {canChangeStatus ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="cursor-pointer focus:outline-none" disabled={statusUpdating}>
+                  <Pill status={currentStatus as Parameters<typeof Pill>[0]['status']} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[160px]">
+                {PRD_STATUSES.map((s) => (
+                  <DropdownMenuItem
+                    key={s.value}
+                    onClick={() => handleStatusChange(s.value)}
+                    className={currentStatus === s.value ? 'bg-[#f5f5f4] font-medium' : ''}
+                  >
+                    <Pill status={s.value as Parameters<typeof Pill>[0]['status']} />
+                    {currentStatus === s.value && (
+                      <Check size={12} className="ml-auto text-accent" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Pill status={currentStatus as Parameters<typeof Pill>[0]['status']} />
+          )}
           {prd.project_tag && (
             <span className="rounded-sm border border-subtle px-2 py-0.5 font-mono text-[11px] text-ink-secondary">
               {prd.project_tag}
@@ -153,11 +253,9 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/prds/${prd.id}/version-history`}>
-              <History size={14} className="mr-1.5" />
-              Version
-            </Link>
+          <Button variant="ghost" size="sm" onClick={onToggleHistory}>
+            <History size={14} className="mr-1.5" />
+            History
           </Button>
           <Button variant="outline" size="sm" onClick={handleShare} disabled={sharing}>
             <Share2 size={14} className="mr-1.5" />
@@ -170,26 +268,26 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
                 <MoreHorizontal size={16} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuItem onClick={() => router.push(`/prds/${prd.id}/ai-review`)}>
+                <Sparkles size={14} />
+                AI Review
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setExportOpen(true)}>
+                <Download size={14} />
+                Download / Export
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSaveTemplateOpen(true)}>
-                <Save size={14} className="mr-2" />
+                <Save size={14} />
                 Save as template
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleDuplicate}>
-                <Copy size={14} className="mr-2" />
+                <Copy size={14} />
                 Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleArchive}>
-                <Archive size={14} className="mr-2" />
-                Archive
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-muted"
-                onClick={() => setDeleteConfirmOpen(true)}
-              >
-                <Trash2 size={14} className="mr-2" />
+              <DropdownMenuItem className="text-red-500" onClick={() => setDeleteConfirmOpen(true)}>
+                <Trash2 size={14} />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -202,7 +300,7 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
       <div className="flex items-center gap-2">
         <Avatar name={userName} size="sm" />
         <span className="font-mono text-[11px] text-ink-tertiary">
-          last edit {relativeTime(prd.updated_at)} &middot; {prd.read_time_minutes} min read
+          last edit {relativeTime(prd.updated_at)}
         </span>
       </div>
 
@@ -227,6 +325,79 @@ export function EditorHeader({ prd, userName, workspaceId: _workspaceId }: Edito
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle>Share this PRD</DialogTitle>
+            <DialogDescription>
+              Anyone with the link can view a read-only version of this document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-md">
+            <div className="flex items-center gap-2 rounded-lg border border-subtle bg-bg-surface px-3 py-2">
+              <Link2 size={14} className="shrink-0 text-ink-tertiary" />
+              <input
+                type="text"
+                readOnly
+                value={shareUrl}
+                className="flex-1 bg-transparent font-mono text-[12px] text-ink-secondary outline-none"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <Button variant="outline" size="sm" onClick={copyShareUrl}>
+                {copied ? (
+                  <>
+                    <Check size={14} className="mr-1.5 text-green-600" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} className="mr-1.5" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Download / Export</DialogTitle>
+            <DialogDescription>Choose a format to download this PRD.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { format: 'markdown', label: 'Markdown', ext: '.md' },
+              { format: 'html', label: 'HTML', ext: '.html' },
+              { format: 'pdf', label: 'PDF', ext: '.pdf' },
+              { format: 'docx', label: 'Word', ext: '.docx' },
+              { format: 'slack', label: 'Slack', ext: '.txt' },
+              { format: 'jira', label: 'Jira', ext: '.txt' },
+            ].map((opt) => (
+              <button
+                key={opt.format}
+                onClick={() => handleExport(opt.format)}
+                disabled={!!exporting}
+                className="flex items-center gap-2.5 rounded-lg border border-[#eee] px-4 py-3 text-left text-[13px] font-medium text-[#1a1a1a] transition-colors hover:border-[#ccc] hover:bg-[#fafaf9] disabled:opacity-50"
+              >
+                <Download size={14} className="text-[#999]" />
+                <div>
+                  <p>{opt.label}</p>
+                  <p className="text-[11px] font-normal text-[#999]">{opt.ext}</p>
+                </div>
+                {exporting === opt.format && (
+                  <span className="ml-auto h-3 w-3 animate-spin rounded-full border-2 border-[#ccc] border-t-accent" />
+                )}
+              </button>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -4,40 +4,53 @@ A concise guide to using DraftMind for creating, editing, and managing Product R
 
 ---
 
-## 1. Login & Onboarding
+## 1. Login
 
-1. Navigate to `/login` and sign in with your email and password (or OAuth provider).
-2. First-time users are redirected to `/onboarding` where you:
-   - Set your display name and role
-   - Create or join a workspace
-   - Optionally configure an AI provider API key
-3. After onboarding, you land on the **Home** dashboard.
+1. Navigate to `/login` and sign in with email/password or OAuth provider.
+2. New users without a workspace will be prompted to create one from the dashboard.
+3. After login, you land on the **Dashboard**.
 
 ---
 
-## 2. Creating a PRD (Generate Form)
+## 2. Dashboard
 
-1. From the dashboard, click **New PRD** or navigate to `/prds/new`.
+The dashboard (`/dashboard`) shows:
+
+- **Recent PRDs** — Your most recently edited documents
+- **Activity Feed** — Recent actions across the workspace
+- **Quick Stats** — PRD count, health scores, AI usage
+
+From here you can:
+
+- Click **New PRD** to generate a new document
+- Search PRDs with the global search bar or command palette (`Cmd/Ctrl+K`)
+- Switch between list view and pipeline (Kanban) view
+
+---
+
+## 3. Creating a PRD
+
+1. Click **New PRD** or navigate to `/prds/new`.
 2. Fill in the generation form:
    - **Product Name** — The product or feature name
    - **Description** — A brief summary of what the product does
    - **Target Audience** — Who the product is for
-   - **Template** — Select from predefined PRD templates or start blank
-3. Open the **Tweaks Panel** (gear icon) to adjust:
-   - **AI Provider** — Choose from Anthropic, OpenAI, Gemini, Groq, Sumopod, or GaNRouter
+   - **Template** — Select from predefined templates or start blank
+3. Adjust AI settings:
+   - **Provider** — Choose from configured AI providers
    - **Model** — Select the specific model variant
    - **Temperature** — Control creativity vs. precision (0.0 to 1.0)
    - **Tone** — Formal, casual, technical, etc.
    - **Length** — Short, medium, or detailed
-4. Click **Generate** to start AI generation. Progress is streamed in real time.
+4. Click **Generate** to start AI generation.
 
 ---
 
-## 3. Using the Editor
+## 4. Using the Editor
 
 ### Basic Editing
 
-The editor is a rich-text block editor powered by Tiptap. You can type directly, use keyboard shortcuts (Ctrl/Cmd+B for bold, etc.), and drag blocks to reorder them.
+The editor (`/prds/[prdId]`) is a rich-text block editor powered by Tiptap. Type directly, use keyboard shortcuts (Cmd+B for bold, Cmd+I for italic), and drag blocks to reorder.
 
 ### Slash Menu
 
@@ -46,89 +59,185 @@ Type `/` at the start of any line to open the slash command menu:
 - `/heading` — Insert heading (H1, H2, H3)
 - `/bullet` — Bullet list
 - `/numbered` — Numbered list
+- `/checklist` — Checklist with checkboxes
 - `/table` — Insert a table
-- `/image` — Insert an image
 - `/code` — Code block
 - `/divider` — Horizontal rule
 - `/quote` — Block quote
 
+### Editor Panels
+
+The editor has several panels accessible from the toolbar:
+
+| Panel          | Description                                 |
+| -------------- | ------------------------------------------- |
+| **Outline**    | Document structure with section navigation  |
+| **Comments**   | Inline comments with threads and resolution |
+| **History**    | Version history with restore capability     |
+| **AI Copilot** | Chat-based AI assistant for PRD questions   |
+
 ### AI Copilot
 
-- Select text and click the AI icon (or use the keyboard shortcut) to:
-  - **Expand** — Add more detail to the selected section
-  - **Simplify** — Make the text more concise
-  - **Rewrite** — Rephrase for clarity
-  - **Continue** — Generate the next section based on context
-- The AI copilot uses your configured provider and respects tweaks settings.
+The AI Copilot is a chat panel on the right side of the editor. You can:
+
+- Ask questions about your PRD content
+- Request reviews and feedback
+- Get suggestions for improvements
+- Chat history is preserved per PRD
+
+### AI Assist (Inline)
+
+Select text in the editor to open the AI Assist panel with:
+
+**Quick Actions:**
+
+- **Rewrite** — Clearer & more direct
+- **Expand** — Add detail & context
+- **Summarize** — Condense to key points
+- **Shorter** — Cut 40-60%
+- **More formal** — Professional tone
+- **Fix grammar** — Fix spelling & syntax
+
+**More Actions:**
+
+- **Translate** — Auto-detect language and translate (ID↔EN)
+- **Add examples** — Concrete examples
+- **Make actionable** — Convert to action items
+- **Add metrics** — Add KPIs & targets
+- **Simplify jargon** — Plain language
+- **To table** — Table format
+- **To list** — Bullet list format
+
+**Custom Instruction** — Type any free-text instruction for the AI.
+
+Each action generates 3 suggestion variants (conservative, balanced, creative) that you can insert or copy.
 
 ### Comments
 
-- Select text and click the comment icon to add an inline comment.
-- Comments are visible in the right sidebar and support threads.
+- Select text and use the comment action to add an inline comment.
+- Comments are visible in the Comments panel and support threads.
 - Team members can reply and resolve comments.
 
+### Health Score
+
+Each PRD has a health score (0–100) displayed in the editor, based on completeness, specificity, structure, and consistency.
+
 ---
 
-## 4. AI Review
+## 5. AI Review
 
-1. Open a PRD in the editor and click **AI Review** in the toolbar.
+1. Open a PRD and click **AI Review** in the toolbar (or navigate to `/prds/[prdId]/ai-review`).
 2. The AI analyzes your document and provides:
-   - An overall quality **score** (0-100)
+   - An overall quality **score** (0–100)
    - Section-by-section feedback
-   - Specific **improvement suggestions** you can apply with one click
-3. Review results appear in a side panel. Click any suggestion to jump to the relevant section.
+   - Specific **improvement suggestions**
+3. Review results appear in a dedicated page. Click any suggestion to see details.
 
 ---
 
-## 5. Exporting
+## 6. Exporting
 
-1. Open a PRD and click the **Export** button in the toolbar.
+1. Open a PRD and click **Export** (or navigate to `/prds/[prdId]/export`).
 2. Choose a format:
    - **PDF** — Formatted document with headers and styling
    - **DOCX** — Microsoft Word compatible
    - **Markdown** — Plain Markdown text
    - **HTML** — Styled HTML document
-   - **JSON** — Structured data (for integrations)
-   - **Plain Text** — Unformatted text
-3. The file downloads automatically. PDF generation may take a few seconds as it renders via headless Chromium.
+   - **Slack** — Slack message blocks
+   - **Jira** — Jira ADF format
+3. PDF generation may take a few seconds (uses headless Chromium).
 
 ---
 
-## 6. Managing Workspace
+## 7. Version History
 
-### Members
+1. Navigate to `/prds/[prdId]/version-history` or use the History panel in the editor.
+2. View all saved versions with timestamps and authors.
+3. Restore any previous version if needed.
 
-- Navigate to **Settings > Workspace > Members**.
-- **Invite** new members by email (they receive an invitation link).
-- Assign roles: **Admin** (full access), **Editor** (can edit PRDs), **Viewer** (read-only).
-- Remove members or change roles as needed.
+---
 
-### AI Providers
+## 8. PRD Management
 
-- Navigate to **Settings > Workspace > Providers**.
-- Add API keys for each AI provider your team uses.
-- Keys are encrypted at rest using AES-256-GCM.
-- Set a **default provider** that applies to all new PRDs.
+From the PRD list (`/prds`):
 
-### General Settings
+- **Pipeline view** (`/prds/pipeline`) — Kanban board with status columns
+- **Duplicate** — Create a copy of an existing PRD
+- **Archive** — Soft-delete a PRD
+- **Pin** — Pin important PRDs to the top
+- **Status** — Update PRD status (draft, in_review, approved, etc.)
 
-- **Workspace name** and **description**
+---
+
+## 9. Workspace
+
+### Members (`/workspace/members`)
+
+- Invite new members by email (they receive an invitation link)
+- Assign roles: **Admin** (full access), **Editor** (can edit PRDs), **Viewer** (read-only)
+- Remove members or change roles
+
+### Settings (`/workspace/settings`)
+
+- **Workspace name** and description
 - **Default template** for new PRDs
-- **Activity log** — View an immutable audit trail of all workspace actions
+
+### Activity (`/workspace/activity`)
+
+- View an audit trail of all workspace actions
+
+### Invitations (`/workspace/invite/[id]`)
+
+- Accept or decline workspace invitations
 
 ---
 
-## 7. Tweaks Panel
+## 10. User Settings
 
-The Tweaks Panel is accessible from the generate form and the editor toolbar. It controls AI behavior:
+| Page                      | Description                                 |
+| ------------------------- | ------------------------------------------- |
+| `/settings/profile`       | Display name, email, avatar                 |
+| `/settings/providers`     | Personal AI provider API keys               |
+| `/settings/notifications` | Notification preferences                    |
+| `/settings/preferences`   | UI preferences (theme, font, density, etc.) |
+| `/settings/api-keys`      | API key management                          |
+| `/settings/audit`         | Personal activity log                       |
 
-| Setting     | Options                                             | Description                                  |
-| ----------- | --------------------------------------------------- | -------------------------------------------- |
-| Provider    | Anthropic, OpenAI, Gemini, Groq, Sumopod, GaNRouter | Which AI service to use                      |
-| Model       | Varies by provider                                  | Specific model version                       |
-| Temperature | 0.0 - 1.0                                           | Lower = more focused, higher = more creative |
-| Tone        | Formal, Casual, Technical, Friendly                 | Writing style                                |
-| Length      | Short, Medium, Detailed                             | Output verbosity                             |
-| Max Tokens  | 1000 - 16000                                        | Maximum output length                        |
+---
 
-Changes in the Tweaks Panel apply immediately to the next AI operation (generate, copilot, or review).
+## 11. Templates (`/templates`)
+
+Browse and manage PRD templates. Templates provide pre-filled section structures for common document types.
+
+---
+
+## 12. Search (`/search`)
+
+Global search across all PRDs in your workspace. Also accessible via the command palette (`Cmd/Ctrl+K`).
+
+---
+
+## 13. AI Runs (`/ai-runs`)
+
+View history of all AI operations (generation, review, suggestions) with status, duration, and token usage.
+
+---
+
+## 14. Admin Panel (`/admin`)
+
+Available only to super admins (`is_super_admin = true`):
+
+| Page                   | Description                       |
+| ---------------------- | --------------------------------- |
+| `/admin`               | Dashboard with system stats       |
+| `/admin/users`         | User management                   |
+| `/admin/workspaces`    | Workspace management              |
+| `/admin/prds`          | All PRDs across workspaces        |
+| `/admin/providers`     | Global AI provider configuration  |
+| `/admin/ai-runs`       | All AI runs across workspaces     |
+| `/admin/templates`     | Template management               |
+| `/admin/activity`      | System-wide activity log          |
+| `/admin/analytics`     | Usage analytics                   |
+| `/admin/settings`      | System settings                   |
+| `/admin/announcements` | System announcements              |
+| `/admin/system-logs`   | Error logs and system diagnostics |

@@ -9,7 +9,12 @@ export interface PRDListItem {
   word_count: number;
   updated_at: string;
   created_at: string;
-  owner: { id: string; full_name: string | null; avatar_color_seed: string | null } | null;
+  owner: {
+    id: string;
+    full_name: string | null;
+    avatar_color_seed: string | null;
+    avatar_url: string | null;
+  } | null;
 }
 
 export interface PRDFilters {
@@ -34,11 +39,10 @@ export async function getPRDsByWorkspace(
   let query = supabase
     .from('prds')
     .select(
-      'id, title, project_tag, status, health_score, word_count, updated_at, created_at, owner:profiles!prds_owner_id_fkey(id, full_name, avatar_color_seed)',
+      'id, title, project_tag, status, health_score, word_count, updated_at, created_at, owner:profiles!prds_owner_id_fkey(id, full_name, avatar_color_seed, avatar_url)',
       { count: 'exact' },
     )
-    .eq('workspace_id', workspaceId)
-    .is('archived_at', null);
+    .eq('workspace_id', workspaceId);
 
   if (filters.status && filters.status !== 'all') {
     query = query.eq('status', filters.status);

@@ -1,21 +1,24 @@
 'use client';
 
 import { Globe, Lock } from 'lucide-react';
-import { prdToMarkdown } from '@/lib/prd/markdown';
 import type { PRDDocument } from '@/lib/prd/schema';
+import { prdToTiptap } from '@/lib/prd/tiptap-content';
+import type { TiptapDoc, TiptapNode } from '@/lib/prd/tiptap-content';
 
 interface PublicShareViewProps {
   prd: PRDDocument;
+  tiptapContent?: TiptapDoc | null;
 }
 
-export function PublicShareView({ prd }: PublicShareViewProps) {
-  const markdown = prdToMarkdown(prd);
+export function PublicShareView({ prd, tiptapContent }: PublicShareViewProps) {
+  // Use tiptap_content if available, otherwise convert from PRDDocument
+  const doc: TiptapDoc = (tiptapContent as TiptapDoc) ?? prdToTiptap(prd);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen bg-[#f0efed]">
       {/* Top bar */}
-      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-12 max-w-[720px] items-center justify-between px-6">
+      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
+        <div className="mx-auto flex h-12 max-w-[860px] items-center justify-between px-6">
           <span className="text-sm font-bold tracking-tight text-gray-900">DraftMind</span>
           <span className="inline-flex items-center gap-1.5 font-mono text-xs text-gray-400">
             <Globe size={12} />
@@ -27,300 +30,239 @@ export function PublicShareView({ prd }: PublicShareViewProps) {
         </div>
       </header>
 
-      {/* Content */}
-      <main className="mx-auto max-w-[720px] px-6 py-10">
-        {/* Title */}
-        <h1 className="mb-2 font-display text-3xl font-bold text-gray-900">{prd.metadata.title}</h1>
-
-        {/* Metadata */}
-        {(prd.metadata.project_tag || prd.metadata.start_date || prd.metadata.end_date) && (
-          <div className="mb-8 flex flex-wrap gap-3 text-sm text-gray-500">
-            {prd.metadata.project_tag && (
-              <span className="inline-flex items-center rounded bg-gray-50 px-2 py-0.5 font-mono text-xs">
-                {prd.metadata.project_tag}
-              </span>
-            )}
-            {(prd.metadata.start_date || prd.metadata.end_date) && (
-              <span className="font-mono text-xs">
-                {[prd.metadata.start_date, prd.metadata.end_date].filter(Boolean).join(' — ')}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Rendered markdown content */}
-        <article className="prose-share">
-          <MarkdownRenderer content={markdown} />
-        </article>
+      {/* Paper — same style as editor */}
+      <main
+        className="mx-auto my-8 w-full max-w-[816px] rounded-sm bg-white px-16 py-12 shadow-sm"
+        style={{ minHeight: '1056px' }}
+      >
+        <TiptapRenderer nodes={doc.content} />
       </main>
 
       {/* Footer */}
-      <footer className="mx-auto max-w-[720px] border-t border-gray-100 px-6 py-8">
+      <footer className="mx-auto max-w-[816px] px-6 py-8">
         <p className="text-center text-xs text-gray-400">Generated with DraftMind</p>
       </footer>
-
-      {/* Scoped styles for the rendered content */}
-      <style>{`
-        .prose-share h1 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #111;
-          margin-top: 2em;
-          margin-bottom: 0.5em;
-          padding-bottom: 0.3em;
-          border-bottom: 1px solid #f0f0f0;
-        }
-        .prose-share h2 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #111;
-          margin-top: 1.5em;
-          margin-bottom: 0.4em;
-        }
-        .prose-share h3 {
-          font-size: 1.05rem;
-          font-weight: 600;
-          color: #333;
-          margin-top: 1.2em;
-          margin-bottom: 0.3em;
-        }
-        .prose-share p {
-          margin: 0.5em 0;
-          line-height: 1.7;
-          color: #374151;
-        }
-        .prose-share ul, .prose-share ol {
-          margin: 0.5em 0;
-          padding-left: 1.5em;
-        }
-        .prose-share li {
-          margin: 0.2em 0;
-          line-height: 1.6;
-          color: #374151;
-        }
-        .prose-share strong {
-          font-weight: 600;
-          color: #111;
-        }
-        .prose-share em {
-          font-style: italic;
-        }
-        .prose-share code {
-          background: #f5f5f5;
-          padding: 0.15em 0.4em;
-          border-radius: 3px;
-          font-size: 0.875em;
-          font-family: ui-monospace, monospace;
-        }
-        .prose-share pre {
-          background: #f5f5f5;
-          padding: 1em;
-          border-radius: 6px;
-          overflow-x: auto;
-          margin: 0.75em 0;
-        }
-        .prose-share pre code {
-          background: none;
-          padding: 0;
-        }
-        .prose-share blockquote {
-          border-left: 3px solid #e5e5e5;
-          padding-left: 1em;
-          color: #6b7280;
-          margin: 0.75em 0;
-        }
-        .prose-share table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 0.75em 0;
-          font-size: 0.9em;
-        }
-        .prose-share th, .prose-share td {
-          border: 1px solid #e5e5e5;
-          padding: 0.5em 0.75em;
-          text-align: left;
-        }
-        .prose-share th {
-          background: #f9fafb;
-          font-weight: 600;
-        }
-        .prose-share hr {
-          border: none;
-          border-top: 1px solid #f0f0f0;
-          margin: 1.5em 0;
-        }
-        .prose-share a {
-          color: #c26a3a;
-          text-decoration: none;
-        }
-        .prose-share a:hover {
-          text-decoration: underline;
-        }
-      `}</style>
     </div>
   );
 }
 
-// ── Simple client-side markdown renderer ──
+// ── Tiptap JSON → HTML renderer (matches editor/history style) ──
 
-function MarkdownRenderer({ content }: { content: string }) {
-  const html = simpleMarkdownToHTML(content);
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+function TiptapRenderer({ nodes }: { nodes: TiptapNode[] }) {
+  return (
+    <div className="tiptap-share">
+      {nodes.map((node, i) => (
+        <RenderNode key={i} node={node} />
+      ))}
+      <style>{shareStyles}</style>
+    </div>
+  );
 }
 
-function simpleMarkdownToHTML(md: string): string {
-  const lines = md.split('\n');
-  const output: string[] = [];
-  let inList = false;
-  let inCodeBlock = false;
-  let codeBlockContent: string[] = [];
+function RenderNode({ node }: { node: TiptapNode }) {
+  switch (node.type) {
+    case 'heading': {
+      const level = (node.attrs?.level as number) ?? 2;
+      const children = renderInline(node.content ?? []);
+      if (level === 1) return <h1>{children}</h1>;
+      if (level === 3) return <h3>{children}</h3>;
+      return <h2>{children}</h2>;
+    }
+    case 'paragraph':
+      return <p>{renderInline(node.content ?? [])}</p>;
+    case 'bulletList':
+      return (
+        <ul>
+          {(node.content ?? []).map((li, i) => (
+            <li key={i}>
+              {(li.content ?? []).map((child, j) => (
+                <RenderNode key={j} node={child} />
+              ))}
+            </li>
+          ))}
+        </ul>
+      );
+    case 'orderedList':
+      return (
+        <ol>
+          {(node.content ?? []).map((li, i) => (
+            <li key={i}>
+              {(li.content ?? []).map((child, j) => (
+                <RenderNode key={j} node={child} />
+              ))}
+            </li>
+          ))}
+        </ol>
+      );
+    case 'table':
+      return (
+        <table>
+          <tbody>
+            {(node.content ?? []).map((row, ri) => (
+              <tr key={ri}>
+                {(row.content ?? []).map((cell, ci) => {
+                  const isHeader = cell.type === 'tableHeader';
+                  const CellTag = isHeader ? 'th' : 'td';
+                  return (
+                    <CellTag key={ci}>
+                      {(cell.content ?? []).map((child, j) => (
+                        <RenderNode key={j} node={child} />
+                      ))}
+                    </CellTag>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    case 'blockquote':
+      return (
+        <blockquote>
+          {(node.content ?? []).map((child, i) => (
+            <RenderNode key={i} node={child} />
+          ))}
+        </blockquote>
+      );
+    case 'horizontalRule':
+      return <hr />;
+    default:
+      if (node.content) {
+        return (
+          <>
+            {node.content.map((child, i) => (
+              <RenderNode key={i} node={child} />
+            ))}
+          </>
+        );
+      }
+      return null;
+  }
+}
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!;
-
-    if (line.startsWith('```')) {
-      if (inCodeBlock) {
-        output.push(`<pre><code>${esc(codeBlockContent.join('\n'))}</code></pre>`);
-        codeBlockContent = [];
-        inCodeBlock = false;
-      } else {
-        if (inList) {
-          output.push('</ul>');
-          inList = false;
+function renderInline(nodes: TiptapNode[]): React.ReactNode[] {
+  return nodes.map((node, i) => {
+    if (node.type === 'text') {
+      let el: React.ReactNode = node.text ?? '';
+      if (node.marks) {
+        for (const mark of node.marks) {
+          if (mark.type === 'bold') el = <strong key={i}>{el}</strong>;
+          if (mark.type === 'italic') el = <em key={i}>{el}</em>;
+          if (mark.type === 'code') el = <code key={i}>{el}</code>;
+          if (mark.type === 'strike') el = <del key={i}>{el}</del>;
+          if (mark.type === 'link') {
+            const href = (mark.attrs?.href as string) ?? '#';
+            el = (
+              <a key={i} href={href} target="_blank" rel="noopener noreferrer">
+                {el}
+              </a>
+            );
+          }
         }
-        inCodeBlock = true;
       }
-      continue;
+      return <span key={i}>{el}</span>;
     }
-
-    if (inCodeBlock) {
-      codeBlockContent.push(line);
-      continue;
-    }
-
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    if (headingMatch) {
-      if (inList) {
-        output.push('</ul>');
-        inList = false;
-      }
-      const level = headingMatch[1]!.length;
-      output.push(`<h${level}>${inline(headingMatch[2]!)}</h${level}>`);
-      continue;
-    }
-
-    if (line.match(/^---+$/)) {
-      if (inList) {
-        output.push('</ul>');
-        inList = false;
-      }
-      output.push('<hr />');
-      continue;
-    }
-
-    if (line.startsWith('|')) {
-      if (inList) {
-        output.push('</ul>');
-        inList = false;
-      }
-      if (line.match(/^\|\s*[-:]+/)) continue;
-      const cells = line
-        .split('|')
-        .filter((c) => c.trim() !== '')
-        .map((c) => c.trim());
-      const nextLine = i + 1 < lines.length ? lines[i + 1] : '';
-      const isHeader = nextLine?.match(/^\|\s*[-:]+/);
-      if (isHeader) {
-        output.push('<table>');
-        output.push('<tr>' + cells.map((c) => `<th>${inline(c)}</th>`).join('') + '</tr>');
-      } else {
-        output.push('<tr>' + cells.map((c) => `<td>${inline(c)}</td>`).join('') + '</tr>');
-        const after = i + 1 < lines.length ? lines[i + 1] : '';
-        if (!after?.startsWith('|')) output.push('</table>');
-      }
-      continue;
-    }
-
-    if (line.startsWith('> ')) {
-      if (inList) {
-        output.push('</ul>');
-        inList = false;
-      }
-      output.push(`<blockquote><p>${inline(line.slice(2))}</p></blockquote>`);
-      continue;
-    }
-
-    if (line.match(/^\s*- /)) {
-      if (!inList) {
-        output.push('<ul>');
-        inList = true;
-      }
-      output.push(`<li>${inline(line.replace(/^\s*- /, ''))}</li>`);
-      continue;
-    }
-
-    const olMatch = line.match(/^\s*\d+\.\s+(.+)$/);
-    if (olMatch) {
-      if (!inList) {
-        output.push('<ul>');
-        inList = true;
-      }
-      output.push(`<li>${inline(olMatch[1]!)}</li>`);
-      continue;
-    }
-
-    if (inList && line.trim() === '') {
-      output.push('</ul>');
-      inList = false;
-      continue;
-    }
-    if (line.trim() === '') continue;
-
-    if (inList) {
-      output.push('</ul>');
-      inList = false;
-    }
-    output.push(`<p>${inline(line)}</p>`);
-  }
-
-  if (inList) output.push('</ul>');
-  if (inCodeBlock) output.push(`<pre><code>${esc(codeBlockContent.join('\n'))}</code></pre>`);
-
-  return output.join('\n');
-}
-
-function sanitizeUrl(url: string): string {
-  const decoded = url
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"');
-  try {
-    const parsed = new URL(decoded, 'https://placeholder.invalid');
-    if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) return '';
-  } catch {
-    if (!decoded.startsWith('/') && !decoded.startsWith('#')) return '';
-  }
-  return url;
-}
-
-function inline(text: string): string {
-  let out = esc(text);
-  out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  out = out.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-  out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
-  out = out.replace(/~~(.+?)~~/g, '<del>$1</del>');
-  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, href: string) => {
-    const safe = sanitizeUrl(href);
-    return safe ? `<a href="${safe}" rel="noopener noreferrer">${label}</a>` : label;
+    if (node.type === 'hardBreak') return <br key={i} />;
+    return null;
   });
-  return out;
 }
 
-function esc(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+const shareStyles = `
+.tiptap-share {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #1a1a1a;
 }
+.tiptap-share h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+.tiptap-share h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #e5e5e3;
+  color: #1a1a1a;
+}
+.tiptap-share h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  color: #1a1a1a;
+}
+.tiptap-share p {
+  font-size: 13px;
+  margin-bottom: 0.25rem;
+  line-height: 1.65;
+  color: #555;
+}
+.tiptap-share ul, .tiptap-share ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  font-size: 13px;
+  color: #555;
+}
+.tiptap-share li {
+  margin-bottom: 0.125rem;
+}
+.tiptap-share li > p {
+  margin: 0;
+}
+.tiptap-share strong {
+  font-weight: 600;
+  color: #111;
+}
+.tiptap-share table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 12px;
+  table-layout: fixed;
+  word-wrap: break-word;
+}
+.tiptap-share th, .tiptap-share td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.tiptap-share th {
+  background: #f5f5f4;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.tiptap-share th p, .tiptap-share td p {
+  margin: 0;
+}
+.tiptap-share hr {
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  margin: 1.5rem 0;
+}
+.tiptap-share a {
+  color: #c26a3a;
+  text-decoration: none;
+}
+.tiptap-share a:hover {
+  text-decoration: underline;
+}
+.tiptap-share code {
+  background: #f5f5f5;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.875em;
+}
+.tiptap-share blockquote {
+  border-left: 3px solid #e5e5e5;
+  padding-left: 1em;
+  color: #6b7280;
+  margin: 0.75rem 0;
+}
+`;

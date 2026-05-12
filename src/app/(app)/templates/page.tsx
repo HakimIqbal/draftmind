@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
@@ -20,7 +21,7 @@ export default async function TemplatesPage() {
   const workspace = await getCurrentWorkspace(user.id);
 
   if (!workspace) {
-    return null;
+    redirect('/dashboard');
   }
 
   const supabase = await createClient();

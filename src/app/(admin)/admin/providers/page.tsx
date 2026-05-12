@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
+import Image from 'next/image';
 import { toast } from 'sonner';
+import { getProviderIcon } from '@/lib/ai/provider-icons';
 import {
   Plus,
   Wifi,
@@ -63,14 +65,32 @@ export default function AdminProvidersPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  // Load providers + registry on mount and after actions
   useEffect(() => {
     async function load() {
-      const [p, r] = await Promise.all([getProviders(), getProviderRegistry()]);
-      setProviders(p as Provider[]);
-      setRegistry(r);
+      try {
+        const [p, r] = await Promise.all([getProviders(), getProviderRegistry()]);
+        setProviders(p as Provider[]);
+        setRegistry(r);
+      } catch {
+        /* stale action after HMR */
+      }
     }
     load();
   }, [isPending]);
+
+  // Real-time polling every 10 seconds for Requests & Latency updates
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const p = await getProviders();
+        setProviders(p as Provider[]);
+      } catch {
+        /* ignore */
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   function handle(fn: () => Promise<unknown>, msg: string) {
     startTransition(async () => {
@@ -185,8 +205,30 @@ export default function AdminProvidersPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <p className="text-[13px] font-semibold text-[#1a1a1a]">{p.display_name}</p>
-                      <p className="text-[11px] text-[#999]">{p.default_model}</p>
+                      <div className="flex items-center gap-3">
+                        {(() => {
+                          const icon = getProviderIcon(p.type);
+                          return icon ? (
+                            <Image
+                              src={icon}
+                              alt={p.display_name}
+                              width={24}
+                              height={24}
+                              className="shrink-0 rounded-md"
+                            />
+                          ) : (
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#f5f5f4] text-[10px] font-bold text-[#999]">
+                              {p.display_name[0]}
+                            </div>
+                          );
+                        })()}
+                        <div>
+                          <p className="text-[13px] font-semibold text-[#1a1a1a]">
+                            {p.display_name}
+                          </p>
+                          <p className="text-[11px] text-[#999]">{p.default_model}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <select
@@ -363,25 +405,54 @@ function AddProviderModal({
             <h2 className="text-[18px] font-bold text-[#1a1a1a]">Add AI Provider</h2>
             <p className="mt-1 text-[13px] text-[#888]">Choose a provider to connect</p>
             <div className="mt-6 grid grid-cols-2 gap-2">
-              {registry.map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => handleSelect(item)}
-                  className="rounded-xl border border-[#eee] bg-white p-4 text-left hover:border-[#ddd] hover:shadow-sm"
-                >
-                  <p className="text-[14px] font-semibold text-[#1a1a1a]">{item.displayName}</p>
-                  <p className="mt-1 text-[11px] text-[#999]">
-                    {item.availableModels.length} models
-                  </p>
-                </button>
-              ))}
+              {registry.map((item) => {
+                const icon = getProviderIcon(item.key);
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => handleSelect(item)}
+                    className="flex items-center gap-3 rounded-xl border border-[#eee] bg-white p-4 text-left transition-all hover:border-[#ddd] hover:shadow-sm"
+                  >
+                    {icon ? (
+                      <Image
+                        src={icon}
+                        alt={item.displayName}
+                        width={28}
+                        height={28}
+                        className="shrink-0 rounded-md"
+                      />
+                    ) : (
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#f5f5f4] text-[11px] font-bold text-[#999]">
+                        {item.displayName[0]}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-[14px] font-semibold text-[#1a1a1a]">{item.displayName}</p>
+                      <p className="mt-0.5 text-[11px] text-[#999]">
+                        {item.availableModels.length} models
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
 
         {step === 'baseurl' && selected && (
           <>
-            <h2 className="text-[18px] font-bold text-[#1a1a1a]">{selected.displayName}</h2>
+            <div className="flex items-center gap-3">
+              {getProviderIcon(selected.key) && (
+                <Image
+                  src={getProviderIcon(selected.key)!}
+                  alt=""
+                  width={28}
+                  height={28}
+                  className="rounded-md"
+                />
+              )}
+              <h2 className="text-[18px] font-bold text-[#1a1a1a]">{selected.displayName}</h2>
+            </div>
             <p className="mt-1 text-[13px] text-[#888]">Verify the base URL</p>
             <div className="mt-6 space-y-4">
               <div>
@@ -416,7 +487,18 @@ function AddProviderModal({
 
         {step === 'apikey' && selected && (
           <>
-            <h2 className="text-[18px] font-bold text-[#1a1a1a]">{selected.displayName}</h2>
+            <div className="flex items-center gap-3">
+              {getProviderIcon(selected.key) && (
+                <Image
+                  src={getProviderIcon(selected.key)!}
+                  alt=""
+                  width={28}
+                  height={28}
+                  className="rounded-md"
+                />
+              )}
+              <h2 className="text-[18px] font-bold text-[#1a1a1a]">{selected.displayName}</h2>
+            </div>
             <p className="mt-1 text-[13px] text-[#888]">Enter API key and configure</p>
             <div className="mt-6 space-y-4">
               <div>

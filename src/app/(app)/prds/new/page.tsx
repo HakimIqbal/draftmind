@@ -15,6 +15,15 @@ export default async function GeneratePrdPage({
   const params = await searchParams;
   const initialBrief = params.brief ?? '';
 
+  // Fetch active providers for model selector
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const adminSupa = createAdminClient();
+  const { data: providersList } = await adminSupa
+    .from('providers')
+    .select('id, display_name, default_model')
+    .eq('status', 'active')
+    .order('priority', { ascending: true });
+
   return (
     <div className="mx-auto max-w-3xl p-lg">
       <GenerateForm
@@ -22,6 +31,11 @@ export default async function GeneratePrdPage({
         workspaceId={workspace.id as string}
         userName={(user.user_metadata as Record<string, string>)?.full_name ?? user.email ?? ''}
         initialBrief={initialBrief}
+        providers={(providersList ?? []).map((p) => ({
+          id: p.id,
+          display_name: p.display_name,
+          default_model: p.default_model,
+        }))}
       />
     </div>
   );

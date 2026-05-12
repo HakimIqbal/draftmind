@@ -31,7 +31,7 @@ export function NeedsAttentionCard({ items }: { items: NeedsAttentionItem[] }) {
                 {item.body && (
                   <p className="mt-0.5 truncate text-[12px] text-[#999]">{item.body}</p>
                 )}
-                <p className="mt-1 text-[11px] text-[#bbb]">
+                <p className="mt-1 text-[11px] text-[#bbb]" suppressHydrationWarning>
                   {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                 </p>
               </div>

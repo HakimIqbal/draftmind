@@ -127,6 +127,9 @@ export const PRDDocumentSchema = z.object({
     title: z.string(),
     project_tag: z.string().optional(),
     owner_id: z.string().uuid(),
+    owner_name: z.string().optional(),
+    developers: z.array(z.object({ name: z.string(), role: z.string() })).default([]),
+    stakeholder_names: z.array(z.string()).default([]),
     stakeholders: z.array(z.string().uuid()).default([]),
     start_date: z.string().optional(),
     end_date: z.string().optional(),
@@ -185,6 +188,8 @@ export function createEmptyPRD(ownerId: string, title: string): PRDDocument {
     metadata: {
       title,
       owner_id: ownerId,
+      developers: [],
+      stakeholder_names: [],
       stakeholders: [],
       locale: 'mixed',
     },

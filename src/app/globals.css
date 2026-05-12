@@ -11,3 +11,21 @@
     border-color: var(--border-default);
   }
 }
+
+/* Hide scrollbar utility */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar on editor scroll area */
+.editor-scroll-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.editor-scroll-area::-webkit-scrollbar {
+  display: none;
+}

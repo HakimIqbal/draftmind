@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { logWarn } from '@/lib/logging/system-log';
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -39,7 +40,15 @@ export async function toggleSuperAdmin(targetUserId: string) {
     .update({ is_super_admin: !target.is_super_admin })
     .eq('id', targetUserId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: 'Failed to update admin status. Please try again.' };
+
+  logWarn(
+    'admin.action',
+    `super_admin_toggled: ${targetUserId} → ${!target.is_super_admin}`,
+    { targetUserId },
+    user.id,
+  );
+
   revalidatePath('/admin');
   return { success: true };
 }
@@ -72,6 +81,13 @@ export async function toggleUserStatus(targetUserId: string) {
     });
     if (error) return { error: error.message };
   }
+
+  logWarn(
+    'admin.action',
+    `${isBanned ? 'user_unbanned' : 'user_banned'}: ${targetUserId}`,
+    { targetUserId },
+    user.id,
+  );
 
   revalidatePath('/admin');
   return { success: true, disabled: !isBanned };
@@ -106,6 +122,74 @@ export async function createUser(data: {
         onboarding_completed_at: new Date().toISOString(),
       })
       .eq('id', newUser.user.id);
+  }
+
+  if (newUser.user) {
+    logWarn(
+      'admin.action',
+      `user_created_by_admin: ${data.email}`,
+      { email: data.email, full_name: data.full_name },
+      newUser.user.id,
+    );
+  }
+
+  revalidatePath('/admin/users');
+  return { success: true };
+}
+
+const DEFAULT_PASSWORD = 'DraftMind2026!';
+
+export async function resetUserPassword(targetUserId: string) {
+  const user = await requireSuperAdmin();
+  if (targetUserId === user.id) return { error: 'Cannot reset your own password' };
+
+  const admin = createAdminClient();
+
+  // Reset password to default
+  const { error } = await admin.auth.admin.updateUserById(targetUserId, {
+    password: DEFAULT_PASSWORD,
+  });
+
+  if (error) return { error: error.message };
+
+  // Set force_password_change flag
+  await admin.from('profiles').update({ force_password_change: true }).eq('id', targetUserId);
+
+  // Get target user info for logging
+  const { data: target } = await admin
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', targetUserId)
+    .single();
+
+  const { data: adminProfile } = await admin
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single();
+
+  // Log to activity_log
+  const { data: membership } = await admin
+    .from('workspace_members')
+    .select('workspace_id')
+    .eq('user_id', targetUserId)
+    .limit(1)
+    .single();
+
+  if (membership) {
+    await admin.from('activity_log').insert({
+      workspace_id: membership.workspace_id,
+      actor_id: user.id,
+      type: 'password_reset',
+      resource_type: 'user',
+      resource_id: targetUserId,
+      metadata: {
+        admin_name: adminProfile?.full_name ?? 'Admin',
+        target_user: target?.email ?? targetUserId,
+        target_name: target?.full_name ?? 'Unknown',
+        reset_to: 'default',
+      },
+    });
   }
 
   revalidatePath('/admin/users');

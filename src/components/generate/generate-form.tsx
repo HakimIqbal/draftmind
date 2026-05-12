@@ -2,48 +2,28 @@
 
 import { useState, useEffect, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, LayoutTemplate, ArrowLeft, ChevronDown, ChevronRight, X } from 'lucide-react';
-import { toast } from 'sonner';
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  X,
+  FileText,
+  Star,
+  FolderOpen,
+  Eye,
+} from 'lucide-react';
 import {
   createPRDAndGenerate,
-  createPRDFromTemplate,
   getTemplates,
   getWorkspaceMembers,
 } from '@/app/(app)/prds/new/actions';
-
-function renderTemplateMarkdown(md: string): string {
-  const escaped = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  return escaped
-    .split('\n')
-    .map((line) => {
-      // Sub-headings (### )
-      const h3 = line.match(/^###\s+(.+)$/);
-      if (h3)
-        return `<h4 style="font-weight:600;font-size:12px;color:#1a1a1a;margin-top:12px;margin-bottom:4px">${h3[1]}</h4>`;
-      // Bold text
-      const out = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      // Bullet points
-      if (out.match(/^\s*-\s/))
-        return `<div style="display:flex;gap:6px;margin:2px 0"><span style="color:#bbb">•</span><span>${out.replace(/^\s*-\s+/, '')}</span></div>`;
-      // Empty line
-      if (!out.trim()) return '<div style="height:6px"></div>';
-      // Regular text
-      return `<p style="margin:2px 0">${out}</p>`;
-    })
-    .join('');
-}
 
 interface GenerateFormProps {
   userId: string;
   workspaceId: string;
   userName: string;
   initialBrief: string;
-}
-
-interface TemplateSection {
-  name: string;
-  guidelines: string;
+  providers?: { id: string; display_name: string; default_model: string }[];
 }
 
 interface Template {
@@ -51,7 +31,11 @@ interface Template {
   name: string;
   description: string | null;
   category: string;
-  structure: { sections_enabled?: string[]; sections?: TemplateSection[]; instructions?: string };
+  structure: {
+    sections_enabled?: string[];
+    sections?: { name: string; guidelines: string }[];
+    instructions?: string;
+  };
   is_built_in: boolean;
 }
 
@@ -62,14 +46,6 @@ interface WorkspaceMember {
   role: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  feature: 'Feature',
-  experiment: 'Experiment',
-  rfc: 'Technical',
-  'one-pager': 'One-pager',
-  research: 'Research',
-  custom: 'Custom',
-};
 const PLATFORM_OPTIONS = [
   'Web',
   'Mobile (iOS)',
@@ -81,24 +57,36 @@ const PLATFORM_OPTIONS = [
 ];
 const PRIORITY_OPTIONS = ['Critical', 'High', 'Medium', 'Low'];
 
-export function GenerateForm({ userId, workspaceId, userName, initialBrief }: GenerateFormProps) {
+// Popular templates (built-in, shown first)
+const POPULAR_NAMES = ["Adaam's PRD", "Lenny's 1-Pager", "Peter's PRD"];
+
+export function GenerateForm({
+  userId,
+  workspaceId,
+  userName,
+  initialBrief,
+  providers,
+}: GenerateFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [tab, setTab] = useState<'scratch' | 'template'>('scratch');
 
-  // Wajib
+  // Template
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [templateDropdownOpen, setTemplateDropdownOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Product details
   const [title, setTitle] = useState('');
   const [projectTag, setProjectTag] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [brief, setBrief] = useState(initialBrief);
-
-  // Di Project details (penting)
-  const [platform, setPlatform] = useState('');
-  const [priority, setPriority] = useState('');
+  const [problemStatement, setProblemStatement] = useState('');
   const [stakeholders, setStakeholders] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<WorkspaceMember[]>([]);
-  const [problemStatement, setProblemStatement] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [priority, setPriority] = useState('');
 
   // Context (collapsible)
   const [targetUsers, setTargetUsers] = useState('');
@@ -109,18 +97,12 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
   const [techStack, setTechStack] = useState('');
   const [designLink, setDesignLink] = useState('');
 
+  // Brief
+  const [brief, setBrief] = useState(initialBrief);
+
   const [error, setError] = useState('');
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-
-  // Template state
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
-  const [templateTitle, setTemplateTitle] = useState('');
-  const [templateTag, setTemplateTag] = useState('');
-  const [templateBrief, setTemplateBrief] = useState('');
-  const [templateSearch, setTemplateSearch] = useState('');
-  const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
+  const [selectedProviderId, setSelectedProviderId] = useState(providers?.[0]?.id ?? '');
 
   const wordCount = brief.trim().split(/\s+/).filter(Boolean).length;
 
@@ -133,38 +115,63 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
     load();
   }, [workspaceId]);
 
-  function handleScratchSubmit() {
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!templateDropdownOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setTemplateDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [templateDropdownOpen]);
+
+  // Separate popular vs rest
+  const popular = templates.filter((t) =>
+    POPULAR_NAMES.some((n) => t.name.includes(n.replace("'s ", "'s "))),
+  );
+  const rest = templates.filter(
+    (t) => !POPULAR_NAMES.some((n) => t.name.includes(n.replace("'s ", "'s "))),
+  );
+
+  function showError(msg: string) {
+    setError(msg);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleSubmit() {
     setError('');
     if (!title.trim()) {
-      setError('Project name is required.');
+      showError('Product name is required.');
       return;
     }
     if (!projectTag.trim()) {
-      setError('Project tag is required.');
+      showError('Product tag is required.');
       return;
     }
     if (!problemStatement.trim()) {
-      setError('Problem statement is required.');
+      showError('Problem statement is required.');
       return;
     }
     if (!stakeholders.trim()) {
-      setError('Stakeholders is required.');
+      showError('Stakeholders is required.');
       return;
     }
     if (selectedMembers.length === 0) {
-      setError('At least one team member is required.');
+      showError('At least one developer is required.');
       return;
     }
     if (!startDate) {
-      setError('Start date is required.');
+      showError('Start date is required.');
       return;
     }
     if (!endDate) {
-      setError('End date is required.');
+      showError('End date is required.');
       return;
     }
     if (wordCount < 50) {
-      setError('Brief is too short. Minimum 50 words required.');
+      showError('Brief is too short. Minimum 50 words required.');
       return;
     }
 
@@ -181,6 +188,7 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
           stakeholders: stakeholders.trim() || undefined,
           teamMemberIds: selectedMembers.map((m) => m.id),
           teamMemberNames: selectedMembers.map((m) => m.name),
+          teamMemberRoles: selectedMembers.map((m) => m.role),
           problemStatement: problemStatement.trim() || undefined,
           targetUsers: targetUsers.trim() || undefined,
           constraints: constraints.trim() || undefined,
@@ -189,46 +197,15 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
           priority: priority || undefined,
           techStack: techStack.trim() || undefined,
           designLink: designLink.trim() || undefined,
+          templateId: selectedTemplate?.id,
+          templateName: selectedTemplate?.name,
+          preferredProviderId: selectedProviderId || undefined,
         });
       } catch {
-        setError('Failed to create PRD. Please try again.');
+        showError('Failed to create PRD. Please try again.');
       }
     });
   }
-
-  function handleTemplateSubmit() {
-    if (!selectedTemplate) {
-      toast.error('Select a template first');
-      return;
-    }
-    if (!templateTitle.trim()) {
-      toast.error('Project name is required');
-      return;
-    }
-    if (!templateBrief.trim()) {
-      toast.error('Brief is required');
-      return;
-    }
-    startTransition(async () => {
-      try {
-        await createPRDFromTemplate({
-          workspaceId,
-          userId,
-          title: templateTitle.trim(),
-          projectTag: templateTag.trim() || undefined,
-          templateId: selectedTemplate.id,
-          brief: templateBrief.trim(),
-        });
-      } catch {
-        toast.error('Failed to create PRD. Please try again.');
-      }
-    });
-  }
-
-  const grouped = templates.reduce<Record<string, Template[]>>((acc, t) => {
-    (acc[t.category] ??= []).push(t);
-    return acc;
-  }, {});
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-8">
@@ -240,290 +217,340 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
       </button>
       <h1 className="text-[22px] font-bold text-[#1a1a1a]">Create new PRD</h1>
 
-      <div className="mt-6 flex gap-2">
-        <TabBtn
-          active={tab === 'scratch'}
-          icon={FileText}
-          label="From scratch"
-          onClick={() => setTab('scratch')}
-        />
-        <TabBtn
-          active={tab === 'template'}
-          icon={LayoutTemplate}
-          label="From template"
-          onClick={() => setTab('template')}
-        />
-      </div>
+      {/* Error banner — top of form */}
+      {error && (
+        <div className="mt-4 flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+            <circle cx="8" cy="8" r="7" stroke="#ef4444" strokeWidth="1.5" />
+            <path d="M8 5v3.5M8 10.5v.5" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <p className="flex-1 text-[13px] text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={() => setError('')}
+            className="shrink-0 text-red-400 hover:text-red-600"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
-      {/* ─── FROM SCRATCH ─── */}
-      {tab === 'scratch' && (
-        <div className="mt-6 space-y-5">
-          <Section title="Project details">
-            <div className="space-y-4">
-              <Field label="Project name" required>
-                <TextInput
-                  value={title}
-                  onChange={setTitle}
-                  placeholder="e.g. Checkout Redesign Q2"
-                />
-              </Field>
-              <Field label="Owner">
-                <TextInput value={userName} readOnly />
-              </Field>
-              <Field label="Project tag" required>
-                <TextInput
-                  value={projectTag}
-                  onChange={setProjectTag}
-                  placeholder="e.g. Q2 2026 Growth"
-                />
-              </Field>
-              <Field label="Problem statement" required>
-                <TextareaInput
-                  value={problemStatement}
-                  onChange={setProblemStatement}
-                  rows={3}
-                  placeholder="What problem does this product/feature solve?"
-                />
-              </Field>
-              <Field label="Stakeholders" required hint="Decision makers, approvers, clients">
+      <div className="mt-6 space-y-5">
+        {/* Template dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Template</label>
+          <button
+            type="button"
+            onClick={() => setTemplateDropdownOpen(!templateDropdownOpen)}
+            className="flex h-10 w-full items-center justify-between rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] transition-colors hover:border-[#ccc]"
+          >
+            <span className="flex items-center gap-2">
+              <FileText size={14} className="text-[#999]" />
+              {selectedTemplate ? selectedTemplate.name : 'None (start from scratch)'}
+            </span>
+            <ChevronDown size={14} className="text-[#999]" />
+          </button>
+
+          {templateDropdownOpen && (
+            <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-[360px] overflow-y-auto rounded-xl border border-[#eee] bg-white shadow-xl">
+              {/* None option */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTemplate(null);
+                  setTemplateDropdownOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[#fafaf9] ${!selectedTemplate ? 'bg-[#f5f5f4] font-medium' : ''}`}
+              >
+                <FileText size={14} className="text-[#bbb]" />
+                None (start from scratch)
+              </button>
+
+              {/* Popular */}
+              {popular.length > 0 && (
+                <>
+                  <div className="border-t border-[#f0f0f0] px-4 py-2">
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#aaa]">
+                      <Star size={10} className="text-amber-400" />
+                      Popular
+                    </span>
+                  </div>
+                  {popular.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`flex w-full items-start gap-2.5 px-4 py-2.5 transition-colors hover:bg-[#fafaf9] ${selectedTemplate?.id === t.id ? 'bg-[#f5f5f4]' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTemplate(t);
+                          setTemplateDropdownOpen(false);
+                        }}
+                        className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
+                      >
+                        <FileText size={14} className="mt-0.5 shrink-0 text-accent" />
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-[#1a1a1a]">{t.name}</p>
+                          {t.description && (
+                            <p className="mt-0.5 truncate text-[11px] text-[#999]">
+                              {t.description}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTemplateDropdownOpen(false);
+                          setPreviewTemplate(t);
+                        }}
+                        className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[#bbb] transition-colors hover:bg-[#eee] hover:text-[#666]"
+                        title="View template details"
+                      >
+                        <Eye size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* All templates */}
+              {rest.length > 0 && (
+                <>
+                  <div className="border-t border-[#f0f0f0] px-4 py-2">
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#aaa]">
+                      <FolderOpen size={10} />
+                      All templates
+                    </span>
+                  </div>
+                  {rest.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`flex w-full items-start gap-2.5 px-4 py-2.5 transition-colors hover:bg-[#fafaf9] ${selectedTemplate?.id === t.id ? 'bg-[#f5f5f4]' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTemplate(t);
+                          setTemplateDropdownOpen(false);
+                        }}
+                        className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
+                      >
+                        <FileText size={14} className="mt-0.5 shrink-0 text-[#bbb]" />
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-[#1a1a1a]">{t.name}</p>
+                          {t.description && (
+                            <p className="mt-0.5 truncate text-[11px] text-[#999]">
+                              {t.description}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTemplateDropdownOpen(false);
+                          setPreviewTemplate(t);
+                        }}
+                        className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[#bbb] transition-colors hover:bg-[#eee] hover:text-[#666]"
+                        title="View template details"
+                      >
+                        <Eye size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Selected template info */}
+        {selectedTemplate && (
+          <div className="border-accent/20 bg-accent/5 rounded-lg border px-4 py-3">
+            <div className="flex items-center gap-3">
+              <FileText size={16} className="shrink-0 text-accent" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-[#1a1a1a]">{selectedTemplate.name}</p>
+                {selectedTemplate.description && (
+                  <p className="mt-0.5 text-[11px] text-[#888]">{selectedTemplate.description}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewTemplate(selectedTemplate)}
+                className="border-accent/30 hover:bg-accent/10 flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium text-accent transition-colors"
+              >
+                <Eye size={12} />
+                View details
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTemplate(null)}
+                className="shrink-0 text-[#bbb] hover:text-[#666]"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            {/* Section pills preview */}
+            {selectedTemplate.structure.sections &&
+              selectedTemplate.structure.sections.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-1">
+                  {selectedTemplate.structure.sections.map((s, i) => (
+                    <span
+                      key={i}
+                      className="bg-accent/10 rounded px-2 py-0.5 text-[10px] font-medium text-accent"
+                    >
+                      {s.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+          </div>
+        )}
+
+        {/* Product details */}
+        <Section title="Product details">
+          <div className="space-y-4">
+            <Field label="Product name" required>
+              <TextInput
+                value={title}
+                onChange={setTitle}
+                placeholder="e.g. Checkout Redesign Q2"
+              />
+            </Field>
+            <Field label="Document Owner">
+              <TextInput value={userName} readOnly />
+            </Field>
+            <Field label="Product tag" required>
+              <TextInput
+                value={projectTag}
+                onChange={setProjectTag}
+                placeholder="e.g. Q2 2026 Growth"
+              />
+            </Field>
+            <Field label="Problem statement" required>
+              <TextareaInput
+                value={problemStatement}
+                onChange={setProblemStatement}
+                rows={3}
+                placeholder="What problem does this product/feature solve?"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Stakeholders" required hint="Decision makers, approvers">
                 <TextInput
                   value={stakeholders}
                   onChange={setStakeholders}
-                  placeholder="e.g. Eric Julianto, Denis Setyawan"
+                  placeholder="e.g. Denis Setyawan"
                 />
               </Field>
-              <Field label="Team members" required hint="Type @ to mention workspace members">
+              <Field label="Developer" required hint="Type @ to mention">
                 <MemberPicker
                   members={members}
                   selected={selectedMembers}
                   onChange={setSelectedMembers}
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Start date" required>
-                  <DateInput value={startDate} onChange={setStartDate} />
-                </Field>
-                <Field label="End date" required>
-                  <DateInput value={endDate} onChange={setEndDate} />
-                </Field>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Platform">
-                  <SelectInput
-                    value={platform}
-                    onChange={setPlatform}
-                    options={PLATFORM_OPTIONS}
-                    placeholder="Select platform..."
-                  />
-                </Field>
-                <Field label="Priority">
-                  <SelectInput
-                    value={priority}
-                    onChange={setPriority}
-                    options={PRIORITY_OPTIONS}
-                    placeholder="Select priority..."
-                  />
-                </Field>
-              </div>
             </div>
-          </Section>
-
-          <CollapsibleSection title="Context" defaultOpen={false}>
-            <div className="space-y-4">
-              <Field label="Target users">
-                <TextInput
-                  value={targetUsers}
-                  onChange={setTargetUsers}
-                  placeholder="e.g. Eco-conscious travelers aged 25-40"
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Start date" required>
+                <DateInput value={startDate} onChange={setStartDate} />
+              </Field>
+              <Field label="End date" required>
+                <DateInput value={endDate} onChange={setEndDate} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Platform">
+                <SelectInput
+                  value={platform}
+                  onChange={setPlatform}
+                  options={PLATFORM_OPTIONS}
+                  placeholder="Select platform..."
                 />
               </Field>
-              <Field label="Success criteria">
-                <TextInput
-                  value={successCriteria}
-                  onChange={setSuccessCriteria}
-                  placeholder="e.g. 20% increase in conversion rate"
-                />
-              </Field>
-              <Field label="Constraints">
-                <TextInput
-                  value={constraints}
-                  onChange={setConstraints}
-                  placeholder="e.g. Must support offline mode, budget $50k"
+              <Field label="Priority">
+                <SelectInput
+                  value={priority}
+                  onChange={setPriority}
+                  options={PRIORITY_OPTIONS}
+                  placeholder="Select priority..."
                 />
               </Field>
             </div>
-          </CollapsibleSection>
+          </div>
+        </Section>
 
-          <CollapsibleSection title="Technical" defaultOpen={false}>
-            <div className="space-y-4">
-              <Field label="Tech stack">
-                <TextInput
-                  value={techStack}
-                  onChange={setTechStack}
-                  placeholder="e.g. Next.js, Supabase, React Native"
-                />
-              </Field>
-              <Field label="Design reference">
-                <TextInput
-                  value={designLink}
-                  onChange={setDesignLink}
-                  placeholder="e.g. https://figma.com/file/..."
-                />
-              </Field>
-            </div>
-          </CollapsibleSection>
+        {/* Context */}
+        <CollapsibleSection title="Context" defaultOpen={false}>
+          <div className="space-y-4">
+            <Field label="Target users">
+              <TextInput
+                value={targetUsers}
+                onChange={setTargetUsers}
+                placeholder="e.g. Eco-conscious travelers aged 25-40"
+              />
+            </Field>
+            <Field label="Success criteria">
+              <TextInput
+                value={successCriteria}
+                onChange={setSuccessCriteria}
+                placeholder="e.g. 20% increase in conversion rate"
+              />
+            </Field>
+            <Field label="Constraints">
+              <TextInput
+                value={constraints}
+                onChange={setConstraints}
+                placeholder="e.g. Must support offline mode, budget $50k"
+              />
+            </Field>
+          </div>
+        </CollapsibleSection>
 
-          <Section title="Brief" required>
-            <TextareaInput
-              value={brief}
-              onChange={setBrief}
-              rows={8}
-              placeholder="Describe the product, feature, or problem you want to solve..."
-            />
-            <p className="mt-2 text-[11px] text-[#bbb]">
-              {wordCount} words ·{' '}
-              {wordCount < 50
-                ? 'Minimum 50 words required'
-                : wordCount < 200
-                  ? '200+ recommended'
-                  : 'Good length'}
-            </p>
-          </Section>
+        {/* Technical */}
+        <CollapsibleSection title="Technical" defaultOpen={false}>
+          <div className="space-y-4">
+            <Field label="Tech stack">
+              <TextInput
+                value={techStack}
+                onChange={setTechStack}
+                placeholder="e.g. Next.js, Supabase, React Native"
+              />
+            </Field>
+            <Field label="Design reference">
+              <TextInput
+                value={designLink}
+                onChange={setDesignLink}
+                placeholder="e.g. https://figma.com/file/..."
+              />
+            </Field>
+          </div>
+        </CollapsibleSection>
 
-          {error && <p className="text-[13px] text-red-500">{error}</p>}
-        </div>
-      )}
+        {/* Brief */}
+        <Section title="Brief" required>
+          <TextareaInput
+            value={brief}
+            onChange={setBrief}
+            rows={8}
+            placeholder="Describe the product, feature, or problem you want to solve..."
+          />
+          <p className="mt-2 text-[11px] text-[#bbb]">
+            {wordCount} words &middot;{' '}
+            {wordCount < 50
+              ? 'Minimum 50 words required'
+              : wordCount < 200
+                ? '200+ recommended'
+                : 'Good length'}
+          </p>
+        </Section>
 
-      {/* ─── FROM TEMPLATE ─── */}
-      {tab === 'template' && (
-        <div className="mt-6 space-y-5">
-          {!selectedTemplate ? (
-            <div>
-              {/* Search */}
-              <div className="relative mb-5">
-                <input
-                  value={templateSearch}
-                  onChange={(e) => setTemplateSearch(e.target.value)}
-                  placeholder="Search templates..."
-                  className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white pl-3 pr-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
-                />
-              </div>
-
-              {/* Categories */}
-              {Object.entries(grouped).map(([cat, items]) => {
-                const filtered = templateSearch
-                  ? items.filter(
-                      (t) =>
-                        t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
-                        (t.description ?? '').toLowerCase().includes(templateSearch.toLowerCase()),
-                    )
-                  : items;
-                if (filtered.length === 0) return null;
-                const isCollapsed = collapsedCats.has(cat);
-                return (
-                  <div key={cat} className="mb-4">
-                    <button
-                      onClick={() => {
-                        const next = new Set(collapsedCats);
-                        if (isCollapsed) {
-                          next.delete(cat);
-                        } else {
-                          next.add(cat);
-                        }
-                        setCollapsedCats(next);
-                      }}
-                      className="mb-2 flex w-full items-center gap-2 text-left"
-                    >
-                      {isCollapsed ? (
-                        <ChevronRight size={13} className="text-[#bbb]" />
-                      ) : (
-                        <ChevronDown size={13} className="text-[#bbb]" />
-                      )}
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
-                        {CATEGORY_LABELS[cat] ?? cat}
-                      </span>
-                      <span className="text-[10px] text-[#ccc]">({filtered.length})</span>
-                    </button>
-                    {!isCollapsed && (
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {filtered.map((t) => {
-                          const sections = t.structure.sections ?? [];
-                          const sectionNames = sections.map((s: { name: string }) => s.name);
-                          return (
-                            <button
-                              key={t.id}
-                              onClick={() => setPreviewTemplate(t)}
-                              className="rounded-xl border border-[#eee] bg-white p-4 text-left transition-all hover:border-[#ddd] hover:shadow-sm"
-                            >
-                              <p className="text-[13px] font-medium text-[#1a1a1a]">{t.name}</p>
-                              <p className="mt-1 line-clamp-2 text-[12px] text-[#999]">
-                                {t.description}
-                              </p>
-                              {sectionNames.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-1">
-                                  {sectionNames.map((name: string, i: number) => (
-                                    <span
-                                      key={i}
-                                      className="rounded bg-[#f5f5f4] px-1.5 py-0.5 text-[10px] text-[#888]"
-                                    >
-                                      {name}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* Template form */
-            <div>
-              <button
-                onClick={() => setSelectedTemplate(null)}
-                className="mb-4 flex items-center gap-1.5 text-[13px] text-[#999] hover:text-[#555]"
-              >
-                <ArrowLeft size={13} /> Choose different template
-              </button>
-              <Section title={selectedTemplate.name}>
-                <p className="mb-4 text-[12px] text-[#999]">{selectedTemplate.description}</p>
-                <div className="space-y-4">
-                  <Field label="Project name" required>
-                    <TextInput
-                      value={templateTitle}
-                      onChange={setTemplateTitle}
-                      placeholder="e.g. Checkout Redesign Q2"
-                    />
-                  </Field>
-                  <Field label="Project tag">
-                    <TextInput
-                      value={templateTag}
-                      onChange={setTemplateTag}
-                      placeholder="e.g. Q2 2026 Growth"
-                    />
-                  </Field>
-                  <Field
-                    label="Brief"
-                    required
-                    hint="Give context so AI can generate relevant content for this template"
-                  >
-                    <TextareaInput
-                      value={templateBrief}
-                      onChange={setTemplateBrief}
-                      rows={4}
-                      placeholder="Briefly describe what this document is about..."
-                    />
-                  </Field>
-                </div>
-              </Section>
-            </div>
-          )}
-        </div>
-      )}
+        {/* Error shown at top of form */}
+      </div>
 
       {/* Template Preview Modal */}
       {previewTemplate && (
@@ -536,64 +563,84 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
             >
               <X size={18} />
             </button>
+
+            {/* Header */}
             <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
-              {CATEGORY_LABELS[previewTemplate.category] ?? previewTemplate.category}
+              Template Preview
             </p>
             <h2 className="mt-1 text-[20px] font-bold text-[#1a1a1a]">{previewTemplate.name}</h2>
-            <p className="mt-2 text-[13px] leading-relaxed text-[#888]">
-              {previewTemplate.description}
-            </p>
+            {previewTemplate.description && (
+              <p className="mt-2 text-[13px] leading-relaxed text-[#888]">
+                {previewTemplate.description}
+              </p>
+            )}
 
+            {/* Instructions */}
             {previewTemplate.structure.instructions && (
               <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/50 px-4 py-3">
-                <p className="text-[11px] font-semibold text-amber-700">Instructions</p>
+                <p className="text-[11px] font-semibold text-amber-700">Instructions for AI</p>
                 <p className="mt-1 text-[12px] leading-relaxed text-amber-800/80">
                   {previewTemplate.structure.instructions}
                 </p>
               </div>
             )}
 
-            <div className="mt-6">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
-                  Template Sections
-                </p>
-                <p className="text-[11px] text-[#bbb]">
-                  {previewTemplate.structure.sections?.length ??
-                    previewTemplate.structure.sections_enabled?.length ??
-                    0}{' '}
-                  sections
-                </p>
-              </div>
-              <div className="space-y-3">
-                {(previewTemplate.structure.sections ?? []).map(
-                  (s: { name: string; guidelines?: string }, i: number) => (
+            {/* Sections */}
+            {previewTemplate.structure.sections && previewTemplate.structure.sections.length > 0 ? (
+              <div className="mt-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
+                    Sections
+                  </p>
+                  <p className="text-[11px] text-[#bbb]">
+                    {previewTemplate.structure.sections.length} sections
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {previewTemplate.structure.sections.map((s, i) => (
                     <div key={i} className="rounded-lg border border-[#eee] bg-[#fafaf9] p-4">
-                      <h3 className="text-[14px] font-semibold text-[#1a1a1a]">{s.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded bg-[#eee] text-[10px] font-bold text-[#999]">
+                          {i + 1}
+                        </span>
+                        <h3 className="text-[14px] font-semibold text-[#1a1a1a]">{s.name}</h3>
+                      </div>
                       {s.guidelines && (
-                        <div
-                          className="template-guidelines mt-2 text-[12px] leading-relaxed text-[#666]"
-                          dangerouslySetInnerHTML={{
-                            __html: renderTemplateMarkdown(s.guidelines),
-                          }}
-                        />
+                        <p className="mt-2 whitespace-pre-line text-[12px] leading-relaxed text-[#666]">
+                          {s.guidelines}
+                        </p>
                       )}
                     </div>
-                  ),
-                )}
-                {/* Fallback for old format */}
-                {!previewTemplate.structure.sections &&
-                  (previewTemplate.structure.sections_enabled ?? []).map((s: string, i: number) => (
-                    <div key={i} className="rounded-lg border border-[#eee] bg-[#fafaf9] p-4">
-                      <h3 className="text-[14px] font-semibold text-[#1a1a1a]">
-                        {s.replace(/_/g, ' ')}
-                      </h3>
-                    </div>
                   ))}
+                </div>
               </div>
-            </div>
+            ) : previewTemplate.structure.sections_enabled &&
+              previewTemplate.structure.sections_enabled.length > 0 ? (
+              <div className="mt-6">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
+                  Sections ({previewTemplate.structure.sections_enabled.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {previewTemplate.structure.sections_enabled.map((s, i) => (
+                    <span
+                      key={i}
+                      className="rounded-lg border border-[#eee] bg-[#fafaf9] px-3 py-1.5 text-[12px] font-medium text-[#555]"
+                    >
+                      {s.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
-            <div className="mt-6 flex justify-end">
+            {/* Use template button */}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="h-9 rounded-lg border border-[#e5e5e3] bg-white px-4 text-[13px] font-medium text-[#666] hover:border-[#ddd]"
+              >
+                Close
+              </button>
               <button
                 onClick={() => {
                   setSelectedTemplate(previewTemplate);
@@ -608,31 +655,34 @@ export function GenerateForm({ userId, workspaceId, userName, initialBrief }: Ge
         </div>
       )}
 
-      {/* Buttons */}
+      {/* Submit */}
       <div className="mt-6 flex items-center justify-end gap-3">
+        {providers && providers.length > 1 && (
+          <select
+            value={selectedProviderId}
+            onChange={(e) => setSelectedProviderId(e.target.value)}
+            className="h-9 rounded-lg border border-[#e5e5e3] bg-white px-3 text-[12px] text-[#555]"
+          >
+            {providers.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.display_name} ({p.default_model})
+              </option>
+            ))}
+          </select>
+        )}
         <button
           onClick={() => router.push('/prds')}
           className="h-9 rounded-lg border border-[#e5e5e3] bg-white px-4 text-[13px] font-medium text-[#666] hover:border-[#ddd] hover:text-[#1a1a1a]"
         >
           Cancel
         </button>
-        {tab === 'scratch' ? (
-          <button
-            onClick={handleScratchSubmit}
-            disabled={isPending}
-            className="h-9 rounded-lg bg-accent px-5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-30"
-          >
-            {isPending ? 'Generating...' : 'Generate PRD'}
-          </button>
-        ) : (
-          <button
-            onClick={handleTemplateSubmit}
-            disabled={isPending || !selectedTemplate}
-            className="h-9 rounded-lg bg-accent px-5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-30"
-          >
-            {isPending ? 'Creating...' : 'Create from template'}
-          </button>
-        )}
+        <button
+          onClick={handleSubmit}
+          disabled={isPending}
+          className="h-9 rounded-lg bg-accent px-5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-30"
+        >
+          {isPending ? 'Generating...' : 'Generate PRD'}
+        </button>
       </div>
     </div>
   );
@@ -672,20 +722,12 @@ function MemberPicker({
   }
 
   function handleInputChange(value: string) {
-    setQuery(value);
-    if (value.includes('@')) {
-      setQuery(value.replace('@', ''));
-      setShowDropdown(true);
-    } else if (value.length > 0) {
-      setShowDropdown(true);
-    } else {
-      setShowDropdown(false);
-    }
+    setQuery(value.replace('@', ''));
+    setShowDropdown(value.length > 0 || value.includes('@'));
   }
 
   return (
     <div className="relative">
-      {/* Selected chips */}
       <div className="focus-within:ring-accent/30 flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-[#e5e5e3] bg-white px-2 py-1.5 focus-within:border-accent focus-within:ring-1">
         {selected.map((m) => (
           <span
@@ -703,7 +745,7 @@ function MemberPicker({
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={() => {
-            if (query.length > 0 || members.length > 0) setShowDropdown(true);
+            if (members.length > 0) setShowDropdown(true);
           }}
           onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
           placeholder={selected.length === 0 ? 'Type @ to mention...' : ''}
@@ -711,7 +753,6 @@ function MemberPicker({
         />
       </div>
 
-      {/* Dropdown */}
       {showDropdown && filtered.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-[200px] overflow-y-auto rounded-xl border border-[#eee] bg-white shadow-lg">
           {filtered.map((m) => (
@@ -742,31 +783,6 @@ function MemberPicker({
 }
 
 // ─── UI Components ───
-
-function TabBtn({
-  active,
-  icon: Icon,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ElementType;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-[13px] font-medium transition-colors ${
-        active
-          ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
-          : 'border-[#e5e5e3] text-[#888] hover:border-[#ddd] hover:text-[#555]'
-      }`}
-    >
-      <Icon size={14} /> {label}
-    </button>
-  );
-}
 
 function Section({
   title,

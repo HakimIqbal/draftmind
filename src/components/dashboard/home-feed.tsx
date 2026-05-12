@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { FileText, Clock, BarChart3, Activity, Plus, LayoutTemplate, Users } from 'lucide-react';
@@ -35,6 +36,7 @@ export function HomeFeed({
   templates,
 }: HomeFeedProps) {
   const router = useRouter();
+  useRefreshOnFocus();
   const firstName = userName.split(' ')[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';

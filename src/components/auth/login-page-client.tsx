@@ -1,81 +1,85 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { checkUserRole } from '@/app/(auth)/login/actions';
+import { checkUserRole, checkBannedStatus } from '@/app/(auth)/login/actions';
 
 export function LoginPageClient() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get('reason') === 'session_expired';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const [forgotMode, setForgotMode] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSent, setForgotSent] = useState(false);
-  const [forgotLoading, setForgotLoading] = useState(false);
+  const [disabledMessage, setDisabledMessage] = useState('');
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) return;
 
     setLoading(true);
+    setDisabledMessage('');
     const supabase = createClient();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast.error('Invalid email or password');
+      // Check if user is banned/disabled
+      const banned = await checkBannedStatus(email);
+      if (banned?.disabled) {
+        setDisabledMessage(
+          'Akun Anda telah dinonaktifkan oleh administrator. Hubungi admin untuk informasi lebih lanjut.',
+        );
+      } else {
+        toast.error('Invalid email or password');
+      }
       setLoading(false);
       return;
     }
 
     if (data.user) {
-      // Set remember_me cookie
       if (rememberMe) {
-        document.cookie = 'remember_me=true; path=/; max-age=2592000'; // 30 days
+        document.cookie = 'remember_me=true; path=/; max-age=2592000';
       } else {
         document.cookie = 'remember_me=false; path=/';
       }
 
-      // Check role via backend
-      const result = await checkUserRole();
+      // Quick role check from client — single query, no server action overhead
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_super_admin, force_password_change')
+        .eq('id', data.user.id)
+        .single();
 
-      if (result.error) {
-        toast.error(result.error);
-        setLoading(false);
-        return;
+      // Log login in background (fire-and-forget via server action, don't await)
+      checkUserRole().catch(() => {});
+
+      if (profile?.force_password_change) {
+        router.push('/dashboard?force_password_change=true');
+      } else if (profile?.is_super_admin) {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
       }
-
-      router.push(result.redirect);
     } else {
       router.push('/dashboard');
     }
-    router.refresh();
-  }
-
-  async function handleForgotPassword(e: React.FormEvent) {
-    e.preventDefault();
-    if (!forgotEmail) return;
-
-    setForgotLoading(true);
-    const supabase = createClient();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${appUrl}/api/auth/callback?next=/auto`,
-    });
-
-    if (error) toast.error(error.message);
-    else setForgotSent(true);
-    setForgotLoading(false);
   }
 
   return (
@@ -108,144 +112,77 @@ export function LoginPageClient() {
 
         {/* Card */}
         <div className="rounded-xl border border-subtle bg-bg-surface p-10 shadow-sm">
-          {forgotMode ? (
-            forgotSent ? (
-              <div className="text-center">
-                <div className="bg-accent/10 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-                  <Mail size={22} className="text-accent" />
-                </div>
-                <h2 className="text-xl font-semibold text-ink-primary">Check your email</h2>
-                <p className="mt-1.5 text-[13px] text-ink-secondary">
-                  We sent a password reset link to
-                </p>
-                <p className="mt-1 font-mono text-xs text-ink-tertiary">{forgotEmail}</p>
+          {sessionExpired && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700">
+              Sesi Anda telah berakhir. Silakan login kembali.
+            </div>
+          )}
+          {disabledMessage && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+              {disabledMessage}
+            </div>
+          )}
+          <h2 className="text-xl font-semibold text-ink-primary">Sign in</h2>
+          <p className="mb-5 mt-1.5 text-sm text-ink-secondary">
+            Enter your credentials to access your workspace
+          </p>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-[15px] font-medium text-ink-primary">Email</label>
+              <Input
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 text-base"
+                required
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[15px] font-medium text-ink-primary">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 pr-10 text-base"
+                  required
+                />
                 <button
-                  onClick={() => {
-                    setForgotMode(false);
-                    setForgotSent(false);
-                    setForgotEmail('');
-                  }}
-                  className="mt-5 text-[13px] text-accent hover:underline"
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-tertiary hover:text-ink-secondary"
                 >
-                  Back to sign in
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-            ) : (
-              <>
-                <button
-                  onClick={() => setForgotMode(false)}
-                  className="mb-5 flex items-center gap-1.5 text-[13px] text-[#999] hover:text-[#555]"
-                >
-                  <ArrowLeft size={14} />
-                  Back to sign in
-                </button>
-                <h2 className="text-xl font-semibold text-ink-primary">Reset password</h2>
-                <p className="mb-5 mt-1.5 text-[13px] text-ink-secondary">
-                  Enter your email and we&apos;ll send you a reset link.
-                </p>
-                <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-[15px] font-medium text-ink-primary">
-                      Email
-                    </label>
-                    <Input
-                      type="email"
-                      placeholder="you@company.com"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      className="h-12 text-base"
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    variant="primary-fill"
-                    className="h-12 w-full text-base"
-                    disabled={forgotLoading}
-                  >
-                    {forgotLoading && <Loader2 size={16} className="mr-2 animate-spin" />}
-                    Send reset link
-                  </Button>
-                </form>
-              </>
-            )
-          ) : (
-            <>
-              <h2 className="text-xl font-semibold text-ink-primary">Sign in</h2>
-              <p className="mb-5 mt-1.5 text-sm text-ink-secondary">
-                Enter your credentials to access your workspace
-              </p>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-[15px] font-medium text-ink-primary">
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 text-base"
-                    required
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[15px] font-medium text-ink-primary">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 pr-10 text-base"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-tertiary hover:text-ink-secondary"
-                    >
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-3.5 w-3.5 rounded border-[#ddd] accent-accent"
-                    />
-                    <span className="text-sm text-ink-secondary">Remember me</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotMode(true);
-                      setForgotEmail(email);
-                    }}
-                    className="text-sm text-accent hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <Button
-                  type="submit"
-                  variant="primary-fill"
-                  className="h-12 w-full text-base"
-                  disabled={loading}
-                >
-                  {loading && <Loader2 size={16} className="mr-2 animate-spin" />}
-                  Sign in
-                </Button>
-              </form>
-            </>
-          )}
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-[#ddd] accent-accent"
+                />
+                <span className="text-sm text-ink-secondary">Remember me</span>
+              </label>
+              <p className="text-[11px] text-ink-tertiary">Forgot password? Contact your admin.</p>
+            </div>
+            <Button
+              type="submit"
+              variant="primary-fill"
+              className="h-12 w-full text-base"
+              disabled={loading}
+            >
+              {loading && <Loader2 size={16} className="mr-2 animate-spin" />}
+              Sign in
+            </Button>
+          </form>
         </div>
 
         {/* Footer */}

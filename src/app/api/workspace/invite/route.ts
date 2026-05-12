@@ -40,6 +40,6 @@ export async function POST(request: Request) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: 'Failed to send invitation' }, { status: 400 });
   return NextResponse.json({ invitation: data });
 }

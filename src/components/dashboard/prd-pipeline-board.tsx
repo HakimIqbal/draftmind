@@ -10,7 +10,8 @@ const COLUMN_CONFIG = [
   { key: 'draft', label: 'Draft', dotColor: '#7A7468' },
   { key: 'in_review', label: 'In Review', dotColor: '#C68B3D' },
   { key: 'refined', label: 'Refined', dotColor: '#E8743C' },
-  { key: 'final', label: 'Final', dotColor: '#6B8E5A' },
+  { key: 'approved', label: 'Approved', dotColor: '#5B8DEF' },
+  { key: 'shipped', label: 'Shipped', dotColor: '#6B8E5A' },
 ] as const;
 
 interface PRDPipelineBoardProps {
@@ -31,14 +32,39 @@ function HealthBadge({ score }: { score: number | null }) {
 export function PRDPipelineBoard({ columns }: PRDPipelineBoardProps) {
   return (
     <div className="p-lg">
-      <div className="mb-md">
-        <h1 className="font-display text-xl font-bold">Pipeline</h1>
-        <p className="font-mono text-[11px] text-ink-tertiary">
-          Read-only view by status. Move PRDs by editing them.
-        </p>
+      <div className="mb-md flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-xl font-bold">Pipeline</h1>
+          <p className="font-mono text-[11px] text-ink-tertiary">
+            Read-only view by status. Move PRDs by editing them.
+          </p>
+        </div>
+        <Link
+          href="/prds"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#e5e5e3] bg-white px-3 text-[12px] font-medium text-[#666] transition-colors hover:border-[#ddd] hover:text-[#1a1a1a]"
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="8" y1="6" x2="21" y2="6" />
+            <line x1="8" y1="12" x2="21" y2="12" />
+            <line x1="8" y1="18" x2="21" y2="18" />
+            <line x1="3" y1="6" x2="3.01" y2="6" />
+            <line x1="3" y1="12" x2="3.01" y2="12" />
+            <line x1="3" y1="18" x2="3.01" y2="18" />
+          </svg>
+          List View
+        </Link>
       </div>
 
-      <div className="grid grid-cols-4 gap-md">
+      <div className="grid grid-cols-5 gap-md">
         {COLUMN_CONFIG.map((col) => {
           const items = columns[col.key] ?? [];
           return (
@@ -72,9 +98,19 @@ export function PRDPipelineBoard({ columns }: PRDPipelineBoardProps) {
 
                       <div className="mt-sm flex items-center justify-between">
                         <div className="flex -space-x-1">
-                          {prd.owner && <Avatar name={prd.owner.full_name ?? 'User'} size="sm" />}
+                          {prd.owner && (
+                            <Avatar
+                              name={prd.owner.full_name ?? 'User'}
+                              size="sm"
+                              avatarUrl={prd.owner.avatar_url}
+                              seed={prd.owner.avatar_color_seed ?? undefined}
+                            />
+                          )}
                         </div>
-                        <span className="font-mono text-[10px] text-ink-tertiary">
+                        <span
+                          className="font-mono text-[10px] text-ink-tertiary"
+                          suppressHydrationWarning
+                        >
                           {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
                         </span>
                       </div>

@@ -6,6 +6,7 @@ export interface GeneratePRDInput {
   startDate?: string;
   endDate?: string;
   templateName?: string;
+  templateSections?: { name: string; guidelines: string }[];
   locale?: 'en' | 'id' | 'mixed';
   targetUsers?: string;
   problemStatement?: string;
@@ -73,6 +74,7 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
     startDate,
     endDate,
     templateName,
+    templateSections,
     locale = 'mixed',
     targetUsers,
     problemStatement,
@@ -85,188 +87,89 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
     designLink,
   } = input;
 
-  // Auto-detect language from brief if locale is 'mixed'
   const effectiveLocale = locale === 'mixed' ? detectBriefLanguage(brief) : locale;
 
   const localeInstruction =
-    effectiveLocale === 'en'
-      ? 'Write ALL content strictly in English. Do NOT use Bahasa Indonesia.'
-      : effectiveLocale === 'id'
-        ? 'Write ALL content strictly in Bahasa Indonesia.'
-        : 'Write ALL content strictly in English. Do NOT use Bahasa Indonesia.';
+    effectiveLocale === 'id'
+      ? 'Write ALL content in Bahasa Indonesia.'
+      : 'Write ALL content in English.';
 
   const dateRange =
     startDate && endDate
-      ? `The project timeline is from ${startDate} to ${endDate}. Use these dates to build realistic milestones with at least 4-5 phases.`
+      ? `Timeline: ${startDate} to ${endDate}.`
       : startDate
-        ? `The project starts on ${startDate}. Estimate milestones from that date.`
-        : 'No specific dates were provided. Use placeholder dates with [TO CONFIRM] markers.';
+        ? `Start: ${startDate}.`
+        : 'Dates: [TO CONFIRM].';
 
-  const templateHint = templateName
-    ? `The user selected the "${templateName}" template. Tailor tone and depth accordingly.`
-    : '';
+  // Collect all known people
+  const knownPeople = [ownerName];
+  if (stakeholderNames.length > 0) knownPeople.push(...stakeholderNames);
+  if (teamMembers) {
+    teamMembers
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((name) => knownPeople.push(name));
+  }
+  const uniquePeople = [...new Set(knownPeople)];
 
-  const extraContext = [
-    targetUsers && `Target Users/Audience: ${targetUsers}`,
+  const contextLines = [
+    `Product Name: ${title}`,
+    `Document Owner: ${ownerName}`,
+    `Developers: ${teamMembers || '[TO CONFIRM]'}`,
+    `Stakeholders: ${stakeholderNames.length > 0 ? stakeholderNames.join(', ') : '[TO CONFIRM]'}`,
+    dateRange,
+    templateName && `Template: ${templateName}`,
+    targetUsers && `Target Users: ${targetUsers}`,
     problemStatement && `Problem Statement: ${problemStatement}`,
-    teamMembers && `Team Members: ${teamMembers}`,
-    constraints && `Constraints & Limitations: ${constraints}`,
+    constraints && `Constraints: ${constraints}`,
     successCriteria && `Success Criteria: ${successCriteria}`,
     platform && `Platform: ${platform}`,
-    priority && `Priority Level: ${priority}`,
+    priority && `Priority: ${priority}`,
     techStack && `Tech Stack: ${techStack}`,
     designLink && `Design Reference: ${designLink}`,
   ]
     .filter(Boolean)
-    .join('\n- ');
+    .join('\n');
 
-  return `You are a senior product manager writing a comprehensive, production-quality PRD. Generate a detailed PRD based on the brief below. Output ONLY a valid JSON object — no markdown fences, no explanation.
+  return `Write a complete PRD as if you're a senior product manager drafting this for your team. Make it read naturally — like a real person wrote it, not a template filler. All 14 sections must have real, useful content.
 
-## Metadata
-- Title: ${title}
-- Owner: ${ownerName}
-- Stakeholders: ${stakeholderNames.length > 0 ? stakeholderNames.join(', ') : '[TO CONFIRM]'}
-- ${dateRange}
-${templateHint}
-
-## Additional Context
-${extraContext ? `- ${extraContext}` : 'No additional context provided.'}
-
-## Language
-${localeInstruction}
+## Input
+${contextLines}
 
 ## Brief
 ${brief}
 
-## Quality Requirements — CRITICAL
-You must write DETAILED, SPECIFIC content. Avoid generic filler text. Every section must demonstrate domain knowledge and thoughtful analysis.
+## Language
+${localeInstruction}
 
-### Overview (2-4 substantial paragraphs)
-- Paragraph 1: What the product/feature is and the core value proposition
-- Paragraph 2: Why it matters — market context, user pain, business opportunity
-- Paragraph 3: How it works at a high level — key capabilities and approach
-- Paragraph 4: Expected impact and success vision
+## Content Rules
 
-### Problem Statement (2-3 paragraphs with evidence)
-- Describe the SPECIFIC problem with concrete data points or user quotes
-- Explain who is affected and how severely
-- Quantify the business impact (lost revenue, user churn, inefficiency)
+KNOWN PEOPLE (with their professional roles): ${uniquePeople.join(', ')}
+These are the ONLY names you may use. Use their professional roles (shown in parentheses) to assign DARCI roles and Timeline PIC appropriately. For example, assign Software Engineers to Responsible/development tasks, Product Managers to Decider/planning tasks. For roles without enough people, use team names: "Engineering Team", "QA Team", "Design Team".
 
-### Objectives (at least 4, with measurable key results)
-- Each objective must have 2-3 specific, quantified key results
-- Include both goals AND non-goals
-- Key results must have baseline → target format where possible
+1. NEVER FABRICATE: Don't invent names, statistics, or research. Mark unknowns as [TO CONFIRM] or "To be measured".
+2. OVERVIEW: 4-6 sentences. What is this product? What problem does it solve? Who benefits? Write it like an elevator pitch to your CEO.
+3. PROBLEM STATEMENT: 2 paragraphs. First: describe the pain point vividly — make the reader feel it. Second: what happens if we don't solve this? Real consequences.
+4. OBJECTIVES: 4-6 clear goals. Each with a measurable key result (baseline → target). No vague goals like "improve user experience".
+5. NO REPETITION: Every section must add NEW information. If you said it in Overview, don't repeat it in Problem Statement.
+6. DARCI: Assign real people from the input based on their professional roles. Document Owner = Decider. Engineers = Responsible. Managers = Accountable. Write guidelines that are specific to THIS project, not generic job descriptions.
+7. USER STORIES: Write from real user perspective. "As a driver stuck in traffic, I want to see which parking lot has empty spots right now, so I don't waste 20 minutes circling the block." Include 2-4 testable acceptance criteria.
+8. FUNCTIONAL REQS: Describe actual behavior. Not "the system shall support search" but "Users type a location → map centers on that area → available spots within 500m radius appear as green pins within 2 seconds."
+9. SUCCESS METRICS: 6-8 metrics. Use numbers from the brief when available. For unknowns, use "To be measured" as baseline. Every metric needs a realistic target and measurement window.
+10. TIMELINE: Use the provided date range. Each phase needs: what gets built, who's responsible (by name/role), and what's delivered at the end.
+11. RISKS: Project-specific risks only. Not generic "scope creep" — but "IoT sensor vendor may delay delivery of 500 units needed for 5 pilot buildings, pushing Phase 2 by 3 weeks."
+12. REFERENCES: 2-4 relevant industry standards, competitor analyses, or technical docs that the team should read.
+13. GLOSSARY: 5-10 terms that team members from different backgrounds might not know. Define them simply.
+14. CHANGELOG: One entry only — v1, "${ownerName}", "Initial draft".
 
-### User Stories (at least 5, detailed)
-- Each story must have 3-4 specific acceptance criteria
-- Cover different user personas and scenarios
-- Include edge cases and error scenarios
-- Prioritize with must/should/could
+CRITICAL: Generate ALL 14 sections. Do NOT skip any. output must include: overview, problem_statement, objectives, darci, scope, user_stories, functional_reqs, nfr, success_metrics, timeline, risks, references, glossary, changelog.${
+    templateSections && templateSections.length > 0
+      ? `
 
-### Functional Requirements (at least 6, detailed descriptions)
-- Each requirement needs a multi-sentence description explaining the behavior
-- Include specific details about UI behavior, data handling, edge cases
-- Reference dependencies between requirements
-
-### Non-Functional Requirements
-- Performance: specific load times, concurrent users, response times
-- Security: specific measures (encryption, auth, data protection)
-- Accessibility: WCAG level, specific accommodations
-- Scalability: growth projections, capacity planning
-
-### DARCI Matrix
-- Each role MUST have a "guidelines" field: 2-3 actionable sentences describing specific responsibilities
-- Guidelines must reference concrete tasks, tools, or workflows relevant to this project
-- Example: "Review all UX mockups for accessibility compliance before handoff. Conduct weekly sprint planning and prioritize backlog items. Approve final design decisions and resolve cross-team conflicts."
-
-### Success Metrics (at least 5-8)
-- Each metric needs a "definition" field explaining what it measures and why it matters
-- Include realistic baseline and ambitious but achievable target
-- Include leading AND lagging indicators
-- Specify measurement method and window
-
-### Timeline (at least 5-7 phases)
-- Each phase needs an "activity" field: 2-3 sentences describing actionable steps, purpose, and expected outcomes
-- Each phase needs a "pic" field: person or team in charge
-- Each phase needs 2-3 specific deliverables
-- Cover: Planning, Design, Development, Testing, Staging, Launch, Post-Launch
-- Realistic dates based on the provided timeline
-
-### User Stories (at least 5-8)
-- Each story must have 3-4 acceptance criteria in Given/When/Then format
-- Example AC: "Given the user is on the dashboard, When they click 'Create PRD', Then they are redirected to the generation form within 1 second"
-- Cover different user personas and scenarios including edge cases
-
-### Risks (at least 4-5)
-- Each risk needs specific, concrete mitigation strategies (not generic "allocate more resources")
-- Include technical, business, and operational risks
-- Assign risk owners where team members are provided
-
-${targetUsers ? `Use the target users "${targetUsers}" to create specific, empathetic user stories.` : ''}
-${problemStatement ? `Ground the overview and problem statement in: "${problemStatement}"` : ''}
-${constraints ? `Incorporate these constraints into scope, risks, and requirements: "${constraints}"` : ''}
-${successCriteria ? `Use these success criteria to define measurable success metrics: "${successCriteria}"` : ''}
-${platform ? `Design all requirements specifically for the "${platform}" platform.` : ''}
-${techStack ? `Reference the tech stack "${techStack}" in technical requirements and architecture decisions.` : ''}
-${teamMembers ? `Assign team members to DARCI roles and risk ownership: ${teamMembers}` : ''}
-
-## Output JSON Schema
-
-{
-  "overview": "string — 2-4 detailed paragraphs as described above",
-  "problem_statement": "string — 2-3 paragraphs with evidence and quantified impact",
-  "objectives": [
-    { "statement": "string — clear objective", "measurable_outcome": "string — specific KR with baseline/target", "priority": "must_have | should_have | nice_to_have" }
-  ],
-  "darci": {
-    "decider": { "people": ["string"], "guidelines": "string — 2-3 sentences of specific responsibilities" },
-    "accountable": { "people": ["string"], "guidelines": "string" },
-    "responsible": { "people": ["string"], "guidelines": "string" },
-    "consulted": { "people": ["string"], "guidelines": "string" },
-    "informed": { "people": ["string"], "guidelines": "string" }
-  },
-  "scope": {
-    "in_scope": ["string — specific feature or capability"],
-    "out_of_scope": ["string — explicitly excluded with reason"]
-  },
-  "user_stories": [
-    { "role": "string", "want": "string — specific action", "benefit": "string — concrete outcome", "acceptance_criteria": ["string — use Given/When/Then format"], "priority": "must | should | could" }
-  ],
-  "functional_reqs": [
-    { "priority": "must_have | should_have | nice_to_have", "title": "string", "description": "string — 2-3 sentences with specific behavior details" }
-  ],
-  "nfr": {
-    "performance": "string — specific metrics (e.g., page load < 2s, API response < 500ms)",
-    "security": "string — specific measures (e.g., AES-256 encryption, OAuth 2.0, RBAC)",
-    "accessibility": "string — specific standards (e.g., WCAG 2.1 AA, screen reader support)",
-    "scalability": "string — specific targets (e.g., support 10K concurrent users, 99.9% uptime)"
-  },
-  "success_metrics": [
-    { "name": "string", "definition": "string — what this metric measures and why it matters", "baseline": "string — current value", "target": "string — goal value with significance", "measurement_window": "string" }
-  ],
-  "timeline": [
-    { "title": "string — phase name", "date": "string — YYYY-MM-DD", "activity": "string — 2-3 sentences: actionable steps, purpose, expected outcomes", "deliverable": "string — specific deliverables", "pic": "string — person or team in charge" }
-  ],
-  "risks": [
-    { "description": "string — specific risk", "likelihood": "low | medium | high", "impact": "low | medium | high", "mitigation": "string — concrete mitigation steps" }
-  ],
-  "references": [
-    { "type": "string", "url": "string", "title": "string" }
-  ],
-  "glossary": [
-    { "term": "string", "definition": "string — clear, non-circular definition" }
-  ],
-  "changelog": [
-    { "version": 1, "date": "${startDate ?? new Date().toISOString().slice(0, 10)}", "author": "${ownerName}", "summary": "Initial draft generated by DraftMind AI" }
-  ]
-}
-
-Rules:
-- Generate at least 4 objectives (with 2+ key results each), 5-8 user stories (with 3+ ACs in Given/When/Then), 6+ functional requirements (with detailed descriptions), 5-8 success metrics (with definitions), 5-7 timeline phases (with activity descriptions and PIC), and 4-5 risks.
-- DARCI: each role MUST have "people" array AND "guidelines" string. Use "${ownerName}" for accountable. Populate stakeholders: ${stakeholderNames.join(', ') || '[TO CONFIRM]'}.
-- Problem statement and overview MUST be multi-paragraph narratives, NOT bullet lists.
-- NEVER write generic filler like "improve user experience" or "enhance performance". Be SPECIFIC with numbers, tools, and concrete outcomes.
-- Every metric must have a definition, realistic baseline numbers, and ambitious targets.
-- Timeline activities must describe actionable steps, purpose, and expected outcomes in 2-3 sentences.
-- Output valid JSON only.`;
+## Template Instructions
+This PRD uses the "${templateName}" template. FOCUS on generating content for these specific sections. Sections not listed here should be left empty or minimal:
+${templateSections.map((s, i) => `${i + 1}. **${s.name}**: ${s.guidelines}`).join('\n')}`
+      : ''
+  }`;
 }

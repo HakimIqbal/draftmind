@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
@@ -116,7 +117,7 @@ export function AIReviewPage({
 
   async function handleApplyAllFixes() {
     setApplyingAll(true);
-    let fixed = 0;
+    let _fixed = 0;
     for (const finding of findings) {
       if (dismissedIds.has(finding.id ?? finding.title)) continue;
       try {
@@ -130,14 +131,16 @@ export function AIReviewPage({
           }),
         });
         if (res.ok) {
-          fixed++;
+          _fixed++;
           setDismissedIds((prev) => new Set(prev).add(finding.id ?? finding.title));
         }
       } catch {
         // continue with next finding
       }
     }
-    toast.success(`Applied ${fixed} fix${fixed !== 1 ? 'es' : ''}`);
+    toast.success(
+      'Content refined successfully. Your structured data has been updated. Run AI Review again to see the updated score.',
+    );
     setApplyingAll(false);
     router.refresh();
   }
@@ -153,10 +156,22 @@ export function AIReviewPage({
     filter === 'all' ? visibleFindings : visibleFindings.filter((f) => f.severity === filter);
 
   /* ---------- empty state ---------- */
+  const prdId = prd.id as string;
+
   if (!hasReview) {
     return (
       <div className="flex-1 p-lg">
         <div className="mb-md">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `/prds/${prdId}`;
+            }}
+            className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-[#888] transition-colors hover:text-[#1a1a1a]"
+          >
+            <ArrowLeft size={14} />
+            Back to Editor
+          </button>
           <p className="mb-1 font-mono text-[11px] text-ink-tertiary">
             {prd.title as string} / AI Review
           </p>
@@ -190,6 +205,16 @@ export function AIReviewPage({
     <div className="flex-1 p-lg">
       {/* header */}
       <div className="mb-md">
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = `/prds/${prdId}`;
+          }}
+          className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-[#888] transition-colors hover:text-[#1a1a1a]"
+        >
+          <ArrowLeft size={14} />
+          Back to Editor
+        </button>
         <p className="mb-1 font-mono text-[11px] text-ink-tertiary">
           {prd.title as string} / AI Review
         </p>
@@ -216,7 +241,7 @@ export function AIReviewPage({
           </div>
         </div>
         {reviewDate && (
-          <p className="mt-2 font-mono text-[10px] text-ink-tertiary">
+          <p className="mt-2 font-mono text-[10px] text-ink-tertiary" suppressHydrationWarning>
             Last reviewed{' '}
             {new Date(reviewDate).toLocaleDateString('en-US', {
               month: 'short',

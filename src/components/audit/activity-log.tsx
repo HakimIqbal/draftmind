@@ -27,28 +27,58 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'member', label: 'Member events' },
 ];
 
+// Must match activity_type enum in DB
 const VERB_MAP: Record<string, string> = {
   prd_created: 'created',
   prd_edited: 'edited',
+  prd_duplicated: 'duplicated',
   prd_deleted: 'deleted',
+  prd_exported: 'exported',
   prd_status_changed: 'changed status of',
+  prd_pinned: 'pinned/unpinned',
+  prd_version_restored: 'restored version of',
   comment_added: 'commented on',
+  comment_resolved: 'resolved comment on',
+  comment_edited: 'edited comment on',
   comment_deleted: 'deleted comment on',
-  ai_generation_started: 'started generation for',
   ai_generation_completed: 'generated',
   ai_review_completed: 'reviewed',
-  ai_refine_completed: 'refined',
+  ai_refinement_applied: 'refined',
+  ai_copilot_used: 'used Copilot on',
+  ai_suggest_used: 'used AI Suggest on',
   member_invited: 'invited a member to',
   member_joined: 'joined',
   member_removed: 'removed a member from',
   member_role_changed: 'changed role in',
+  member_invitation_revoked: 'revoked invitation in',
+  workspace_created: 'created',
+  workspace_settings_changed: 'updated settings of',
+  workspace_deleted: 'deleted',
+  workspace_left: 'left',
+  workspace_ownership_transferred: 'transferred ownership of',
+  provider_added: 'added provider to',
+  provider_disconnected: 'disconnected provider from',
+  provider_set_default: 'set default provider in',
+  template_created: 'created a template in',
+  template_updated: 'updated a template in',
+  template_deleted: 'deleted a template in',
+  login: 'logged in',
+  logout: 'logged out',
+  profile_updated: 'updated profile',
+  password_changed: 'changed password',
+  password_reset: 'reset password for',
+  public_share_created: 'shared',
+  public_share_viewed: 'viewed shared',
+  user_banned: 'banned a user',
+  user_unbanned: 'unbanned a user',
+  user_created_by_admin: 'created a user',
+  super_admin_toggled: 'toggled admin status',
 };
 
 const AI_TYPES = new Set([
-  'ai_generation_started',
   'ai_generation_completed',
   'ai_review_completed',
-  'ai_refine_completed',
+  'ai_refinement_applied',
 ]);
 
 const MEMBER_TYPES = new Set([
@@ -152,7 +182,12 @@ export function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
         <div className="mt-md space-y-lg">
           {grouped.map(([dateLabel, items]) => (
             <div key={dateLabel}>
-              <p className="font-mono text-[11px] uppercase text-ink-tertiary">{dateLabel}</p>
+              <p
+                className="font-mono text-[11px] uppercase text-ink-tertiary"
+                suppressHydrationWarning
+              >
+                {dateLabel}
+              </p>
               <div className="mt-sm space-y-px">
                 {items.map((entry) => {
                   const verb = VERB_MAP[entry.activity_type] ?? entry.activity_type;
@@ -164,19 +199,22 @@ export function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
                       key={entry.id}
                       className="flex items-center gap-sm rounded-md px-sm py-1.5 transition-colors hover:bg-bg-surface"
                     >
-                      <span className="w-10 shrink-0 font-mono text-[11px] text-ink-tertiary">
+                      <span
+                        className="w-10 shrink-0 font-mono text-[11px] text-ink-tertiary"
+                        suppressHydrationWarning
+                      >
                         {formatTime(entry.created_at)}
                       </span>
 
                       {ai ? (
                         <Sparkle size={20} className="shrink-0" />
                       ) : (
-                        <Avatar name={entry.actor_name ?? 'Unknown'} size="sm" />
+                        <Avatar name={entry.actor_name ?? 'Former member'} size="sm" />
                       )}
 
                       <span className="min-w-0 flex-1 truncate text-sm text-ink-secondary">
                         <span className="font-medium text-ink-primary">
-                          {ai ? 'AI' : (entry.actor_name ?? 'Unknown')}
+                          {ai ? 'AI' : (entry.actor_name ?? 'Former member')}
                         </span>{' '}
                         {verb}{' '}
                         {href && entry.resource_title ? (

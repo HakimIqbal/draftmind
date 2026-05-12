@@ -23,32 +23,128 @@ export interface InlineSuggestInput {
 }
 
 const ACTION_INSTRUCTIONS: Record<string, string> = {
-  rewrite:
-    'Rewrite this text to be clearer, more direct, and professional. Write like a senior PM — no filler, no passive voice. Keep the same meaning but make every sentence earn its place.',
-  expand:
-    "Expand this text with concrete details: specific numbers, acceptance criteria, technical specifics, or real-world examples. Don't pad with filler — add substance.",
-  summarize:
-    'Condense this into the shortest version that retains ALL key information. Cut fluff, merge redundant points, keep specifics.',
-  shorter:
-    'Make this 40-60% shorter. Remove filler words, redundant phrases, and unnecessary qualifiers. Keep only what matters.',
-  formal:
-    'Rewrite in a polished, executive-ready tone. Suitable for board presentations or C-level stakeholders. Professional but not stiff.',
-  grammar:
-    'Fix grammar, spelling, punctuation, and awkward phrasing. Preserve the original meaning and tone exactly. Only fix errors.',
-  translate:
-    'Auto-detect the language of this text, then translate it. If the text is in Bahasa Indonesia, translate to English. If the text is in English, translate to Bahasa Indonesia. If mixed, translate all parts to the dominant target language. Preserve technical terms, product names, and acronyms as-is. The translation must read naturally — not like a machine translation.',
-  add_examples:
-    'Add 2-3 concrete, realistic examples that illustrate the point. Examples should be specific to the product/domain described in this PRD.',
-  make_actionable:
-    'Convert this into clear action items or acceptance criteria. Use "Given/When/Then" format for test cases, or imperative verbs for requirements.',
-  add_metrics:
-    'Add measurable targets, KPIs, or success criteria to this text. Use baseline → target format. If no data available, use "To be measured → [target]".',
-  simplify_jargon:
-    'Replace technical jargon and acronyms with plain language that non-technical stakeholders can understand. Keep accuracy.',
-  to_table:
-    'Convert this text into a well-structured markdown table. Choose appropriate column headers based on the content.',
-  to_list:
-    'Convert this paragraph or text into a clean bullet point list. Each bullet should be one clear point.',
+  rewrite: `Rewrite this text to be clearer and more direct.
+
+STRICT RULES:
+- Output must have the EXACT SAME number of paragraphs as the original.
+- Do NOT add new information that was not in the original.
+- Do NOT remove any information from the original.
+- Only improve clarity: remove filler words, fix passive voice, make sentences sharper.
+- Preserve all technical terms, product names, and acronyms.`,
+
+  expand: `Expand this text by adding 2-3 new paragraphs with concrete details and context.
+
+STRICT RULES:
+- Add exactly 2-3 NEW paragraphs after the original text.
+- New paragraphs must contain: specific examples, deeper explanation, or supporting data.
+- Total output must be 1.5x to 2x the length of the original text.
+- Do NOT rewrite the original text - keep it as-is and ADD new paragraphs below it.
+- No filler or generic statements. Every added sentence must provide real value.`,
+
+  summarize: `Condense this text into key bullet points.
+
+STRICT RULES:
+- Output must be a bullet list with MAXIMUM 5 bullet points.
+- Each bullet must be exactly 1 sentence.
+- Do NOT exceed 5 bullets under any circumstance.
+- Retain all critical information: numbers, names, dates, decisions.
+- Cut all filler, examples, and repetition.`,
+
+  shorter: `Make this text 40-60% shorter.
+
+STRICT RULES:
+- Count the words in the original text. Output must have 40-60% FEWER words.
+- Example: 100 words original -> output must be 40-60 words.
+- Preserve ALL key information: numbers, requirements, decisions, names.
+- Cut: filler words, redundant phrases, unnecessary qualifiers, repeated points.
+- Do NOT change the meaning or remove critical details.`,
+
+  formal: `Rewrite in a professional, executive-ready tone.
+
+STRICT RULES:
+- Structure and paragraph count must be EXACTLY THE SAME as the original.
+- Word count must be within 10% of the original (not significantly longer or shorter).
+- Only change tone and word choice: casual -> formal, slang -> professional.
+- Do NOT add new information or remove existing information.
+- Do NOT change the meaning. Only change how it sounds.`,
+
+  grammar: `Fix grammar, spelling, and punctuation errors ONLY.
+
+STRICT RULES:
+- ONLY fix: typos, grammar mistakes, spelling errors, punctuation issues, awkward phrasing.
+- Do NOT change word choice, tone, style, or structure.
+- Do NOT rewrite sentences that are grammatically correct.
+- Do NOT add or remove any information.
+- Output must be nearly identical to the original - only errors should change.
+- If there are no errors, return the text unchanged.`,
+
+  translate: `Translate this text between Bahasa Indonesia and English.
+
+STRICT RULES:
+- Auto-detect the language of the input text.
+- If input is Bahasa Indonesia -> translate to English.
+- If input is English -> translate to Bahasa Indonesia.
+- If mixed languages -> translate everything to the dominant target language.
+- Preserve ALL formatting: bold, lists, tables, headers.
+- Preserve technical terms, product names, and acronyms as-is (do not translate them).
+- Translation must read naturally, not like machine translation.
+- Do NOT add or remove any information during translation.`,
+
+  add_examples: `Add concrete examples to illustrate the points in this text.
+
+STRICT RULES:
+- Add exactly 2-3 examples after the original text.
+- Each example must be SPECIFIC: include real names, numbers, scenarios, or use cases.
+- Do NOT use generic examples like "for example, a user might...". Be specific.
+- Examples must be relevant to the product/domain described in this PRD.
+- Keep the original text unchanged - only ADD examples below it.`,
+
+  make_actionable: `Convert this text into clear, numbered action items.
+
+STRICT RULES:
+- Output must be a NUMBERED LIST of action items, maximum 7 items.
+- Each item format: "[Number]. [Verb] [what specifically] [by whom/when if available]"
+- Start each item with an imperative verb: Implement, Design, Create, Define, Review, Test, etc.
+- Do NOT exceed 7 action items. Merge related points if needed.
+- Each item must be concrete and executable, not vague.`,
+
+  add_metrics: `Add measurable KPIs and targets to this text.
+
+STRICT RULES:
+- Add exactly 3-5 KPIs after the original text.
+- Each KPI format: "**[Metric name]**: [baseline value] -> [target value] ([timeframe])"
+- Every KPI MUST have a number. No vague targets like "improve" or "increase".
+- If baseline data is unknown, use: "Current: TBD -> Target: [specific number]"
+- KPIs must be directly measurable and relevant to the text content.
+- Do NOT exceed 5 KPIs.`,
+
+  simplify_jargon: `Replace technical jargon with plain language.
+
+STRICT RULES:
+- Replace every technical term or acronym with plain language equivalent.
+- For jargon that cannot be avoided, add a brief explanation in parentheses.
+- Example: "API endpoint" -> "connection point (API endpoint)"
+- Do NOT change the meaning or remove information.
+- Output may be slightly longer than original due to added explanations.
+- Keep the same structure and paragraph count.`,
+
+  to_table: `Convert this text into a markdown table.
+
+STRICT RULES:
+- Output MUST be a valid markdown table. No other format accepted.
+- Minimum 2 columns, maximum 5 columns.
+- Choose column headers that best organize the information.
+- Every piece of information from the original text must appear in the table.
+- Use "|" for column separators and "---" for header row separator.`,
+
+  to_list: `Convert this text into a bullet point list.
+
+STRICT RULES:
+- Output MUST be bullet points using "- " prefix. No paragraphs allowed.
+- Every piece of information from the original text must become a bullet.
+- Each bullet must contain exactly 1 point or idea.
+- No sub-bullets. Keep it flat.
+- Order bullets logically (chronological, priority, or grouped by topic).`,
 };
 
 export function buildInlineSuggestPrompt(input: InlineSuggestInput): string {

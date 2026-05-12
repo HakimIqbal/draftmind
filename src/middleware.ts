@@ -23,8 +23,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/templates') ||
     pathname.startsWith('/workspace') ||
     pathname.startsWith('/ai-runs') ||
-    pathname.startsWith('/search') ||
-    pathname.startsWith('/settings');
+    pathname.startsWith('/invite');
   const isPublicRoute =
     pathname.startsWith('/share/') ||
     pathname === '/' ||
@@ -41,6 +40,21 @@ export async function middleware(request: NextRequest) {
   if (!user && !isAuthRoute && !isPublicRoute) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirectTo', pathname);
+
+    // If session cookies exist but user is null → stale/banned session, clear cookies
+    const hasSessionCookie = request.cookies.getAll().some((c) => c.name.startsWith('sb-'));
+    if (hasSessionCookie) {
+      loginUrl.searchParams.set('reason', 'session_expired');
+      const redirectResponse = NextResponse.redirect(loginUrl);
+      // Clear all Supabase auth cookies
+      for (const cookie of request.cookies.getAll()) {
+        if (cookie.name.startsWith('sb-')) {
+          redirectResponse.cookies.delete(cookie.name);
+        }
+      }
+      return redirectResponse;
+    }
+
     return NextResponse.redirect(loginUrl);
   }
 

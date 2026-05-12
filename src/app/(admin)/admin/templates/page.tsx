@@ -1,7 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { LayoutTemplate, Plus } from 'lucide-react';
+import { LayoutTemplate } from 'lucide-react';
 
 export const metadata = { title: 'Admin — DraftMind' };
+export const dynamic = 'force-dynamic';
 
 export default async function AdminTemplatesPage() {
   const admin = createAdminClient();
@@ -21,13 +22,7 @@ export default async function AdminTemplatesPage() {
           <h1 className="text-[22px] font-bold text-[#1a1a1a]">Templates</h1>
           <p className="mt-0.5 text-[13px] text-[#888]">{(templates ?? []).length} templates</p>
         </div>
-        <button
-          disabled
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white opacity-50"
-        >
-          <Plus size={14} />
-          Create template
-        </button>
+        <span className="font-mono text-xs text-ink-tertiary">Manage via user settings</span>
       </div>
 
       {/* Built-in */}
@@ -37,7 +32,7 @@ export default async function AdminTemplatesPage() {
         </p>
         {builtIn.length === 0 ? (
           <div className="rounded-xl border border-[#eee] bg-white px-5 py-12 text-center text-[13px] text-[#aaa]">
-            No built-in templates. Run seed to add defaults.
+            No templates available yet.
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

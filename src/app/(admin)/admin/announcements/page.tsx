@@ -259,7 +259,7 @@ function HistorySection({
                   </div>
                   <div className="mt-2 flex items-center gap-1 text-[#bbb]">
                     <Clock size={10} />
-                    <span className="text-[11px]">
+                    <span className="text-[11px]" suppressHydrationWarning>
                       {new Date(h.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',

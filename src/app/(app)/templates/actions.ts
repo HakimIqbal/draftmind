@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logging/system-log';
+import { logActivity } from '@/lib/logging/activity-log';
 
 export interface TemplateFormData {
   name: string;
@@ -36,7 +38,18 @@ export async function createTemplate(data: TemplateFormData) {
     is_built_in: false,
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    logError('templates', error.message);
+    return { error: 'Operation failed. Please try again.' };
+  }
+
+  logActivity({
+    workspaceId: workspace.id,
+    actorId: user.id,
+    type: 'template_created',
+    resourceType: 'template',
+    metadata: { name: data.name },
+  });
 
   revalidatePath('/templates');
   return { success: true };
@@ -76,7 +89,18 @@ export async function updateTemplate(templateId: string, data: Partial<TemplateF
 
   const { error } = await supabase.from('prd_templates').update(updates).eq('id', templateId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    logError('templates', error.message);
+    return { error: 'Operation failed. Please try again.' };
+  }
+
+  logActivity({
+    workspaceId: workspace.id,
+    actorId: user.id,
+    type: 'template_updated',
+    resourceType: 'template',
+    resourceId: templateId,
+  });
 
   revalidatePath('/templates');
   return { success: true };
@@ -102,7 +126,18 @@ export async function deleteTemplate(templateId: string) {
 
   const { error } = await supabase.from('prd_templates').delete().eq('id', templateId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    logError('templates', error.message);
+    return { error: 'Operation failed. Please try again.' };
+  }
+
+  logActivity({
+    workspaceId: workspace.id,
+    actorId: user.id,
+    type: 'template_deleted',
+    resourceType: 'template',
+    resourceId: templateId,
+  });
 
   revalidatePath('/templates');
   return { success: true };

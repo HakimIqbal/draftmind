@@ -38,24 +38,25 @@ pnpm dev
 
 ### Local URLs
 
-| Service                  | URL                                                   |
-| ------------------------ | ----------------------------------------------------- |
-| Application              | http://localhost:3000                                 |
-| Supabase Studio          | http://127.0.0.1:54323                                |
-| Inbucket (email testing) | http://127.0.0.1:54324                                |
-| Supabase API             | http://localhost:54321                                |
-| Supabase DB (Postgres)   | postgres://postgres:postgres@localhost:54322/postgres |
+| Service                  | URL                                                     |
+| ------------------------ | ------------------------------------------------------- |
+| Application              | http://localhost:3000                                   |
+| Supabase Studio          | http://127.0.0.1:54323                                  |
+| Inbucket (email testing) | http://127.0.0.1:54324                                  |
+| Supabase API             | http://127.0.0.1:54321                                  |
+| Supabase DB (Postgres)   | postgresql://postgres:postgres@127.0.0.1:54322/postgres |
 
 ### `.env.local` Example
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<from supabase status>
 SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
-DATABASE_URL=postgres://postgres:postgres@localhost:54322/postgres
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ENCRYPTION_KEY=<32-byte base64 string for AES-256-GCM encryption>
 DEPLOYMENT_TARGET=local
+SKIP_ENV_VALIDATION=false
 ```
 
 Run `supabase status` after `supabase start` to retrieve the anon key and service role key.
@@ -63,16 +64,25 @@ Run `supabase status` after `supabase start` to retrieve the anon key and servic
 ### Useful Commands
 
 ```bash
+# Dev
 pnpm dev              # Start Next.js dev server
 pnpm build            # Production build
+pnpm start            # Start production server
 pnpm lint             # ESLint check
-pnpm type-check       # TypeScript check
+pnpm typecheck        # TypeScript check
+pnpm format           # Prettier format all files
+
+# Test
 pnpm test             # Run Vitest unit/integration tests
 pnpm test:e2e         # Run Playwright E2E tests
-supabase start        # Start local Supabase
-supabase stop         # Stop local Supabase
-supabase db reset     # Reset DB, run migrations + seed
-supabase db push      # Push migrations to remote Supabase
+
+# Database
+pnpm db:start         # Start local Supabase (alias: supabase start)
+pnpm db:stop          # Stop local Supabase
+pnpm db:reset         # Reset DB, run all migrations + seed
+pnpm db:migrate       # Apply pending migrations
+pnpm db:seed          # Seed database with sample data
+pnpm db:types         # Generate TypeScript types from DB schema
 ```
 
 ---
@@ -84,15 +94,20 @@ supabase db push      # Push migrations to remote Supabase
 1. **Connect GitHub repository** to Vercel.
 2. **Set environment variables** in the Vercel dashboard:
 
-| Variable                        | Value                                                     |
-| ------------------------------- | --------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Your Supabase project URL                                 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key                                  |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role key                                 |
-| `DATABASE_URL`                  | Supabase Postgres connection string (pooler)              |
-| `NEXT_PUBLIC_APP_URL`           | Your Vercel domain (e.g., `https://draftmind.vercel.app`) |
-| `ENCRYPTION_KEY`                | 32-byte base64 string                                     |
-| `DEPLOYMENT_TARGET`             | `vercel`                                                  |
+| Variable                        | Required | Value                                                      |
+| ------------------------------- | -------- | ---------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Yes      | Your Supabase project URL                                  |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes      | Supabase anon/public key                                   |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Yes      | Supabase service role key                                  |
+| `DATABASE_URL`                  | Yes      | Supabase Postgres connection string (pooler)               |
+| `NEXT_PUBLIC_APP_URL`           | Yes      | Your Vercel domain (e.g., `https://draftmind.vercel.app`)  |
+| `ENCRYPTION_KEY`                | Yes      | 32-byte base64 string                                      |
+| `DEPLOYMENT_TARGET`             | No       | `vercel`                                                   |
+| `RESEND_API_KEY`                | No       | Resend API key for transactional emails                    |
+| `EMAIL_FROM`                    | No       | Sender address (e.g., `DraftMind <noreply@draftmind.app>`) |
+| `LANGCHAIN_API_KEY`             | No       | LangSmith API key for AI observability                     |
+| `LANGCHAIN_PROJECT`             | No       | LangSmith project name (e.g., `draftmind`)                 |
+| `LANGCHAIN_TRACING_V2`          | No       | Set to `true` to enable tracing                            |
 
 3. **Region**: Set to `sin1` (Singapore) for optimal latency to Indonesia.
 
@@ -133,7 +148,7 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-This applies all migrations in `supabase/migrations/` (including `0004_immutable_audit_log.sql`).
+This applies all 17 migration files in `supabase/migrations/`.
 
 ### Notes
 
@@ -178,6 +193,15 @@ NEXT_PUBLIC_APP_URL=https://draftmind.yourdomain.com
 ENCRYPTION_KEY=<32-byte base64 string>
 DEPLOYMENT_TARGET=vps
 DB_PASSWORD=<postgres password for local DB>
+
+# Optional — email
+RESEND_API_KEY=<resend api key>
+EMAIL_FROM=DraftMind <noreply@yourdomain.com>
+
+# Optional — AI observability
+LANGCHAIN_API_KEY=<langsmith api key>
+LANGCHAIN_PROJECT=draftmind
+LANGCHAIN_TRACING_V2=true
 ```
 
 ### Docker Compose
@@ -201,14 +225,27 @@ services:
     build: .
     ports: ['3000:3000']
     env_file: .env.production
-    depends_on: [postgres]
+    environment:
+      - DEPLOYMENT_TARGET=vps
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     volumes: ['pg_data:/var/lib/postgresql/data']
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-draftmind_secret}
       POSTGRES_DB: draftmind
     ports: ['5432:5432']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   pg_data:
 ```
@@ -230,20 +267,36 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+# Skip env validation during build — runtime env vars injected at deploy
+ENV SKIP_ENV_VALIDATION=true
 RUN pnpm build
 
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN apk add --no-cache chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+USER nextjs
 EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]
 ```
 
-Requires `output: 'standalone'` in `next.config.mjs`.
+Key points:
+
+- `SKIP_ENV_VALIDATION=true` during build prevents failure when runtime env vars are not yet available.
+- `PUPPETEER_EXECUTABLE_PATH` points to Alpine's Chromium for PDF export.
+- `NEXT_TELEMETRY_DISABLED=1` disables Next.js telemetry.
+- Runs as non-root user `nextjs` for security.
+- Requires `output: 'standalone'` in `next.config.mjs`.
 
 ### Nginx Reverse Proxy + SSL
 
@@ -292,33 +345,46 @@ If using Supabase Cloud, link and push migrations as described in the Vercel sec
 # Enter the app container
 docker compose exec app sh
 
-# Apply migrations using psql (inside container)
+# Apply all 17 migrations using psql (inside container)
 for f in /app/supabase/migrations/*.sql; do
   psql "$DATABASE_URL" -f "$f"
 done
-```
-
-Alternatively, seed the database on first run:
-
-```bash
-docker compose exec -T postgres psql -U postgres -d draftmind < supabase/migrations/0001_init_schema.sql
-docker compose exec -T postgres psql -U postgres -d draftmind < supabase/migrations/0002_rls_policies.sql
-docker compose exec -T postgres psql -U postgres -d draftmind < supabase/migrations/0003_seed_templates.sql
-docker compose exec -T postgres psql -U postgres -d draftmind < supabase/migrations/0004_immutable_audit_log.sql
 ```
 
 ---
 
 ## Environment Validation
 
-All environment variables are validated at build time using `@t3-oss/env-nextjs` in `src/env.ts`:
+All environment variables are validated at build time using `@t3-oss/env-nextjs` in `src/env.ts`. Set `SKIP_ENV_VALIDATION=true` to skip validation during Docker builds.
 
-| Variable                        | Type           | Required | Notes                                                  |
-| ------------------------------- | -------------- | -------- | ------------------------------------------------------ |
-| `DATABASE_URL`                  | URL string     | Yes      | Postgres connection string                             |
-| `SUPABASE_SERVICE_ROLE_KEY`     | string         | Yes      | Server-only, never exposed to client                   |
-| `ENCRYPTION_KEY`                | 44-char base64 | Yes      | 32-byte key for AES-256-GCM                            |
-| `DEPLOYMENT_TARGET`             | enum           | No       | Defaults to `local`. Options: `local`, `vercel`, `vps` |
-| `NEXT_PUBLIC_SUPABASE_URL`      | URL string     | Yes      | Supabase project URL                                   |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | string         | Yes      | Supabase anonymous/public key                          |
-| `NEXT_PUBLIC_APP_URL`           | URL string     | Yes      | Application base URL                                   |
+### Required Variables
+
+| Variable                        | Type       | Notes                                |
+| ------------------------------- | ---------- | ------------------------------------ |
+| `DATABASE_URL`                  | URL string | Postgres connection string           |
+| `SUPABASE_SERVICE_ROLE_KEY`     | string     | Server-only, never exposed to client |
+| `ENCRYPTION_KEY`                | string     | 32-byte base64 key for AES-256-GCM   |
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL string | Supabase project URL                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | string     | Supabase anonymous/public key        |
+| `NEXT_PUBLIC_APP_URL`           | URL string | Application base URL                 |
+
+### Optional Variables
+
+| Variable               | Type   | Default | Notes                                    |
+| ---------------------- | ------ | ------- | ---------------------------------------- |
+| `DEPLOYMENT_TARGET`    | enum   | `local` | Options: `local`, `vercel`, `vps`        |
+| `SKIP_ENV_VALIDATION`  | bool   | `false` | Skip env validation (Docker builds only) |
+| `RESEND_API_KEY`       | string | —       | Resend API key for transactional emails  |
+| `EMAIL_FROM`           | string | —       | Sender address for emails                |
+| `LANGCHAIN_API_KEY`    | string | —       | LangSmith API key for AI observability   |
+| `LANGCHAIN_PROJECT`    | string | —       | LangSmith project name                   |
+| `LANGCHAIN_TRACING_V2` | bool   | —       | Enable LangSmith tracing                 |
+
+### Docker/VPS Only
+
+| Variable                    | Type   | Notes                                                          |
+| --------------------------- | ------ | -------------------------------------------------------------- |
+| `DB_PASSWORD`               | string | Postgres password for bundled DB container                     |
+| `PUPPETEER_EXECUTABLE_PATH` | path   | Set automatically in Dockerfile to `/usr/bin/chromium-browser` |
+| `PORT`                      | number | Set automatically in Dockerfile to `3000`                      |
+| `HOSTNAME`                  | string | Set automatically in Dockerfile to `0.0.0.0`                   |

@@ -3,21 +3,30 @@ import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
-import { getDefaultAIClient, updateProviderStats } from '@/lib/ai/client';
+import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
+import { logError, logInfo } from '@/lib/logging/system-log';
+import { getDefaultAIClient, createAIClient, updateProviderStats } from '@/lib/ai/client';
 import { buildAIReviewPrompt } from '@/lib/ai/prompts/ai-review';
+import { logToLangSmith } from '@/lib/ai/langsmith';
+import { sendNotification } from '@/lib/notifications/send';
+import { logActivity } from '@/lib/logging/activity-log';
 
 export async function POST(request: Request) {
   const user = await requireUser();
-  const { prdId } = await request.json();
+  const workspace = await getCurrentWorkspace(user.id);
+  if (!workspace) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { prdId, providerId } = await request.json();
   if (!prdId) return NextResponse.json({ error: 'Missing prdId' }, { status: 400 });
 
   const supabase = await createClient();
 
-  // 1. Fetch PRD content
+  // 1. Fetch PRD content — verify workspace ownership
   const { data: prd, error: prdError } = await supabase
     .from('prds')
     .select('id, content, workspace_id')
     .eq('id', prdId)
+    .eq('workspace_id', workspace.id)
     .single();
 
   if (prdError || !prd) {
@@ -27,10 +36,14 @@ export async function POST(request: Request) {
   // 2. Get AI client
   let aiClient;
   try {
-    aiClient = await getDefaultAIClient();
+    aiClient = providerId ? await createAIClient(providerId) : await getDefaultAIClient();
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'No AI provider available';
-    return NextResponse.json({ error: msg }, { status: 503 });
+    logError('prd.review', msg, {}, user.id);
+    return NextResponse.json(
+      { error: 'AI provider is not available. Please check your settings.' },
+      { status: 503 },
+    );
   }
 
   // 3. Call AI
@@ -48,6 +61,22 @@ export async function POST(request: Request) {
     const latencyMs = Date.now() - startMs;
     updateProviderStats(aiClient.provider.id, true, latencyMs).catch(() => {});
 
+    // Log to LangSmith
+    logToLangSmith({
+      name: 'prd.ai-review',
+      inputs: { prdId, contentLength: JSON.stringify(prd.content).length },
+      outputs: { tokensUsed: result.usage?.totalTokens ?? 0 },
+      startTime: new Date(startMs),
+      endTime: new Date(),
+      metadata: {
+        provider: aiClient.provider.display_name,
+        model: aiClient.modelId,
+        latencyMs,
+        userId: user.id,
+      },
+      usage: result.usage,
+    }).catch(() => {});
+
     // 4. Parse response
     const rawText = result.text.trim();
     // Remove potential markdown fences
@@ -57,7 +86,7 @@ export async function POST(request: Request) {
       parsed = JSON.parse(jsonStr);
     } catch {
       return NextResponse.json(
-        { error: 'AI returned invalid JSON', raw: rawText },
+        { error: 'AI review returned an unexpected format. Please try again.' },
         { status: 500 },
       );
     }
@@ -66,16 +95,37 @@ export async function POST(request: Request) {
     const healthScore = parsed.health_score ?? 0;
     const breakdown = parsed.breakdown ?? {};
 
-    // 5. Store findings in database
+    // 5. Log AI run first (needed for findings FK)
     const admin = createAdminClient();
 
+    const { data: aiRun } = await admin
+      .from('ai_runs')
+      .insert({
+        prd_id: prdId,
+        workspace_id: prd.workspace_id,
+        user_id: user.id,
+        type: 'ai_review',
+        status: 'success',
+        provider_id: aiClient.provider.id,
+        model_used: aiClient.modelId,
+        prompt_tokens: result.usage?.promptTokens ?? 0,
+        completion_tokens: result.usage?.completionTokens ?? 0,
+        total_tokens: result.usage?.totalTokens ?? 0,
+        duration_ms: latencyMs,
+        completed_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single();
+
+    // 6. Store findings in database
     // Delete old findings for this PRD
     await admin.from('ai_review_findings').delete().eq('prd_id', prdId);
 
-    // Insert new findings
-    if (findings.length > 0) {
+    // Insert new findings (with ai_run_id FK)
+    if (findings.length > 0 && aiRun) {
       await admin.from('ai_review_findings').insert(
         findings.map((f: Record<string, unknown>) => ({
+          ai_run_id: aiRun.id,
           prd_id: prdId,
           severity: f.severity,
           section_key: f.section_key,
@@ -86,7 +136,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Update PRD health score
+    // 7. Update PRD health score
     await supabase
       .from('prds')
       .update({
@@ -96,25 +146,65 @@ export async function POST(request: Request) {
       })
       .eq('id', prdId);
 
-    // 7. Log AI run
-    await admin.from('ai_runs').insert({
-      prd_id: prdId,
-      workspace_id: prd.workspace_id,
-      user_id: user.id,
-      type: 'review',
-      status: 'completed',
-      provider_id: aiClient.provider.id,
-      model_id: aiClient.modelId,
-      input_tokens: result.usage?.promptTokens ?? 0,
-      output_tokens: result.usage?.completionTokens ?? 0,
-      latency_ms: latencyMs,
+    // Notify PRD owner that AI review is done
+    const { data: prdFull } = await supabase
+      .from('prds')
+      .select('owner_id, title')
+      .eq('id', prdId)
+      .single();
+
+    if (prdFull && prdFull.owner_id) {
+      sendNotification({
+        recipientId: prdFull.owner_id,
+        workspaceId: workspace.id as string,
+        type: 'ai_suggestion_ready',
+        title: 'AI Review completed',
+        body: `Review for "${prdFull.title}" is ready — score: ${healthScore}/100, ${findings.length} finding${findings.length !== 1 ? 's' : ''}`,
+        resourceType: 'prd',
+        resourceId: prdId,
+        actionUrl: `/prds/${prdId}/ai-review`,
+      });
+    }
+
+    logActivity({
+      workspaceId: workspace.id as string,
+      actorId: user.id,
+      type: 'ai_review_completed',
+      resourceType: 'prd',
+      resourceId: prdId,
+      metadata: {
+        health_score: healthScore,
+        findings_count: findings.length,
+        provider: aiClient.provider.display_name,
+      },
     });
+    logInfo(
+      'prd.ai-review',
+      `AI Review done: '${prdFull?.title ?? prdId}', score: ${healthScore}`,
+      { prdId, healthScore, findingsCount: findings.length },
+      user.id,
+    );
 
     return NextResponse.json({ findings, health_score: healthScore, breakdown });
   } catch (err) {
     const latencyMs = Date.now() - startMs;
     const msg = err instanceof Error ? err.message : 'AI review failed';
     updateProviderStats(aiClient.provider.id, false, latencyMs, msg).catch(() => {});
-    return NextResponse.json({ error: msg }, { status: 500 });
+    logError('prd.review', msg, { latencyMs, prdId }, user.id);
+
+    logToLangSmith({
+      name: 'prd.ai-review',
+      inputs: { prdId },
+      error: msg,
+      startTime: new Date(startMs),
+      endTime: new Date(),
+      metadata: {
+        provider: aiClient.provider.display_name,
+        model: aiClient.modelId,
+        userId: user.id,
+      },
+    }).catch(() => {});
+
+    return NextResponse.json({ error: 'AI review failed. Please try again.' }, { status: 500 });
   }
 }

@@ -14,8 +14,9 @@ export default async function PrdPipelinePage() {
   const columns = {
     draft: items.filter((p) => p.status === 'draft'),
     in_review: items.filter((p) => ['in_review', 'reviewed'].includes(p.status)),
-    refined: items.filter((p) => p.status === 'refined'),
-    final: items.filter((p) => p.status === 'final'),
+    refined: items.filter((p) => ['refined', 'final'].includes(p.status)),
+    approved: items.filter((p) => p.status === 'approved'),
+    shipped: items.filter((p) => p.status === 'shipped'),
   };
 
   return <PRDPipelineBoard columns={columns} />;

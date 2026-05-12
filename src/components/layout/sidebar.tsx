@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,23 +12,30 @@ import {
   Users,
   BarChart3,
   Settings,
-  Search,
+  Activity,
   PanelLeftClose,
   LogOut,
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Avatar } from '@/components/ui/avatar';
 import { WorkspaceSwitcher } from './workspace-switcher';
+import { ProfileModal } from '@/components/settings/profile-modal';
 import { createClient } from '@/lib/supabase/client';
+import { logLogout } from '@/app/(app)/actions';
 import type { WorkspaceListItem } from '@/lib/db/queries/workspace';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/prds', label: 'My PRDs', icon: FileText },
   { href: '/templates', label: 'Templates', icon: LayoutTemplate },
-  { href: '/workspace/members', label: 'Team', icon: Users },
   { href: '/ai-runs', label: 'Analytics', icon: BarChart3 },
+];
+
+const WORKSPACE_NAV = [
+  { href: '/workspace/members', label: 'Members', icon: Users },
+  { href: '/workspace/settings', label: 'Settings', icon: Settings, adminOnly: true },
+  { href: '/workspace/activity', label: 'Activity', icon: Activity, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -34,8 +43,10 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   workspaces?: WorkspaceListItem[];
   currentWorkspaceId?: string;
+  currentUserRole?: string;
   userName?: string;
   userEmail?: string;
+  userAvatarUrl?: string;
   recentPRDs?: { id: string; title: string }[];
 }
 
@@ -44,8 +55,10 @@ export function Sidebar({
   onToggleCollapse,
   workspaces,
   currentWorkspaceId,
+  currentUserRole,
   userName,
   userEmail,
+  userAvatarUrl,
   recentPRDs,
 }: SidebarProps) {
   const pathname = usePathname();
@@ -53,14 +66,8 @@ export function Sidebar({
 
   if (collapsed) return null;
 
-  const initials = (userName ?? 'U')
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
   async function handleLogout() {
+    await logLogout().catch(() => {});
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
@@ -89,17 +96,6 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Search */}
-      <div className="px-3 pb-2">
-        <Link
-          href="/search"
-          className="flex h-8 w-full items-center gap-2 rounded-lg bg-white px-3 text-[12px] text-[#aaa] shadow-sm transition-colors hover:text-[#666]"
-        >
-          <Search size={13} />
-          <span className="flex-1">Search...</span>
-        </Link>
-      </div>
-
       {/* Main Nav */}
       <nav className="flex-1 overflow-y-auto px-3 pt-2">
         <ul className="space-y-[2px]">
@@ -126,6 +122,39 @@ export function Sidebar({
             );
           })}
         </ul>
+
+        {/* Workspace section */}
+        <div className="mt-5">
+          <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-[#aaa]">
+            Workspace
+          </p>
+          <ul className="space-y-[2px]">
+            {WORKSPACE_NAV.filter(
+              (item) => !('adminOnly' in item && item.adminOnly) || currentUserRole === 'admin',
+            ).map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-all',
+                      isActive
+                        ? 'bg-white text-[#1a1a1a] shadow-sm'
+                        : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
+                    )}
+                  >
+                    <item.icon
+                      size={16}
+                      className={cn('shrink-0', isActive ? 'text-accent' : 'text-[#999]')}
+                    />
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
         {/* Recent PRDs */}
         {recentPRDs && recentPRDs.length > 0 && (
@@ -165,50 +194,113 @@ export function Sidebar({
         )}
 
         {/* User */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white/60">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">
-                {initials}
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-[12px] font-medium text-[#1a1a1a]">
+        <UserMenu
+          userName={userName}
+          userEmail={userEmail}
+          avatarUrl={userAvatarUrl}
+          onLogout={handleLogout}
+        />
+      </div>
+    </aside>
+  );
+}
+
+function UserMenu({
+  userName,
+  userEmail,
+  avatarUrl,
+  onLogout,
+}: {
+  userName?: string;
+  userEmail?: string;
+  avatarUrl?: string;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+
+  const updatePos = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPos({ top: rect.top, left: rect.left, width: rect.width });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updatePos();
+    function handleClick(e: MouseEvent) {
+      requestAnimationFrame(() => {
+        if (
+          triggerRef.current?.contains(e.target as Node) ||
+          dropdownRef.current?.contains(e.target as Node)
+        )
+          return;
+        setOpen(false);
+      });
+    }
+    document.addEventListener('mouseup', handleClick);
+    return () => document.removeEventListener('mouseup', handleClick);
+  }, [open, updatePos]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white/60 focus:outline-none"
+      >
+        <Avatar name={userName ?? 'User'} size="sm" avatarUrl={avatarUrl} />
+        <div className="min-w-0 flex-1 text-left">
+          <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{userName ?? 'User'}</p>
+        </div>
+        <ChevronDown
+          size={12}
+          className={`text-[#bbb] transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[9999] w-[240px] overflow-hidden rounded-2xl border border-[#e8e8e6] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+            style={{ top: pos.top - 8, left: pos.left, transform: 'translateY(-100%)' }}
+          >
+            <button
+              onClick={() => {
+                setOpen(false);
+                setProfileOpen(true);
+              }}
+              className="flex w-full items-center gap-3 border-b border-[#f0f0ee] px-4 py-3.5 text-left transition-colors hover:bg-[#fafaf9] focus:outline-none"
+            >
+              <Avatar name={userName ?? 'User'} size="lg" avatarUrl={avatarUrl} />
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">
                   {userName ?? 'User'}
                 </p>
+                <p className="truncate text-[11px] text-[#aaa]">{userEmail ?? ''}</p>
               </div>
-              <ChevronDown size={12} className="text-[#bbb]" />
             </button>
-          </PopoverTrigger>
-          <PopoverContent
-            side="top"
-            align="start"
-            className="w-[220px] rounded-xl border-[#eee] p-0 shadow-xl"
-          >
-            <div className="border-b border-[#f0f0f0] px-4 py-3">
-              <p className="text-[12px] font-medium text-[#1a1a1a]">{userName ?? 'User'}</p>
-              <p className="text-[11px] text-[#aaa]">{userEmail ?? ''}</p>
-            </div>
-            <div className="py-1">
-              <Link
-                href="/settings/profile"
-                className="flex h-9 items-center gap-2.5 px-4 text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f4]"
-              >
-                <Settings size={14} className="text-[#999]" />
-                Settings
-              </Link>
-            </div>
-            <div className="border-t border-[#f0f0f0] py-1">
+            <div className="relative z-[10000] p-1.5">
               <button
-                onClick={handleLogout}
-                className="flex h-9 w-full items-center gap-2.5 px-4 text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f4]"
+                onClick={() => {
+                  setOpen(false);
+                  onLogout();
+                }}
+                className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-red-500/80 transition-colors hover:bg-red-50 focus:outline-none"
               >
-                <LogOut size={14} className="text-[#999]" />
+                <LogOut size={14} className="text-red-400/70" />
                 Log out
               </button>
             </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-    </aside>
+          </div>,
+          document.body,
+        )}
+      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
+    </>
   );
 }

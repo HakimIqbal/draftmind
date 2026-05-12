@@ -11,6 +11,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Skip env validation during build only — runtime env vars injected at deploy
 ENV SKIP_ENV_VALIDATION=true
 RUN pnpm build
 

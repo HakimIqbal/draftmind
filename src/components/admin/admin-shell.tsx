@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -15,9 +16,13 @@ import {
   Activity,
   Sparkles,
   LogOut,
+  Terminal,
+  Shield,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { createClient } from '@/lib/supabase/client';
+import { logLogout } from '@/app/(app)/actions';
 
 const NAV_GROUPS = [
   {
@@ -48,6 +53,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/admin/providers', label: 'AI Providers', icon: Sparkles },
       { href: '/admin/activity', label: 'Activity Log', icon: Activity },
+      { href: '/admin/system-logs', label: 'System Logs', icon: Terminal },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -62,6 +68,10 @@ interface AdminShellProps {
 export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [sessionStart] = useState(() => new Date());
+  const [timeAgo, setTimeAgo] = useState('just now');
+  const popupRef = useRef<HTMLDivElement>(null);
 
   const initials = userName
     .split(' ')
@@ -70,7 +80,31 @@ export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
     .slice(0, 2)
     .toUpperCase();
 
+  // Session time tracker
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const diff = Math.floor((Date.now() - sessionStart.getTime()) / 60000);
+      if (diff < 1) setTimeAgo('just now');
+      else if (diff < 60) setTimeAgo(`${diff}m ago`);
+      else setTimeAgo(`${Math.floor(diff / 60)}h ${diff % 60}m ago`);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [sessionStart]);
+
+  // Click outside to close popup
+  useEffect(() => {
+    if (!popupOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setPopupOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [popupOpen]);
+
   async function handleLogout() {
+    await logLogout().catch(() => {});
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
@@ -134,24 +168,60 @@ export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
           ))}
         </nav>
 
-        {/* Bottom */}
-        <div className="border-t border-[#e5e5e3] px-3 py-3">
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+        {/* Bottom — Avatar with popup */}
+        <div className="relative border-t border-[#e5e5e3] px-3 py-3" ref={popupRef}>
+          {/* Popup panel */}
+          {popupOpen && (
+            <div className="absolute bottom-full left-3 right-3 mb-2 rounded-xl border border-[#eee] bg-white shadow-lg">
+              {/* Profile */}
+              <div className="flex items-center gap-3 border-b border-[#f0f0f0] px-4 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">
+                  {initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium text-[#1a1a1a]">{userName}</p>
+                  <p className="text-[11px] text-[#aaa]">{userEmail}</p>
+                </div>
+                <span className="bg-accent/10 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-accent">
+                  <Shield size={10} />
+                  Admin
+                </span>
+              </div>
+
+              {/* Session info */}
+              <div className="border-b border-[#f0f0f0] px-4 py-2.5">
+                <div className="flex items-center gap-1.5 text-[11px] text-[#aaa]">
+                  <Clock size={11} />
+                  Session started: {timeAgo}
+                </div>
+              </div>
+
+              {/* Logout */}
+              <div className="px-4 py-2">
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-[12px] text-red-500 hover:bg-red-50"
+                >
+                  <LogOut size={13} />
+                  Log out
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Trigger */}
+          <button
+            onClick={() => setPopupOpen(!popupOpen)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white/60"
+          >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">
               {initials}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-left">
               <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{userName}</p>
               <p className="truncate text-[10px] text-[#999]">{userEmail}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-[#ccc] transition-colors hover:text-[#666]"
-              title="Sign out"
-            >
-              <LogOut size={14} />
-            </button>
-          </div>
+          </button>
         </div>
       </aside>
 

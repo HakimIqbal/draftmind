@@ -4,36 +4,74 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+import Underline from '@tiptap/extension-underline';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import * as Y from 'yjs';
+import { CommentMark, SectionVisibility } from '@/lib/editor/extensions';
+
+// Real-time collaboration: y-supabase@0.0.4-alpha is incompatible with
+// Next.js 15 webpack — it imports @supabase/realtime-js TypeScript source
+// files directly, which webpack cannot parse. Collab remains local-only
+// until y-supabase releases a compatible version.
+// To enable: install compatible y-supabase, set NEXT_PUBLIC_ENABLE_COLLAB=true
 import { SlashMenu, useSlashMenu } from '@/components/editor/slash-menu';
 
 interface TiptapEditorProps {
   content: Record<string, unknown>;
   onUpdate?: (content: Record<string, unknown>) => void;
   editable?: boolean;
+  hiddenSections?: string[];
+  sectionLabelToKey?: Record<string, string>;
   onEditorReady?: (editor: ReturnType<typeof useEditor>) => void;
+  collaboration?: {
+    documentId: string;
+    userName: string;
+    userColor?: string;
+  };
 }
 
 export function TiptapEditor({
   content,
   onUpdate,
   editable = true,
+  hiddenSections = [],
+  sectionLabelToKey = {},
   onEditorReady,
+  collaboration,
 }: TiptapEditorProps) {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const editorReadyRef = useRef(false);
+
+  // Create Yjs document for collaboration
+  const ydoc = useMemo(() => (collaboration ? new Y.Doc() : null), [collaboration]);
+
+  // Build collaboration extensions (local-only — provider not yet connected)
+  const collabExtensions = useMemo(() => {
+    if (!ydoc || !collaboration) return [];
+    return [
+      Collaboration.configure({ document: ydoc }),
+      CollaborationCursor.configure({
+        provider: null,
+        user: { name: collaboration.userName, color: collaboration.userColor ?? '#6366f1' },
+      }),
+    ];
+  }, [ydoc, collaboration]);
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
+        ...(collaboration ? { history: false } : {}),
       }),
       Placeholder.configure({
         placeholder: 'Start writing or type / for commands...',
@@ -42,12 +80,19 @@ export function TiptapEditor({
         openOnClick: false,
         HTMLAttributes: { class: 'text-accent underline' },
       }),
+      Underline,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Table.configure({ resizable: true }),
       TableRow,
       TableCell,
       TableHeader,
+      CommentMark,
+      SectionVisibility,
+      ...collabExtensions,
     ],
     content: content,
     editable,
@@ -61,7 +106,7 @@ export function TiptapEditor({
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         onUpdate(editor.getJSON() as Record<string, unknown>);
-      }, 800);
+      }, 300);
     },
   });
 
@@ -73,15 +118,29 @@ export function TiptapEditor({
   }, []);
 
   // Update content when prop changes (e.g. after AI generation)
+  // Use ref to track initial content and only reset on genuine prop change
+  const initialContentRef = useRef<string>(JSON.stringify(content));
   useEffect(() => {
     if (editor && content && !editor.isDestroyed) {
-      const currentJSON = JSON.stringify(editor.getJSON());
       const newJSON = JSON.stringify(content);
-      if (currentJSON !== newJSON) {
+      // Only reset if content prop genuinely changed from initial load
+      // (not from parent re-render with same props)
+      if (newJSON !== initialContentRef.current) {
+        initialContentRef.current = newJSON;
         editor.commands.setContent(content);
       }
     }
   }, [editor, content]);
+
+  // Update section visibility storage when props change
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      editor.storage.sectionVisibility.hiddenSections = hiddenSections;
+      editor.storage.sectionVisibility.sectionLabelToKey = sectionLabelToKey;
+      // Force ProseMirror to rebuild decorations
+      editor.view.dispatch(editor.state.tr.setMeta('sectionVisibilityUpdate', true));
+    }
+  }, [editor, hiddenSections, sectionLabelToKey]);
 
   // Notify parent when editor is ready
   useEffect(() => {

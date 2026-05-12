@@ -53,7 +53,7 @@ export const PRD_SECTION_LABELS: Record<PRDSectionKey, string> = {
   nfr: 'Non-Functional Requirements',
   success_metrics: 'Success Metrics',
   timeline: 'Timeline',
-  risks: 'Risks & Mitigations',
+  risks: 'Risks',
   references: 'References',
   glossary: 'Glossary',
   changelog: 'Changelog',

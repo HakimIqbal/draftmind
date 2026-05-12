@@ -3,21 +3,12 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Home,
-  FileText,
-  LayoutTemplate,
-  Users,
-  BarChart3,
-  Settings,
-  PanelLeft,
-  LogOut,
-  HelpCircle,
-} from 'lucide-react';
+import { Home, FileText, LayoutTemplate, Users, BarChart3, PanelLeft, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { LogoTier2 } from '@/components/icons/logo-tier2';
+import { ProfileModal } from '@/components/settings/profile-modal';
 import { Avatar } from '@/components/ui/avatar';
 import { createClient } from '@/lib/supabase/client';
 
@@ -33,12 +24,19 @@ interface SidebarCollapsedRailProps {
   onExpand: () => void;
   userName?: string;
   userEmail?: string;
+  userAvatarUrl?: string;
 }
 
-export function SidebarCollapsedRail({ onExpand, userName, userEmail }: SidebarCollapsedRailProps) {
+export function SidebarCollapsedRail({
+  onExpand,
+  userName,
+  userEmail,
+  userAvatarUrl,
+}: SidebarCollapsedRailProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [logoHovered, setLogoHovered] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -104,47 +102,39 @@ export function SidebarCollapsedRail({ onExpand, userName, userEmail }: SidebarC
               className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-bg-surface"
               aria-label="Profile menu"
             >
-              <Avatar name={userName ?? 'User'} size="sm" />
+              <Avatar name={userName ?? 'User'} size="sm" avatarUrl={userAvatarUrl} />
             </button>
           </PopoverTrigger>
-          <PopoverContent side="right" align="end" className="w-[220px] p-0">
-            {/* Email header */}
-            <div className="border-b border-subtle px-md py-sm">
-              <p className="truncate text-sm font-medium text-ink-primary">{userName ?? 'User'}</p>
-              <p className="truncate font-mono text-xs text-ink-tertiary">{userEmail ?? ''}</p>
-            </div>
-
-            {/* Menu items */}
-            <div className="py-xs">
-              <Link
-                href="/settings/profile"
-                className="flex items-center gap-sm px-md py-sm text-sm text-ink-secondary transition-colors hover:bg-bg-surface hover:text-ink-primary"
-              >
-                <Settings size={16} className="shrink-0" />
-                Settings
-              </Link>
-              <Link
-                href="/help"
-                className="flex items-center gap-sm px-md py-sm text-sm text-ink-secondary transition-colors hover:bg-bg-surface hover:text-ink-primary"
-              >
-                <HelpCircle size={16} className="shrink-0" />
-                Help & support
-              </Link>
-            </div>
-
-            {/* Logout */}
-            <div className="border-t border-subtle py-xs">
+          <PopoverContent
+            side="right"
+            align="end"
+            className="w-[240px] overflow-hidden rounded-2xl border border-[#e8e8e6] bg-white p-0 shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+          >
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="flex w-full items-center gap-3 border-b border-[#f0f0ee] px-4 py-3.5 text-left transition-colors hover:bg-[#fafaf9] focus:outline-none"
+            >
+              <Avatar name={userName ?? 'User'} size="lg" avatarUrl={userAvatarUrl} />
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">
+                  {userName ?? 'User'}
+                </p>
+                <p className="truncate text-[11px] text-[#aaa]">{userEmail ?? ''}</p>
+              </div>
+            </button>
+            <div className="relative z-[10000] p-1.5">
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center gap-sm px-md py-sm text-sm text-ink-secondary transition-colors hover:bg-bg-surface hover:text-red-muted"
+                className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-red-500/80 transition-colors hover:bg-red-50 focus:outline-none"
               >
-                <LogOut size={16} className="shrink-0" />
+                <LogOut size={14} className="text-red-400/70" />
                 Log out
               </button>
             </div>
           </PopoverContent>
         </Popover>
       </div>
+      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
     </aside>
   );
 }

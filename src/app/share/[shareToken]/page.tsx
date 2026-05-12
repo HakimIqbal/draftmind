@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PublicShareView } from '@/components/share/public-share-view';
 import type { PRDDocument } from '@/lib/prd/schema';
+import { PRD_SECTION_LABELS } from '@/types/prd';
 
 interface SharePageProps {
   params: Promise<{ shareToken: string }>;
@@ -73,10 +74,10 @@ export default async function PublicSharePage({ params }: SharePageProps) {
     );
   }
 
-  // Fetch the PRD
+  // Fetch the PRD with tiptap content
   const { data: prd, error: prdError } = await supabase
     .from('prds')
-    .select('content')
+    .select('content, tiptap_content, hidden_sections')
     .eq('id', share.prd_id)
     .single();
 
@@ -88,6 +89,32 @@ export default async function PublicSharePage({ params }: SharePageProps) {
   void supabase.rpc('increment_share_view_count', { share_id: share.id });
 
   const doc = prd.content as PRDDocument;
+  const hiddenSections: string[] =
+    ((prd as Record<string, unknown>).hidden_sections as string[]) ?? [];
 
-  return <PublicShareView prd={doc} />;
+  // Filter tiptap content to exclude hidden sections
+  let tiptapContent = prd.tiptap_content as Parameters<typeof PublicShareView>[0]['tiptapContent'];
+  if (tiptapContent && hiddenSections.length > 0) {
+    const labelToKey = Object.fromEntries(
+      Object.entries(PRD_SECTION_LABELS).map(([k, v]) => [v.toLowerCase(), k]),
+    );
+    const raw = tiptapContent as unknown as { type: string; content: Record<string, unknown>[] };
+    const filtered: Record<string, unknown>[] = [];
+    let skipping = false;
+    for (const node of raw.content) {
+      if (node.type === 'heading') {
+        const level = (node.attrs as { level?: number } | undefined)?.level ?? 2;
+        if (level === 2) {
+          const children = node.content as { text?: string }[] | undefined;
+          const text = children?.map((c) => c.text ?? '').join('') ?? '';
+          const sectionKey = labelToKey[text.toLowerCase()];
+          skipping = !!(sectionKey && hiddenSections.includes(sectionKey));
+        }
+      }
+      if (!skipping) filtered.push(node);
+    }
+    tiptapContent = { ...raw, content: filtered } as unknown as typeof tiptapContent;
+  }
+
+  return <PublicShareView prd={doc} tiptapContent={tiptapContent} />;
 }

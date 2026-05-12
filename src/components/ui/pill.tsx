@@ -7,22 +7,10 @@ const DOT_COLORS: Record<PillStatus, string> = {
   reviewed: '#6B8E5A',
   refined: '#4A8C5C',
   final: '#E8743C',
-  blocked: '#B85843',
   approved: '#6B8E5A',
-  shipped: '#4A7CB8',
-  archived: '#4A4640',
 };
 
-type PillStatus =
-  | 'draft'
-  | 'in_review'
-  | 'reviewed'
-  | 'refined'
-  | 'final'
-  | 'blocked'
-  | 'approved'
-  | 'shipped'
-  | 'archived';
+type PillStatus = 'draft' | 'in_review' | 'reviewed' | 'refined' | 'final' | 'approved';
 
 function defaultLabel(status: PillStatus): string {
   return status

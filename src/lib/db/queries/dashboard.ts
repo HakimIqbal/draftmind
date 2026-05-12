@@ -10,59 +10,42 @@ export interface DashboardStats {
 export async function getDashboardStats(workspaceId: string): Promise<DashboardStats> {
   const supabase = await createClient();
 
-  const { count: activePRDs } = await supabase
+  // Single query — compute all stats in JS instead of 4 separate DB round trips
+  const { data: allPRDs } = await supabase
     .from('prds')
-    .select('*', { count: 'exact', head: true })
-    .eq('workspace_id', workspaceId)
-    .is('archived_at', null);
+    .select('status, health_score, created_at, updated_at')
+    .eq('workspace_id', workspaceId);
 
-  const { count: queueCount } = await supabase
-    .from('prds')
-    .select('*', { count: 'exact', head: true })
-    .eq('workspace_id', workspaceId)
-    .in('status', ['in_review', 'reviewed'])
-    .is('archived_at', null);
+  if (!allPRDs || allPRDs.length === 0) {
+    return { activePRDs: 0, queueCount: 0, avgHealth: 0, cycleTimeDays: 0 };
+  }
 
-  const { data: healthData } = await supabase
-    .from('prds')
-    .select('health_score')
-    .eq('workspace_id', workspaceId)
-    .is('archived_at', null)
-    .not('health_score', 'is', null);
+  const activePRDs = allPRDs.length;
+  const queueCount = allPRDs.filter(
+    (p) => p.status === 'in_review' || p.status === 'reviewed',
+  ).length;
 
+  const withHealth = allPRDs.filter((p) => p.health_score != null);
   const avgHealth =
-    healthData && healthData.length > 0
+    withHealth.length > 0
       ? Math.round(
-          healthData.reduce((sum, p) => sum + (p.health_score ?? 0), 0) / healthData.length,
+          withHealth.reduce((sum, p) => sum + (p.health_score ?? 0), 0) / withHealth.length,
         )
       : 0;
 
-  // Calculate average cycle time: days from PRD creation to status 'final'
-  const { data: completedPRDs } = await supabase
-    .from('prds')
-    .select('created_at, updated_at')
-    .eq('workspace_id', workspaceId)
-    .eq('status', 'final')
-    .is('archived_at', null)
-    .order('updated_at', { ascending: false })
-    .limit(20);
-
+  const completedStatuses = new Set(['final', 'approved', 'refined']);
+  const completed = allPRDs.filter((p) => completedStatuses.has(p.status));
   let cycleTimeDays = 0;
-  if (completedPRDs && completedPRDs.length > 0) {
-    const totalDays = completedPRDs.reduce((sum, p) => {
-      const created = new Date(p.created_at).getTime();
-      const completed = new Date(p.updated_at).getTime();
-      return sum + (completed - created) / (1000 * 60 * 60 * 24);
+  if (completed.length > 0) {
+    const totalDays = completed.reduce((sum, p) => {
+      return (
+        sum + (new Date(p.updated_at).getTime() - new Date(p.created_at).getTime()) / 86_400_000
+      );
     }, 0);
-    cycleTimeDays = Math.round(totalDays / completedPRDs.length);
+    cycleTimeDays = Math.round(totalDays / completed.length);
   }
 
-  return {
-    activePRDs: activePRDs ?? 0,
-    queueCount: queueCount ?? 0,
-    avgHealth,
-    cycleTimeDays,
-  };
+  return { activePRDs, queueCount, avgHealth, cycleTimeDays };
 }
 
 export interface ContinueWorkingPRD {
@@ -72,7 +55,11 @@ export interface ContinueWorkingPRD {
   status: string;
   health_score: number | null;
   updated_at: string;
-  owner: { full_name: string | null; avatar_color_seed: string | null } | null;
+  owner: {
+    full_name: string | null;
+    avatar_color_seed: string | null;
+    avatar_url: string | null;
+  } | null;
 }
 
 export async function getContinueWorkingPRDs(
@@ -85,10 +72,9 @@ export async function getContinueWorkingPRDs(
   const { data } = await supabase
     .from('prds')
     .select(
-      'id, title, project_tag, status, health_score, updated_at, owner:profiles!prds_owner_id_fkey(full_name, avatar_color_seed)',
+      'id, title, project_tag, status, health_score, updated_at, owner:profiles!prds_owner_id_fkey(full_name, avatar_color_seed, avatar_url)',
     )
     .eq('workspace_id', workspaceId)
-    .is('archived_at', null)
     .order('updated_at', { ascending: false })
     .limit(limit);
 
@@ -105,7 +91,11 @@ export interface ActivityFeedItem {
   resource_id: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
-  actor: { full_name: string | null; avatar_color_seed: string | null } | null;
+  actor: {
+    full_name: string | null;
+    avatar_color_seed: string | null;
+    avatar_url: string | null;
+  } | null;
 }
 
 export async function getActivityFeed(
@@ -117,9 +107,10 @@ export async function getActivityFeed(
   const { data } = await supabase
     .from('activity_log')
     .select(
-      'id, type, resource_type, resource_id, metadata, created_at, actor:profiles!activity_log_actor_id_fkey(full_name, avatar_color_seed)',
+      'id, type, resource_type, resource_id, metadata, created_at, actor:profiles!activity_log_actor_id_fkey(full_name, avatar_color_seed, avatar_url, is_super_admin)',
     )
     .eq('workspace_id', workspaceId)
+    .not('type', 'in', '(login,logout)')
     .order('created_at', { ascending: false })
     .limit(limit);
 

@@ -1,7 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import {
+  Plus,
+  FileText,
+  FlaskConical,
+  FileCode2,
+  FileBarChart,
+  Search,
+  Palette,
+} from 'lucide-react';
 import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
 import { TemplateCard } from '@/components/templates/template-card';
@@ -9,13 +17,13 @@ import { TemplateFormModal } from '@/components/templates/template-form-modal';
 import type { Template } from '@/app/(app)/templates/page';
 
 const FILTER_OPTIONS = [
-  { label: 'All', value: 'all' },
-  { label: 'Feature', value: 'feature' },
-  { label: 'Experiment', value: 'experiment' },
-  { label: 'RFC', value: 'rfc' },
-  { label: 'One-pager', value: 'one-pager' },
-  { label: 'Research', value: 'research' },
-  { label: 'Custom', value: 'custom' },
+  { label: 'All', value: 'all', icon: null },
+  { label: 'Feature', value: 'feature', icon: FileText },
+  { label: 'Experiment', value: 'experiment', icon: FlaskConical },
+  { label: 'Technical Proposal', value: 'rfc', icon: FileCode2 },
+  { label: 'One-pager', value: 'one-pager', icon: FileBarChart },
+  { label: 'Research', value: 'research', icon: Search },
+  { label: 'Custom', value: 'custom', icon: Palette },
 ] as const;
 
 interface TemplatesLibraryProps {
@@ -29,6 +37,15 @@ export function TemplatesLibrary({ templates }: TemplatesLibraryProps) {
 
   const filtered =
     activeFilter === 'all' ? templates : templates.filter((t) => t.category === activeFilter);
+
+  // Count templates per category
+  const counts = useMemo(() => {
+    const map: Record<string, number> = { all: templates.length };
+    for (const t of templates) {
+      map[t.category] = (map[t.category] ?? 0) + 1;
+    }
+    return map;
+  }, [templates]);
 
   return (
     <div className="space-y-6 p-md">
@@ -45,16 +62,22 @@ export function TemplatesLibrary({ templates }: TemplatesLibraryProps) {
       </div>
 
       {/* Filter chips */}
-      <div className="flex items-center gap-1 border-b border-subtle pb-0">
-        {FILTER_OPTIONS.map((opt) => (
-          <Chip
-            key={opt.value}
-            active={activeFilter === opt.value}
-            onClick={() => setActiveFilter(opt.value)}
-          >
-            {opt.label}
-          </Chip>
-        ))}
+      <div className="flex items-center gap-1.5 border-b border-subtle pb-0">
+        {FILTER_OPTIONS.map((opt) => {
+          const count = counts[opt.value] ?? 0;
+          const Icon = opt.icon;
+          return (
+            <Chip
+              key={opt.value}
+              active={activeFilter === opt.value}
+              onClick={() => setActiveFilter(opt.value)}
+            >
+              {Icon && <Icon size={12} className="mr-1 inline-block opacity-60" />}
+              {opt.label}
+              {count > 0 && <span className="ml-1 text-[10px] opacity-50">{count}</span>}
+            </Chip>
+          );
+        })}
       </div>
 
       {/* Grid */}

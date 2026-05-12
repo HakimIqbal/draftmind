@@ -13,7 +13,11 @@ import { createEmptyPRD } from '@/lib/prd/schema';
 import type { PRDDocument } from '@/lib/prd/schema';
 import { prdToTiptap } from '@/lib/prd/tiptap-content';
 import { computeHealthScore } from '@/lib/prd/health-score';
-import { generateText } from 'ai';
+import { generateObject, generateText } from 'ai';
+import { checkRateLimit, AI_RATE_LIMITS } from '@/lib/utils/rate-limit';
+import { logError, logWarn } from '@/lib/logging/system-log';
+import { logToLangSmith } from '@/lib/ai/langsmith';
+import { logActivity } from '@/lib/logging/activity-log';
 
 // ---------------------------------------------------------------------------
 // Convert AI output sections into a PRDDocument
@@ -26,45 +30,51 @@ function aiSectionsToPRDDocument(
 ): PRDDocument {
   const prd = createEmptyPRD(userId, title);
 
-  // Overview (rich text)
-  prd.sections.overview = {
-    content: {
-      type: 'doc',
-      content: sections.overview
-        .split('\n\n')
-        .filter(Boolean)
-        .map((p) => ({
-          type: 'paragraph',
-          content: [{ type: 'text', text: p }],
-        })),
-    },
-    word_count: sections.overview.split(/\s+/).filter(Boolean).length,
-    ai_generated: true,
-  };
+  // Overview (rich text) — skip if empty
+  if (sections.overview) {
+    prd.sections.overview = {
+      content: {
+        type: 'doc',
+        content: sections.overview
+          .split('\n\n')
+          .filter(Boolean)
+          .map((p) => ({
+            type: 'paragraph',
+            content: [{ type: 'text', text: p }],
+          })),
+      },
+      word_count: sections.overview.split(/\s+/).filter(Boolean).length,
+      ai_generated: true,
+    };
+  }
 
-  // Problem Statement (rich text)
-  prd.sections.problem_statement = {
-    content: {
-      type: 'doc',
-      content: sections.problem_statement
-        .split('\n\n')
-        .filter(Boolean)
-        .map((p) => ({
-          type: 'paragraph',
-          content: [{ type: 'text', text: p }],
-        })),
-    },
-    word_count: sections.problem_statement.split(/\s+/).filter(Boolean).length,
-    ai_generated: true,
-  };
+  // Problem Statement (rich text) — skip if empty
+  if (sections.problem_statement) {
+    prd.sections.problem_statement = {
+      content: {
+        type: 'doc',
+        content: sections.problem_statement
+          .split('\n\n')
+          .filter(Boolean)
+          .map((p) => ({
+            type: 'paragraph',
+            content: [{ type: 'text', text: p }],
+          })),
+      },
+      word_count: sections.problem_statement.split(/\s+/).filter(Boolean).length,
+      ai_generated: true,
+    };
+  }
 
-  // Objectives
-  prd.sections.objectives = sections.objectives.map((obj, i) => ({
-    id: `OBJ-${String(i + 1).padStart(3, '0')}`,
-    type: 'goal' as const,
-    description: obj.statement,
-    key_results: [obj.measurable_outcome],
-  }));
+  // Objectives — skip if empty
+  if (sections.objectives && sections.objectives.length > 0) {
+    prd.sections.objectives = sections.objectives.map((obj, i) => ({
+      id: `OBJ-${String(i + 1).padStart(3, '0')}`,
+      type: 'goal' as const,
+      description: obj.statement,
+      key_results: [obj.measurable_outcome],
+    }));
+  }
 
   // DARCI — handle both old format (string/array) and new format (object with people/guidelines)
   const parseDarciRole = (role: unknown) => {
@@ -84,106 +94,120 @@ function aiSectionsToPRDDocument(
     }
     return { people: [], guidelines: '' };
   };
-  prd.sections.darci = {
-    decider: parseDarciRole(sections.darci.decider),
-    accountable: parseDarciRole(sections.darci.accountable),
-    responsible: parseDarciRole(sections.darci.responsible),
-    consulted: parseDarciRole(sections.darci.consulted),
-    informed: parseDarciRole(sections.darci.informed),
-  };
+  if (sections.darci) {
+    prd.sections.darci = {
+      decider: parseDarciRole(sections.darci.decider),
+      accountable: parseDarciRole(sections.darci.accountable),
+      responsible: parseDarciRole(sections.darci.responsible),
+      consulted: parseDarciRole(sections.darci.consulted),
+      informed: parseDarciRole(sections.darci.informed),
+    };
+  }
 
   // Scope
-  prd.sections.scope = {
-    in_scope: sections.scope.in_scope,
-    out_of_scope: sections.scope.out_of_scope,
-  };
+  if (sections.scope) {
+    prd.sections.scope = {
+      in_scope: sections.scope.in_scope,
+      out_of_scope: sections.scope.out_of_scope,
+    };
+  }
 
   // User Stories
-  prd.sections.user_stories = sections.user_stories.map((story, i) => ({
-    id: `US-${String(i + 1).padStart(3, '0')}`,
-    role: story.role,
-    want: story.want,
-    benefit: story.benefit,
-    acceptance_criteria: story.acceptance_criteria,
-    priority: (story.priority && ['must', 'should', 'could', 'wont'].includes(story.priority)
-      ? story.priority
-      : 'should') as 'must' | 'should' | 'could' | 'wont',
-  }));
+  if (sections.user_stories && sections.user_stories.length > 0)
+    prd.sections.user_stories = sections.user_stories.map((story, i) => ({
+      id: `US-${String(i + 1).padStart(3, '0')}`,
+      role: story.role,
+      want: story.want,
+      benefit: story.benefit,
+      acceptance_criteria: story.acceptance_criteria,
+      priority: (story.priority && ['must', 'should', 'could', 'wont'].includes(story.priority)
+        ? story.priority
+        : 'should') as 'must' | 'should' | 'could' | 'wont',
+    }));
 
   // Functional Requirements
-  prd.sections.functional_reqs = sections.functional_reqs.map((req, i) => ({
-    id: `FR-${String(i + 1).padStart(3, '0')}`,
-    priority: mapPriority(req.priority),
-    title: req.title,
-    description: req.description,
-    dependencies: [],
-  }));
+  if (sections.functional_reqs && sections.functional_reqs.length > 0)
+    prd.sections.functional_reqs = sections.functional_reqs.map((req, i) => ({
+      id: `FR-${String(i + 1).padStart(3, '0')}`,
+      priority: mapPriority(req.priority),
+      title: req.title,
+      description: req.description,
+      dependencies: [],
+    }));
 
   // NFR
-  prd.sections.nfr = {
-    performance: sections.nfr.performance ? [sections.nfr.performance] : [],
-    security: sections.nfr.security ? [sections.nfr.security] : [],
-    accessibility: sections.nfr.accessibility ? [sections.nfr.accessibility] : [],
-    scalability: sections.nfr.scalability ? [sections.nfr.scalability] : [],
-    reliability: [],
-    compliance: [],
-  };
+  if (sections.nfr) {
+    prd.sections.nfr = {
+      performance: sections.nfr.performance ? [sections.nfr.performance] : [],
+      security: sections.nfr.security ? [sections.nfr.security] : [],
+      accessibility: sections.nfr.accessibility ? [sections.nfr.accessibility] : [],
+      scalability: sections.nfr.scalability ? [sections.nfr.scalability] : [],
+      reliability: [],
+      compliance: [],
+    };
+  }
 
   // Success Metrics
-  prd.sections.success_metrics = sections.success_metrics.map((m, i) => ({
-    id: `SM-${String(i + 1).padStart(3, '0')}`,
-    name: m.name,
-    definition: m.definition ?? '',
-    baseline: m.baseline ?? '',
-    target: m.target,
-    measurement_window: m.measurement_window,
-  }));
+  if (sections.success_metrics && sections.success_metrics.length > 0)
+    prd.sections.success_metrics = sections.success_metrics.map((m, i) => ({
+      id: `SM-${String(i + 1).padStart(3, '0')}`,
+      name: m.name,
+      definition: m.definition ?? '',
+      baseline: m.baseline ?? '',
+      target: m.target,
+      measurement_window: m.measurement_window,
+    }));
 
   // Timeline
-  prd.sections.timeline = sections.timeline.map((ms, i) => ({
-    id: `MS-${String(i + 1).padStart(3, '0')}`,
-    title: ms.title,
-    date: ms.date,
-    activity: ms.activity ?? '',
-    deliverables: ms.deliverable
-      ? Array.isArray(ms.deliverable)
-        ? ms.deliverable
-        : [ms.deliverable]
-      : (ms.deliverables ?? []),
-    pic: ms.pic ?? '',
-    status: 'planned' as const,
-  }));
+  if (sections.timeline && sections.timeline.length > 0)
+    prd.sections.timeline = sections.timeline.map((ms, i) => ({
+      id: `MS-${String(i + 1).padStart(3, '0')}`,
+      title: ms.title,
+      date: ms.date,
+      activity: ms.activity ?? '',
+      deliverables: ms.deliverable
+        ? Array.isArray(ms.deliverable)
+          ? ms.deliverable
+          : [ms.deliverable]
+        : (ms.deliverables ?? []),
+      pic: ms.pic ?? '',
+      status: 'planned' as const,
+    }));
 
   // Risks
-  prd.sections.risks = sections.risks.map((r, i) => ({
-    id: `RISK-${String(i + 1).padStart(3, '0')}`,
-    description: r.description,
-    likelihood: r.likelihood,
-    impact: r.impact,
-    mitigation: r.mitigation,
-  }));
+  if (sections.risks && sections.risks.length > 0)
+    prd.sections.risks = sections.risks.map((r, i) => ({
+      id: `RISK-${String(i + 1).padStart(3, '0')}`,
+      description: r.description,
+      likelihood: r.likelihood,
+      impact: r.impact,
+      mitigation: r.mitigation,
+    }));
 
   // References
-  prd.sections.references = sections.references.map((ref, i) => ({
-    id: `REF-${String(i + 1).padStart(3, '0')}`,
-    type: (ref.type as 'document' | 'url' | 'other') || 'other',
-    url: ref.url,
-    title: ref.title,
-  }));
+  if (sections.references && sections.references.length > 0)
+    prd.sections.references = sections.references.map((ref, i) => ({
+      id: `REF-${String(i + 1).padStart(3, '0')}`,
+      type: (ref.type as 'document' | 'url' | 'other') || 'other',
+      url: ref.url,
+      title: ref.title,
+    }));
 
   // Glossary
-  prd.sections.glossary = sections.glossary.map((g) => ({
-    term: g.term,
-    definition: g.definition,
-  }));
+  if (sections.glossary && sections.glossary.length > 0)
+    prd.sections.glossary = sections.glossary.map((g) => ({
+      term: g.term,
+      definition: g.definition,
+    }));
 
   // Changelog
-  prd.sections.changelog = sections.changelog.map((c) => ({
-    version: c.version,
-    date: c.date,
-    author: c.author,
-    summary: c.summary,
-  }));
+  if (sections.changelog && sections.changelog.length > 0)
+    prd.sections.changelog = sections.changelog.map((c) => ({
+      version: c.version,
+      date: c.date,
+      author: c.author,
+      summary: c.summary,
+    }));
 
   return prd;
 }
@@ -250,6 +274,19 @@ export async function POST(request: Request) {
 
   try {
     const user = await requireUser();
+
+    // Rate limit check
+    const rateCheck = checkRateLimit(`generate:${user.id}`, AI_RATE_LIMITS.generate);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Too many generation requests. Please wait a moment.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil(rateCheck.retryAfterMs / 1000)) },
+        },
+      );
+    }
+
     const supabase = await createClient();
 
     const body = await request.json();
@@ -278,10 +315,7 @@ export async function POST(request: Request) {
     }
 
     // Mark as running
-    await supabase
-      .from('ai_runs')
-      .update({ status: 'running', started_at: new Date().toISOString() })
-      .eq('id', aiRunId);
+    await supabase.from('ai_runs').update({ status: 'running' }).eq('id', aiRunId);
 
     // Fetch PRD
     const { data: prd } = await supabase.from('prds').select('*').eq('id', prdId).single();
@@ -302,6 +336,7 @@ export async function POST(request: Request) {
       project_tag?: string;
       stakeholders?: string;
       team_members?: string[];
+      team_member_roles?: string[];
       problem_statement?: string;
       target_users?: string;
       constraints?: string;
@@ -331,20 +366,29 @@ export async function POST(request: Request) {
       endDate: inputPayload.end_date,
       problemStatement: inputPayload.problem_statement,
       targetUsers: inputPayload.target_users,
-      teamMembers: inputPayload.team_members?.join(', '),
+      teamMembers: inputPayload.team_members
+        ?.map((name, i) => {
+          const role = inputPayload.team_member_roles?.[i];
+          return role ? `${name} (${role})` : name;
+        })
+        .join(', '),
       constraints: inputPayload.constraints,
       successCriteria: inputPayload.success_criteria,
       platform: inputPayload.platform,
       priority: inputPayload.priority,
       techStack: inputPayload.tech_stack,
       designLink: inputPayload.design_link,
+      templateName: (inputPayload as Record<string, unknown>).template_name as string | undefined,
+      templateSections: (inputPayload as Record<string, unknown>).template_sections as
+        | { name: string; guidelines: string }[]
+        | undefined,
     });
 
     // Try ALL providers in priority order with real fallback
     let aiSections: AIGeneratedSections = undefined!;
     let modelUsed = 'pending';
     let tokensUsed = 0;
-    let providerId: string | null = null;
+    let _providerId: string | null = null;
     const providerErrors: string[] = [];
 
     // Get all active providers
@@ -356,6 +400,18 @@ export async function POST(request: Request) {
       )
       .eq('status', 'active')
       .order('priority', { ascending: true });
+
+    // If user preferred a specific provider, move it to front of list
+    const preferredId = (inputPayload as Record<string, unknown>).preferred_provider_id as
+      | string
+      | undefined;
+    if (preferredId && allProviders) {
+      const idx = allProviders.findIndex((p) => p.id === preferredId);
+      if (idx > 0) {
+        const preferred = allProviders.splice(idx, 1)[0]!;
+        allProviders.unshift(preferred);
+      }
+    }
 
     if (!allProviders || allProviders.length === 0) {
       const durationMs = Date.now() - startMs;
@@ -385,7 +441,7 @@ export async function POST(request: Request) {
         );
 
         modelUsed = provider.default_model;
-        providerId = provider.id;
+        _providerId = provider.id;
 
         // Update status to running
         await supabase
@@ -393,42 +449,163 @@ export async function POST(request: Request) {
           .update({ status: 'running', model_used: `${provider.display_name}/${modelUsed}` })
           .eq('id', aiRunId);
 
-        // Call AI
-        const result = await generateText({
-          model,
-          system: SYSTEM_PROMPT,
-          prompt: userPrompt,
-          maxTokens: 16000,
-          temperature: 0.5,
-        });
+        // Call AI with structured output (schema-enforced)
+        let result;
+        try {
+          // Try generateObject first (structured output mode)
+          const objectResult = await generateObject({
+            model,
+            schema: AIGeneratedSectionsSchema,
+            system: SYSTEM_PROMPT,
+            prompt: userPrompt,
+            maxTokens: 65000,
+            temperature: 0.25,
+          });
 
-        tokensUsed = result.usage?.totalTokens ?? 0;
+          aiSections = objectResult.object;
+          tokensUsed = objectResult.usage?.totalTokens ?? 0;
+        } catch (structuredError) {
+          // Fallback to generateText + manual parse if provider doesn't support structured output
+          logWarn(
+            'prd.generate',
+            `Structured output failed for ${provider.display_name}, falling back to generateText`,
+            {
+              error:
+                structuredError instanceof Error
+                  ? structuredError.message
+                  : String(structuredError),
+              provider: provider.display_name,
+            },
+            user.id,
+          );
 
-        // Parse response
-        let jsonText = result.text.trim();
-        const fenceMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (fenceMatch) {
-          jsonText = fenceMatch[1]!.trim();
-        }
+          result = await generateText({
+            model,
+            system: SYSTEM_PROMPT,
+            prompt:
+              userPrompt +
+              '\n\nIMPORTANT: Output ONLY a valid JSON object matching the PRD schema. No markdown fences, no explanation, no text before or after the JSON. Generate ALL 14 sections with full detail.',
+            maxTokens: 65000,
+            temperature: 0.25,
+          });
 
-        const parsed = JSON.parse(jsonText);
+          tokensUsed = result.usage?.totalTokens ?? 0;
 
-        const validation = AIGeneratedSectionsSchema.safeParse(parsed);
-        if (validation.success) {
-          aiSections = validation.data;
-        } else if (parsed.overview) {
-          aiSections = parsed as AIGeneratedSections;
-        } else {
-          throw new Error(`AI output validation failed: ${validation.error.message}`);
+          let jsonText = result.text.trim();
+
+          // Strip markdown fences if present
+          const fenceMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (fenceMatch) {
+            jsonText = fenceMatch[1]!.trim();
+          }
+
+          // Try to repair truncated JSON by closing open braces/brackets
+          let parsed;
+          try {
+            parsed = JSON.parse(jsonText);
+          } catch {
+            logWarn(
+              'prd.generate',
+              'JSON parse failed, attempting repair',
+              { length: jsonText.length, tail: jsonText.slice(-100) },
+              user.id,
+            );
+
+            // Count unclosed braces/brackets and close them
+            let openBraces = 0;
+            let openBrackets = 0;
+            let inString = false;
+            let escaped = false;
+            for (const ch of jsonText) {
+              if (escaped) {
+                escaped = false;
+                continue;
+              }
+              if (ch === '\\') {
+                escaped = true;
+                continue;
+              }
+              if (ch === '"') {
+                inString = !inString;
+                continue;
+              }
+              if (inString) continue;
+              if (ch === '{') openBraces++;
+              if (ch === '}') openBraces--;
+              if (ch === '[') openBrackets++;
+              if (ch === ']') openBrackets--;
+            }
+
+            // Close any strings that are open
+            if (inString) jsonText += '"';
+            // Close brackets and braces
+            for (let k = 0; k < openBrackets; k++) jsonText += ']';
+            for (let k = 0; k < openBraces; k++) jsonText += '}';
+
+            try {
+              parsed = JSON.parse(jsonText);
+            } catch (repairErr) {
+              logError(
+                'prd.generate',
+                'JSON repair also failed',
+                { error: repairErr instanceof Error ? repairErr.message : String(repairErr) },
+                user.id,
+              );
+              throw new Error('AI returned malformed JSON that could not be repaired');
+            }
+          }
+
+          const validation = AIGeneratedSectionsSchema.safeParse(parsed);
+          if (validation.success) {
+            aiSections = validation.data;
+          } else if (parsed.overview) {
+            aiSections = parsed as AIGeneratedSections;
+          } else {
+            logError(
+              'prd.generate',
+              'AI output validation failed',
+              { issues: validation.error.issues.slice(0, 5) },
+              user.id,
+            );
+            throw new Error('AI output did not match expected PRD schema');
+          }
         }
 
         // Update provider stats on success
         updateProviderStats(provider.id, true, Date.now() - startMs).catch(() => {});
         generationSucceeded = true;
+
+        // Log to LangSmith
+        logToLangSmith({
+          name: 'prd.generate',
+          inputs: {
+            title: inputPayload.title,
+            brief: inputPayload.brief?.slice(0, 500),
+            model: modelUsed,
+          },
+          outputs: { health_score: 0, word_count: 0, sections: Object.keys(aiSections).length },
+          startTime: new Date(startMs),
+          endTime: new Date(),
+          metadata: {
+            provider: provider.display_name,
+            model: modelUsed,
+            tokens: tokensUsed,
+            prdId,
+            userId: user.id,
+          },
+          usage: { totalTokens: tokensUsed },
+        }).catch(() => {});
+
         break;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         providerErrors.push(`${provider.display_name}: ${msg}`);
+        logError(
+          'prd.generate',
+          `Provider ${provider.display_name} failed`,
+          { error: msg, provider: provider.display_name },
+          user.id,
+        );
         updateProviderStats(provider.id, false, Date.now() - startMs, msg).catch(() => {});
         continue; // Try next provider
       }
@@ -436,6 +613,17 @@ export async function POST(request: Request) {
 
     if (!generationSucceeded) {
       const allErrorsMsg = `All providers failed: ${providerErrors.join(' | ')}`;
+      logError('prd.generate', 'All providers failed', { errors: providerErrors, prdId }, user.id);
+
+      // Log failure to LangSmith
+      logToLangSmith({
+        name: 'prd.generate',
+        inputs: { title: inputPayload.title, brief: inputPayload.brief?.slice(0, 500) },
+        error: allErrorsMsg,
+        startTime: new Date(startMs),
+        endTime: new Date(),
+        metadata: { prdId, userId: user.id, providerErrors },
+      }).catch(() => {});
       const durationMs = Date.now() - startMs;
       await supabase
         .from('ai_runs')
@@ -446,11 +634,44 @@ export async function POST(request: Request) {
         })
         .eq('id', aiRunId);
 
-      return NextResponse.json({ error: allErrorsMsg }, { status: 500 });
+      return NextResponse.json(
+        { error: 'AI provider could not generate the PRD. Please try again.' },
+        { status: 500 },
+      );
     }
 
     // Convert to PRDDocument
     const prdDocument = aiSectionsToPRDDocument(aiSections, user.id, inputPayload.title);
+
+    // Enrich metadata with form data
+    const ownerName =
+      (user.user_metadata as Record<string, string> | undefined)?.full_name ?? user.email ?? 'User';
+    prdDocument.metadata.owner_name = ownerName;
+    prdDocument.metadata.project_tag = inputPayload.project_tag;
+    prdDocument.metadata.start_date = inputPayload.start_date;
+    prdDocument.metadata.end_date = inputPayload.end_date;
+    if (inputPayload.team_members && inputPayload.team_members.length > 0) {
+      prdDocument.metadata.developers = inputPayload.team_members.map((name, i) => ({
+        name,
+        role: inputPayload.team_member_roles?.[i] ?? '',
+      }));
+    }
+    if (inputPayload.stakeholders) {
+      prdDocument.metadata.stakeholder_names = inputPayload.stakeholders
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+    }
+
+    // Force changelog to exactly 1 entry with correct data
+    prdDocument.sections.changelog = [
+      {
+        version: 1,
+        date: inputPayload.start_date || new Date().toISOString().slice(0, 10),
+        author: ownerName,
+        summary: 'Initial draft',
+      },
+    ];
 
     // Generate Tiptap content
     const tiptapContent = prdToTiptap(prdDocument);
@@ -461,70 +682,66 @@ export async function POST(request: Request) {
     // Count words
     const wordCount = countDocumentWords(prdDocument);
 
-    // Update PRD
-    const { error: updateError } = await supabase
-      .from('prds')
-      .update({
-        content: prdDocument,
-        tiptap_content: tiptapContent,
-        health_score: healthResult.score,
-        health_breakdown: healthResult.breakdown,
-        word_count: wordCount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', prdId);
-
-    if (updateError) {
-      throw new Error(`Failed to update PRD: ${updateError.message}`);
-    }
-
-    // Create initial prd_version
-    await supabase.from('prd_versions').insert({
-      prd_id: prdId,
-      version_number: 1,
-      content: prdDocument,
-      tiptap_content: tiptapContent,
-      word_count: wordCount,
-      health_score: healthResult.score,
-      created_by: user.id,
-      change_summary: 'Initial draft generated by DraftMind AI',
-    });
-
-    // Update ai_run to success
+    // Update PRD + version + ai_run in parallel (all independent)
     const durationMs = Date.now() - startMs;
-    const updateResult = await supabase
-      .from('ai_runs')
-      .update({
-        status: 'success',
-        model_used: modelUsed,
-        total_tokens: tokensUsed ?? 0,
-        duration_ms: durationMs,
-        output_payload: {
+
+    const [prdUpdate, , aiRunUpdate] = await Promise.all([
+      supabase
+        .from('prds')
+        .update({
+          content: prdDocument,
+          tiptap_content: tiptapContent,
           health_score: healthResult.score,
+          health_breakdown: healthResult.breakdown,
           word_count: wordCount,
-          section_count: 14,
-        },
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', aiRunId);
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', prdId),
+      supabase.from('prd_versions').insert({
+        prd_id: prdId,
+        version_number: 1,
+        content: tiptapContent,
+        created_by: user.id,
+        source: 'ai_generate',
+        change_summary: 'Initial draft generated by DraftMind AI',
+      }),
+      supabase
+        .from('ai_runs')
+        .update({
+          status: 'success',
+          model_used: modelUsed,
+          total_tokens: tokensUsed ?? 0,
+          duration_ms: durationMs,
+          output_payload: {
+            health_score: healthResult.score,
+            word_count: wordCount,
+            section_count: 14,
+          },
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', aiRunId),
+    ]);
 
-    if (updateResult.error) {
-      console.error('Failed to update ai_run:', updateResult.error.message);
+    if (prdUpdate.error) {
+      throw new Error(`Failed to update PRD: ${prdUpdate.error.message}`);
     }
 
-    // Update provider stats
-    if (providerId) {
-      const { updateProviderStats } = await import('@/lib/ai/client');
-      await updateProviderStats(providerId, true, durationMs).catch(() => {});
+    if (aiRunUpdate.error) {
+      logError(
+        'prd.generate',
+        'Failed to update ai_run',
+        { error: aiRunUpdate.error.message },
+        user.id,
+      );
     }
 
-    // Log activity
-    await supabase.from('activity_log').insert({
-      workspace_id: workspaceId,
-      actor_id: user.id,
+    // Activity log — use admin client (RLS blocks user insert on activity_log)
+    logActivity({
+      workspaceId,
+      actorId: user.id,
       type: 'prd_created',
-      resource_type: 'prd',
-      resource_id: prdId,
+      resourceType: 'prd',
+      resourceId: prdId,
       metadata: {
         title: inputPayload.title,
         model: modelUsed,
@@ -535,13 +752,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      mock: false,
       healthScore: healthResult.score,
       wordCount,
     });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[generate] Error:', errMsg);
-    return NextResponse.json({ error: errMsg }, { status: 500 });
+    logError('prd.generate', errMsg, { stack: error instanceof Error ? error.stack : undefined });
+    return NextResponse.json(
+      { error: 'Something went wrong while generating your PRD. Please try again.' },
+      { status: 500 },
+    );
   }
 }

@@ -10,7 +10,6 @@ export async function searchPRDs() {
   const { data } = await supabase
     .from('prds')
     .select('id, title, project_tag, status')
-    .is('archived_at', null)
     .order('updated_at', { ascending: false })
     .limit(20);
 

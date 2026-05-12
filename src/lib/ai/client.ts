@@ -1,6 +1,5 @@
 import 'server-only';
 import type { LanguageModelV1 } from 'ai';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { decryptApiKey } from '@/lib/utils/crypto';
 import { PROVIDER_REGISTRY } from './providers';
@@ -18,7 +17,7 @@ export interface AIClientResult {
 }
 
 export async function createAIClient(providerId: string): Promise<AIClientResult> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: provider, error } = await supabase
     .from('providers')
