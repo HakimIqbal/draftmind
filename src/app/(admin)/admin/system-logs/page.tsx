@@ -222,7 +222,7 @@ export default function SystemLogsPage() {
         <div>
           <h1 className="text-lg font-semibold text-[#1a1a1a]">System Logs</h1>
           <p className="mt-0.5 text-xs text-[#888]">
-            Real-time system monitoring — auto-refreshes every 5s
+            Real-time system monitoring - auto-refreshes every 5s
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">

@@ -175,7 +175,7 @@ export default function AdminAnnouncementsPage() {
                 <option value="">Choose a user...</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.full_name ?? u.email} — {u.role_self_reported ?? 'No role'}
+                    {u.full_name ?? u.email} - {u.role_self_reported ?? 'No role'}
                   </option>
                 ))}
               </select>

@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { requireUser } from '@/lib/auth/permissions';
+import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
 import { logError } from '@/lib/logging/system-log';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { logActivity } from '@/lib/logging/activity-log';
@@ -13,14 +13,39 @@ export interface SelectionRange {
   quotedText: string;
 }
 
+// Roles allowed to interact with comments (viewer = read-only)
+const COMMENTER_ROLES = ['admin', 'editor', 'commenter'] as const;
+
+async function getWorkspaceIdFromComment(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  commentId: string,
+): Promise<string | null> {
+  const { data: comment } = await supabase
+    .from('comments')
+    .select('prd_id')
+    .eq('id', commentId)
+    .single();
+  if (!comment) return null;
+  const { data: prd } = await supabase
+    .from('prds')
+    .select('workspace_id')
+    .eq('id', comment.prd_id)
+    .single();
+  return prd?.workspace_id ?? null;
+}
+
 export async function addComment(
   prdId: string,
   body: string,
   parentId: string | null,
   selectionRange?: SelectionRange,
 ) {
-  const user = await requireUser();
   const supabase = await createClient();
+
+  // Fetch workspaceId to verify role before insert
+  const { data: prd } = await supabase.from('prds').select('workspace_id').eq('id', prdId).single();
+  if (!prd) return { error: 'PRD not found' };
+  const { user } = await requireWorkspaceRole(prd.workspace_id, [...COMMENTER_ROLES]);
 
   const { data, error } = await supabase
     .from('comments')
@@ -137,8 +162,10 @@ export async function addComment(
 }
 
 export async function resolveComment(commentId: string) {
-  const user = await requireUser();
   const supabase = await createClient();
+  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  if (!workspaceId) return { error: 'Comment not found' };
+  const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
 
   const { error } = await supabase
     .from('comments')
@@ -163,9 +190,30 @@ export async function resolveComment(commentId: string) {
   return { success: true };
 }
 
-export async function editComment(commentId: string, body: string) {
-  const user = await requireUser();
+export async function unresolveComment(commentId: string) {
   const supabase = await createClient();
+  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  if (!workspaceId) return { error: 'Comment not found' };
+  const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
+
+  const { error } = await supabase
+    .from('comments')
+    .update({ resolved_at: null })
+    .eq('id', commentId);
+
+  if (error) {
+    logError('comments.unresolve', error.message, { commentId }, user.id);
+    return { error: 'Failed to reopen comment' };
+  }
+
+  return { success: true };
+}
+
+export async function editComment(commentId: string, body: string) {
+  const supabase = await createClient();
+  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  if (!workspaceId) return { error: 'Comment not found' };
+  const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
 
   // Verify ownership
   const { data: comment } = await supabase
@@ -199,8 +247,10 @@ export async function editComment(commentId: string, body: string) {
 }
 
 export async function deleteComment(commentId: string) {
-  const user = await requireUser();
   const supabase = await createClient();
+  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  if (!workspaceId) return { error: 'Comment not found' };
+  const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
 
   // Verify ownership
   const { data: comment } = await supabase

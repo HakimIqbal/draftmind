@@ -5,6 +5,8 @@ import { getPRDsByWorkspace, getPRDCountByWorkspace } from '@/lib/db/queries/prd
 import { redirect } from 'next/navigation';
 import { PRDListPageClient } from './client';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   searchParams: Promise<{ status?: string; q?: string; sort?: string }>;
 }
@@ -36,6 +38,12 @@ export default async function PRDListPage({ searchParams }: Props) {
   const { items, total } = await getPRDsByWorkspace(wsId, { status, search, sort });
 
   return (
-    <PRDListPageClient items={items} total={total} currentStatus={status} currentSearch={search} />
+    <PRDListPageClient
+      items={items}
+      total={total}
+      currentStatus={status}
+      currentSearch={search}
+      workspaceId={wsId}
+    />
   );
 }

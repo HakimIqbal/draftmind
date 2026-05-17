@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { marked } from 'marked';
 import type { Editor } from '@tiptap/react';
 import { useEditorStore } from '@/stores/editor-store';
+import { useUserStore } from '@/stores/user-store';
 import { TiptapEditor } from '@/components/editor/tiptap-editor';
 import { EditorHeader } from '@/components/editor/editor-header';
 import { OutlinePanel } from '@/components/editor/outline-panel';
@@ -16,6 +17,7 @@ import { MarkdownView } from '@/components/editor/markdown-view';
 import { BubbleToolbar } from '@/components/editor/bubble-toolbar';
 import { InlineCommentPopover } from '@/components/editor/inline-comment-popover';
 import { savePRDContent } from '@/components/editor/actions';
+import { fetchComments } from '@/components/editor/comments-actions';
 import { updateHiddenSections } from '@/app/(app)/prds/[prdId]/actions';
 import { PRD_SECTION_LABELS } from '@/types/prd';
 import { usePrdPresence } from '@/hooks/use-prd-presence';
@@ -51,6 +53,9 @@ export interface EditorShellProps {
   workspaceId?: string;
   aiProviders?: { id: string; display_name: string; default_model: string }[];
   canChangeStatus?: boolean;
+  lastEditorName?: string;
+  lastEditorEmail?: string;
+  lastEditorAvatar?: string | null;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -75,6 +80,9 @@ export function EditorShell({
   workspaceId: _workspaceId,
   aiProviders,
   canChangeStatus,
+  lastEditorName,
+  lastEditorEmail,
+  lastEditorAvatar,
 }: EditorShellProps) {
   const {
     outlineCollapsed,
@@ -91,6 +99,8 @@ export function EditorShell({
     setCurrentSection,
   } = useEditorStore();
 
+  const storeAvatarUrl = useUserStore((state) => state.avatarUrl);
+
   // Auto-collapse panels on mobile
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -100,9 +110,22 @@ export function EditorShell({
 
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
   const [historyMode, setHistoryMode] = useState(false);
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [hiddenSections, setHiddenSections] = useState<string[]>(prd.hidden_sections ?? []);
   const [liveWordCount, setLiveWordCount] = useState(prd.word_count);
   const [liveReadTime, setLiveReadTime] = useState(prd.read_time_minutes);
+  const [localUpdatedAt, setLocalUpdatedAt] = useState<string>(prd.updated_at);
+  const [localLastEditor, setLocalLastEditor] = useState({
+    name: lastEditorName,
+    email: lastEditorEmail,
+    avatar: storeAvatarUrl ?? lastEditorAvatar ?? null,
+  });
+
+  useEffect(() => {
+    if (storeAvatarUrl) {
+      setLocalLastEditor((prev) => ({ ...prev, avatar: storeAvatarUrl }));
+    }
+  }, [storeAvatarUrl]);
 
   // Recalculate word count on every editor content change
   useEffect(() => {
@@ -202,6 +225,8 @@ export function EditorShell({
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasUnsavedEditsRef = useRef(false);
+  const isSavingRef = useRef(false);
+  const pendingContentRef = useRef<Record<string, unknown> | null>(null);
 
   // Create a version snapshot (fire-and-forget)
   const createVersionSnapshot = useCallback(async () => {
@@ -242,23 +267,47 @@ export function EditorShell({
 
   const handleUpdate = useCallback(
     (content: Record<string, unknown>) => {
-      setSaveStatus('saving');
-      savePRDContent(prd.id, content)
-        .then((result) => {
-          if (result.ok) {
-            setSaveStatus('saved');
-            setTimeout(() => setSaveStatus('idle'), 2000);
-            scheduleIdleVersion();
-            broadcastContentSaved();
-          } else {
+      if (isSavingRef.current) {
+        pendingContentRef.current = content;
+        return;
+      }
+
+      function doSave(contentToSave: Record<string, unknown>) {
+        isSavingRef.current = true;
+        setSaveStatus('saving');
+        savePRDContent(prd.id, contentToSave)
+          .then((result) => {
+            if (result.ok) {
+              setSaveStatus('saved');
+              setTimeout(() => setSaveStatus('idle'), 2000);
+              scheduleIdleVersion();
+              broadcastContentSaved();
+              setLocalUpdatedAt(new Date().toISOString());
+              setLocalLastEditor({
+                name: userName,
+                email: userEmail,
+                avatar: storeAvatarUrl ?? userAvatar ?? null,
+              });
+            } else {
+              setSaveStatus('error');
+            }
+          })
+          .catch(() => {
             setSaveStatus('error');
-          }
-        })
-        .catch(() => {
-          setSaveStatus('error');
-        });
+          })
+          .finally(() => {
+            isSavingRef.current = false;
+            const pending = pendingContentRef.current;
+            if (pending !== null) {
+              pendingContentRef.current = null;
+              doSave(pending);
+            }
+          });
+      }
+
+      doSave(content);
     },
-    [prd.id, scheduleIdleVersion, broadcastContentSaved],
+    [prd.id, scheduleIdleVersion, broadcastContentSaved, userName, userEmail, userAvatar],
   );
 
   const handleInsert = useCallback(
@@ -296,6 +345,12 @@ export function EditorShell({
               setTimeout(() => setSaveStatus('idle'), 2000);
               createVersionSnapshot();
               broadcastContentSaved();
+              setLocalUpdatedAt(new Date().toISOString());
+              setLocalLastEditor({
+                name: userName,
+                email: userEmail,
+                avatar: storeAvatarUrl ?? userAvatar ?? null,
+              });
             }
           })
           .catch(() => {
@@ -304,7 +359,16 @@ export function EditorShell({
       }
       closeAIAssist();
     },
-    [editorInstance, closeAIAssist, prd.id, createVersionSnapshot, broadcastContentSaved],
+    [
+      editorInstance,
+      closeAIAssist,
+      prd.id,
+      createVersionSnapshot,
+      broadcastContentSaved,
+      userName,
+      userEmail,
+      userAvatar,
+    ],
   );
 
   const handleMarkdownChange = useCallback(
@@ -346,6 +410,105 @@ export function EditorShell({
       handleUpdate(editorInstance.getJSON() as Record<string, unknown>);
     }
   }, [editorInstance, handleUpdate]);
+
+  // Remove CommentMark from editor when a comment is deleted or resolved,
+  // then save so the mark is also removed from tiptap_content in DB.
+  const handleCommentMarkRemoved = useCallback(
+    (commentId: string) => {
+      if (!editorInstance) return;
+      editorInstance.chain().unsetComment(commentId).run();
+      handleUpdate(editorInstance.getJSON() as Record<string, unknown>);
+    },
+    [editorInstance, handleUpdate],
+  );
+
+  // Restore CommentMark when a resolved comment is reopened.
+  const handleCommentReopened = useCallback(
+    async (commentId: string) => {
+      if (!editorInstance) return;
+      try {
+        const comments = await fetchComments(prd.id, 'open');
+        const comment = comments.find((c: { id: string }) => c.id === commentId);
+        const range = (comment as { selection_range?: { from: number; to: number } | null })
+          ?.selection_range;
+        if (!range?.from || !range?.to) return;
+        const { from, to } = range;
+        const docSize = editorInstance.state.doc.content.size;
+        if (from < 0 || to > docSize || from >= to) return;
+        editorInstance.chain().setTextSelection({ from, to }).setComment(commentId).run();
+        editorInstance.commands.setTextSelection(0);
+        handleUpdate(editorInstance.getJSON() as Record<string, unknown>);
+      } catch {
+        // Silent fail — invalid range or fetch error
+      }
+    },
+    [editorInstance, prd.id, handleUpdate],
+  );
+
+  // Restore CommentMarks from DB after editor mounts (marks are not always
+  // in tiptap_content if the save raced with page reload)
+  const restoreCommentMarks = useCallback(async () => {
+    if (!editorInstance) return;
+    try {
+      const comments = await fetchComments(prd.id, 'open');
+      const docSize = editorInstance.state.doc.content.size;
+
+      comments.forEach((comment) => {
+        const range = comment.selection_range as { from: number; to: number } | null;
+        if (!range?.from || !range?.to) return;
+        const { from, to } = range;
+        if (from < 0 || to > docSize || from >= to) return;
+
+        try {
+          editorInstance.chain().setTextSelection({ from, to }).setComment(comment.id).run();
+        } catch {
+          // Silent fail — position invalid, skip
+        }
+      });
+
+      // Deselect after restoring all marks
+      editorInstance.commands.setTextSelection(0);
+    } catch {
+      // Silent fail — don't crash the editor
+    }
+  }, [editorInstance, prd.id]);
+
+  useEffect(() => {
+    if (!editorInstance) return;
+    // Small delay ensures Tiptap has fully committed content to the DOM
+    const timer = setTimeout(() => restoreCommentMarks(), 100);
+    return () => clearTimeout(timer);
+  }, [editorInstance, restoreCommentMarks]);
+
+  // S6: Detect clicks on comment-highlight spans → scroll sidebar to that comment
+  useEffect(() => {
+    function handleEditorClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      const span = target.closest('[data-comment-id]');
+      if (!span) return;
+      const commentId = span.getAttribute('data-comment-id');
+      if (!commentId) return;
+      // Open outline panel on Comments tab
+      useEditorStore.getState().expandOutline('comments');
+      setActiveCommentId(commentId);
+      setTimeout(() => setActiveCommentId(null), 2000);
+    }
+
+    // Attach to editor scroll area — retried until DOM is ready
+    let cleanup: (() => void) | null = null;
+    function tryAttach() {
+      const container = document.querySelector('.editor-scroll-area');
+      if (container) {
+        container.addEventListener('click', handleEditorClick as EventListener);
+        cleanup = () => container.removeEventListener('click', handleEditorClick as EventListener);
+      } else {
+        const t = setTimeout(tryAttach, 300);
+        cleanup = () => clearTimeout(t);
+      }
+    }
+    tryAttach();
+    return () => cleanup?.();
+  }, []);
 
   // Broadcast cursor position and active section to other collaborators
   useEffect(() => {
@@ -411,7 +574,14 @@ export function EditorShell({
 
   const editorContent = prd.tiptap_content ?? prd.content;
 
-  const savedAgo = useMemo(() => formatRelativeTime(prd.updated_at), [prd.updated_at]);
+  const [savedAgo, setSavedAgo] = useState(() => formatRelativeTime(localUpdatedAt));
+  useEffect(() => {
+    setSavedAgo(formatRelativeTime(localUpdatedAt));
+    const interval = setInterval(() => {
+      setSavedAgo(formatRelativeTime(localUpdatedAt));
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [localUpdatedAt]);
 
   // Full-page history mode — replaces entire editor
   if (historyMode) {
@@ -444,6 +614,10 @@ export function EditorShell({
           hiddenSections={hiddenSections}
           onToggleSection={handleToggleSection}
           onCommentClick={handleCommentClick}
+          onCommentDeleted={handleCommentMarkRemoved}
+          onCommentResolved={handleCommentMarkRemoved}
+          onCommentReopened={handleCommentReopened}
+          activeCommentId={activeCommentId}
         />
       )}
 
@@ -460,6 +634,10 @@ export function EditorShell({
               userName={userName}
               canChangeStatus={canChangeStatus}
               onToggleHistory={toggleHistory}
+              lastEditorName={localLastEditor.name}
+              lastEditorEmail={localLastEditor.email}
+              lastEditorAvatar={localLastEditor.avatar}
+              updatedAt={localUpdatedAt}
             />
             {markdownMode ? (
               <MarkdownView content={editorContent} onChange={handleMarkdownChange} />

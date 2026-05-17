@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { getProfile, updateProfile, changePassword, uploadAvatar } from '@/lib/actions/profile';
+import { useUserStore } from '@/stores/user-store';
 
 interface ProfileModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface ProfileModalProps {
 }
 
 export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
+  const { setName: setStoreName, setAvatarUrl: setStoreAvatarUrl } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -50,8 +52,9 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       setEmail(data.email);
       setWorkspaceRole(data.workspaceRole ?? '');
       if (data.profile) {
-        setFullName(data.profile.full_name ?? '');
-        setOriginalName(data.profile.full_name ?? '');
+        const name = data.profile.full_name ?? '';
+        setFullName(name);
+        setOriginalName(name);
         setJobTitle(data.profile.role_self_reported ?? '');
         setAvatarUrl(data.profile.avatar_url);
         setMemberSince(
@@ -63,10 +66,13 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
               })
             : '',
         );
+        // Seed the store with fresh data from the server
+        setStoreName(name);
+        setStoreAvatarUrl(data.profile.avatar_url);
       }
       setLoading(false);
     });
-  }, [open]);
+  }, [open, setStoreName, setStoreAvatarUrl]);
 
   async function handleSaveName() {
     if (!fullName.trim() || fullName === originalName) {
@@ -74,11 +80,18 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       return;
     }
     setSavingName(true);
-    const result = await updateProfile({ full_name: fullName.trim() });
-    if (result.error) toast.error(result.error);
-    else {
+    const newName = fullName.trim();
+    // Optimistic update
+    setStoreName(newName);
+    const result = await updateProfile({ full_name: newName });
+    if (result.error) {
+      // Rollback on failure
+      setStoreName(originalName);
+      setFullName(originalName);
+      toast.error(result.error);
+    } else {
       toast.success('Name updated');
-      setOriginalName(fullName.trim());
+      setOriginalName(newName);
     }
     setSavingName(false);
     setEditingName(false);
@@ -114,7 +127,11 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       if (result.error) toast.error(result.error);
       else {
         toast.success('Avatar updated');
-        if (result.avatarUrl) setAvatarUrl(result.avatarUrl);
+        if (result.avatarUrl) {
+          setAvatarUrl(result.avatarUrl);
+          // Optimistic update — all Avatar components for current user refresh immediately
+          setStoreAvatarUrl(result.avatarUrl);
+        }
         setSelectedFile(null);
         setEditorScale(1);
         setAvatarDialogOpen(false);
@@ -244,14 +261,14 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[#aaa]">
                       Job title
                     </p>
-                    <p className="mt-1 text-[14px] font-medium text-[#1a1a1a]">{jobTitle || '—'}</p>
+                    <p className="mt-1 text-[14px] font-medium text-[#1a1a1a]">{jobTitle || '-'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[#aaa]">
                       Workspace role
                     </p>
                     <p className="mt-1 text-[14px] font-medium capitalize text-[#1a1a1a]">
-                      {roleLabel || '—'}
+                      {roleLabel || '-'}
                     </p>
                   </div>
                 </div>

@@ -10,6 +10,7 @@ import { exportPRDToDOCX } from '@/lib/export/docx';
 import { exportPRDToPDF, exportPRDToPDFFromHTML } from '@/lib/export/pdf';
 import type { PRDDocument } from '@/lib/prd/schema';
 import { PRD_SECTION_LABELS } from '@/types/prd';
+import { slugify } from '@/lib/utils/slug';
 
 const LABEL_TO_KEY = Object.fromEntries(
   Object.entries(PRD_SECTION_LABELS).map(([k, v]) => [v.toLowerCase(), k]),
@@ -202,13 +203,6 @@ export async function POST(req: NextRequest) {
 }
 
 // ── Helpers ──
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 function toSlackMarkup(title: string, markdown: string): string {
   // Convert markdown to Slack mrkdwn format

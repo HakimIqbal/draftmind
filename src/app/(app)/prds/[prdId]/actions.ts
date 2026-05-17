@@ -255,26 +255,38 @@ export async function updatePRDStatus(prdId: string, status: string) {
     metadata: { new_status: status },
   });
 
-  // Notify PRD owner if status was changed by someone else (admin)
-  if (!isOwner && prd.owner_id) {
-    const { data: changer } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .single();
-    const changerName = changer?.full_name ?? 'Someone';
-    const statusLabel = status.replace(/_/g, ' ');
-
-    sendNotification({
-      recipientId: prd.owner_id,
-      workspaceId: workspace.id,
-      type: 'review_request',
-      title: 'PRD status updated',
-      body: `${changerName} changed "${prd.title}" status to ${statusLabel}`,
-      resourceType: 'prd',
-      resourceId: prdId,
-      actionUrl: `/prds/${prdId}`,
-    });
+  // Notify all workspace members about status change (except changer, skip draft)
+  if (status !== 'draft') {
+    const statusBodyMap: Record<string, string> = {
+      in_review: `moved "${prd.title}" to In Review`,
+      reviewed: `marked "${prd.title}" as Reviewed`,
+      refined: `marked "${prd.title}" as Refined`,
+      approved: `approved "${prd.title}" 🎉`,
+      final: `marked "${prd.title}" as Final 🎉`,
+    };
+    const bodyTemplate = statusBodyMap[status];
+    if (bodyTemplate) {
+      const [{ data: changerProfile }, { data: members }] = await Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', user.id).single(),
+        supabase.from('workspace_members').select('user_id').eq('workspace_id', workspace.id),
+      ]);
+      const changerName = changerProfile?.full_name ?? 'Someone';
+      const recipients = (members ?? []).filter((m) => m.user_id !== user.id);
+      Promise.all(
+        recipients.map((m) =>
+          sendNotification({
+            recipientId: m.user_id,
+            workspaceId: workspace.id,
+            type: 'status_changed',
+            title: prd.title,
+            body: `${changerName} ${bodyTemplate}`,
+            resourceType: 'prd',
+            resourceId: prdId,
+            actionUrl: `/prds/${prdId}`,
+          }),
+        ),
+      );
+    }
   }
 
   revalidatePath(`/prds/${prdId}`);

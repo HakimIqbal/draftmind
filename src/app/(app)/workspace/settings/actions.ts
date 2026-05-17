@@ -1,6 +1,6 @@
 'use server';
 
-import { requireUser } from '@/lib/auth/permissions';
+import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { logError } from '@/lib/logging/system-log';
@@ -72,7 +72,7 @@ export async function updateWorkspaceSettings(
   workspaceId: string,
   data: { name?: string; industry?: string; team_size?: string },
 ) {
-  const user = await requireUser();
+  const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
   const supabase = await createClient();
 
   const updates: Record<string, string> = {};
@@ -100,6 +100,7 @@ export async function updateWorkspaceSettings(
 
   revalidatePath('/workspace/settings');
   revalidatePath('/dashboard');
+  revalidatePath('/', 'layout');
   return { success: true };
 }
 

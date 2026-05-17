@@ -19,6 +19,7 @@ import {
   Terminal,
   Shield,
   Clock,
+  Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { createClient } from '@/lib/supabase/client';
@@ -39,6 +40,7 @@ const NAV_GROUPS = [
       { href: '/admin/workspaces', label: 'Workspaces', icon: Building2 },
       { href: '/admin/prds', label: 'PRDs', icon: FileText },
       { href: '/admin/ai-runs', label: 'AI Runs', icon: Sparkles },
+      { href: '/admin/tickets', label: 'Tickets', icon: Ticket },
     ],
   },
   {
@@ -63,9 +65,15 @@ interface AdminShellProps {
   children: React.ReactNode;
   userName: string;
   userEmail: string;
+  openTicketCount?: number;
 }
 
-export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
+export function AdminShell({
+  children,
+  userName,
+  userEmail,
+  openTicketCount = 0,
+}: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [popupOpen, setPopupOpen] = useState(false);
@@ -143,6 +151,7 @@ export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
                     'exact' in item && item.exact
                       ? pathname === item.href
                       : pathname.startsWith(item.href);
+                  const showBadge = item.href === '/admin/tickets' && openTicketCount > 0;
                   return (
                     <li key={item.href}>
                       <Link
@@ -159,6 +168,11 @@ export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
                           className={cn('shrink-0', isActive ? 'text-accent' : 'text-[#999]')}
                         />
                         {item.label}
+                        {showBadge && (
+                          <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-100 px-1 text-[10px] font-semibold text-blue-600">
+                            {openTicketCount}
+                          </span>
+                        )}
                       </Link>
                     </li>
                   );

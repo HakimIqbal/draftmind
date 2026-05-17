@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Users, Building2, FileText, Sparkles, TrendingUp } from 'lucide-react';
+import { AnalyticsPoller } from './analytics-poller';
 
 export const metadata = { title: 'Admin — DraftMind' };
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,7 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <div>
+      <AnalyticsPoller />
       <div className="mb-8">
         <h1 className="text-[22px] font-bold text-[#1a1a1a]">Analytics</h1>
         <p className="mt-0.5 text-[13px] text-[#888]">System-wide usage and metrics</p>

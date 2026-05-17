@@ -73,9 +73,9 @@ const FEATURES = [
     title: 'Template Library',
     subtitle: 'Start from proven structures.',
     description:
-      'Choose from 29+ templates - Feature PRD, Technical Design Doc, API Documentation, Go-to-Market Plan, OKRs, Bug Fix Plan, and more.',
+      'Choose from professional templates - Feature PRD, Technical Design Doc, API Documentation, Go-to-Market Plan, OKRs, Bug Fix Plan, and more.',
     visual: [
-      { label: 'Built-in', value: '29+ professional templates' },
+      { label: 'Built-in', value: 'Professional templates for every product team' },
       { label: 'Custom', value: 'Create your own templates' },
       { label: 'Categories', value: 'Product, Engineering, Strategy, Research' },
     ],

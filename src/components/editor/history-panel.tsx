@@ -525,7 +525,7 @@ export function HistoryView({
               ) : highlightChanges && !prevVersion ? (
                 <>
                   <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-                    This is the first version — no previous version to compare
+                    This is the first version - no previous version to compare
                   </div>
                   <FormattedContentPreview content={selectedVersion.content} />
                 </>

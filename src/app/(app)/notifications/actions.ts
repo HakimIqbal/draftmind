@@ -62,9 +62,9 @@ export async function markAllNotificationsRead(type?: 'inbox' | 'announcements')
     .is('read_at', null);
 
   if (type === 'inbox') {
-    query = query.neq('type', 'integration_event');
+    query = query.not('type', 'in', '("integration_event","ticket_update")');
   } else if (type === 'announcements') {
-    query = query.eq('type', 'integration_event');
+    query = query.in('type', ['integration_event', 'ticket_update']);
   }
 
   await query;

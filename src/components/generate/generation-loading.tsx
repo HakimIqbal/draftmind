@@ -76,7 +76,7 @@ export function GenerationLoading({
         setTimeout(() => {
           if (!doneRef.current) {
             setError(
-              'AI provider could not generate the PRD. Try again — it often works on the second attempt.',
+              'AI provider could not generate the PRD. Try again - it often works on the second attempt.',
             );
           }
         }, 3000);
@@ -122,7 +122,7 @@ export function GenerationLoading({
       if (!doneRef.current) {
         if (pollRef.current) clearInterval(pollRef.current);
         setError(
-          'AI provider could not generate the PRD. Try again — it often works on the second attempt.',
+          'AI provider could not generate the PRD. Try again - it often works on the second attempt.',
         );
       }
       return;

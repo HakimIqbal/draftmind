@@ -187,7 +187,7 @@ function LoginForm() {
 
         {/* Footer */}
         <p className="mt-8 text-center font-mono text-[11px] text-ink-tertiary">
-          &copy; 2026 DraftMind &middot;{' '}
+          &copy; {new Date().getFullYear()} DraftMind &middot;{' '}
           <a
             href="/privacy"
             className="underline-offset-2 hover:text-ink-secondary hover:underline"

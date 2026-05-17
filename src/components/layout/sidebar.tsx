@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   LogOut,
   ChevronDown,
+  Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Avatar } from '@/components/ui/avatar';
@@ -24,6 +25,7 @@ import { ProfileModal } from '@/components/settings/profile-modal';
 import { createClient } from '@/lib/supabase/client';
 import { logLogout } from '@/app/(app)/actions';
 import type { WorkspaceListItem } from '@/lib/db/queries/workspace';
+import { useUserStore } from '@/stores/user-store';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -48,6 +50,7 @@ interface SidebarProps {
   userEmail?: string;
   userAvatarUrl?: string;
   recentPRDs?: { id: string; title: string }[];
+  openTicketCount?: number;
 }
 
 export function Sidebar({
@@ -60,9 +63,12 @@ export function Sidebar({
   userEmail,
   userAvatarUrl,
   recentPRDs,
+  openTicketCount = 0,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const storeTicketCount = useUserStore((s) => s.openTicketCount);
+  const badgeCount = storeTicketCount !== null ? storeTicketCount : openTicketCount;
 
   if (collapsed) return null;
 
@@ -156,6 +162,42 @@ export function Sidebar({
           </ul>
         </div>
 
+        {/* Support section */}
+        <div className="mt-5">
+          <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-[#aaa]">
+            Support
+          </p>
+          <ul className="space-y-[2px]">
+            <li>
+              <Link
+                href="/tickets"
+                className={cn(
+                  'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-all',
+                  pathname === '/tickets' || pathname.startsWith('/tickets/')
+                    ? 'bg-white text-[#1a1a1a] shadow-sm'
+                    : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
+                )}
+              >
+                <Ticket
+                  size={16}
+                  className={cn(
+                    'shrink-0',
+                    pathname === '/tickets' || pathname.startsWith('/tickets/')
+                      ? 'text-accent'
+                      : 'text-[#999]',
+                  )}
+                />
+                My Tickets
+                {badgeCount > 0 && (
+                  <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-100 px-1 text-[10px] font-semibold text-blue-600">
+                    {badgeCount}
+                  </span>
+                )}
+              </Link>
+            </li>
+          </ul>
+        </div>
+
         {/* Recent PRDs */}
         {recentPRDs && recentPRDs.length > 0 && (
           <div className="mt-6">
@@ -216,6 +258,11 @@ function UserMenu({
   avatarUrl?: string;
   onLogout: () => void;
 }) {
+  const storeName = useUserStore((s) => s.name);
+  const storeAvatarUrl = useUserStore((s) => s.avatarUrl);
+  // Store values take precedence when they've been set (non-empty string / non-null)
+  const displayName = storeName || userName;
+  const displayAvatar = storeAvatarUrl !== null ? storeAvatarUrl : avatarUrl;
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -253,9 +300,9 @@ function UserMenu({
         onClick={() => setOpen((prev) => !prev)}
         className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white/60 focus:outline-none"
       >
-        <Avatar name={userName ?? 'User'} size="sm" avatarUrl={avatarUrl} />
+        <Avatar name={displayName ?? 'User'} size="sm" avatarUrl={displayAvatar} />
         <div className="min-w-0 flex-1 text-left">
-          <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{userName ?? 'User'}</p>
+          <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{displayName ?? 'User'}</p>
         </div>
         <ChevronDown
           size={12}
@@ -277,10 +324,10 @@ function UserMenu({
               }}
               className="flex w-full items-center gap-3 border-b border-[#f0f0ee] px-4 py-3.5 text-left transition-colors hover:bg-[#fafaf9] focus:outline-none"
             >
-              <Avatar name={userName ?? 'User'} size="lg" avatarUrl={avatarUrl} />
+              <Avatar name={displayName ?? 'User'} size="lg" avatarUrl={displayAvatar} />
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">
-                  {userName ?? 'User'}
+                  {displayName ?? 'User'}
                 </p>
                 <p className="truncate text-[11px] text-[#aaa]">{userEmail ?? ''}</p>
               </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { PRDListTable } from '@/components/dashboard/prd-list-table';
 import type { PRDListItem } from '@/lib/db/queries/prd';
 
@@ -10,6 +11,7 @@ interface PRDListPageClientProps {
   total: number;
   currentStatus: string;
   currentSearch: string;
+  workspaceId: string;
 }
 
 export function PRDListPageClient({
@@ -17,9 +19,28 @@ export function PRDListPageClient({
   total,
   currentStatus,
   currentSearch,
+  workspaceId,
 }: PRDListPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('prds-list-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'prds', filter: `workspace_id=eq.${workspaceId}` },
+        () => {
+          router.refresh();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [workspaceId, router]);
 
   const updateParams = useCallback(
     (updates: Record<string, string>) => {

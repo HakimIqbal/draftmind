@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Shield, ShieldOff, UserX, UserPlus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
+import { createClient } from '@/lib/supabase/client';
 import {
   toggleSuperAdmin,
   toggleUserStatus,
@@ -27,6 +29,21 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('admin-users-profiles-realtime')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
+        router.refresh();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [router]);
 
   const filtered = users.filter((u) => {
     if (!search) return true;
@@ -130,7 +147,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                   </div>
                 </td>
                 <td className="px-5 py-3.5">
-                  <span className="text-[12px] text-[#666]">{u.role_self_reported ?? '—'}</span>
+                  <span className="text-[12px] text-[#666]">{u.role_self_reported ?? '-'}</span>
                 </td>
                 <td className="px-5 py-3.5">
                   <span

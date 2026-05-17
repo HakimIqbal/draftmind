@@ -247,11 +247,12 @@ const shareStyles = `
   margin: 1.5rem 0;
 }
 .tiptap-share a {
-  color: #c26a3a;
-  text-decoration: none;
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .tiptap-share a:hover {
-  text-decoration: underline;
+  color: #1d4ed8;
 }
 .tiptap-share code {
   background: #f5f5f5;

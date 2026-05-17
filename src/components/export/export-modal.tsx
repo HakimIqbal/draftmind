@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react';
 import {
   Download,
-  Copy,
   Check,
   Loader2,
   FileText,
@@ -58,13 +57,14 @@ const FORMAT_OPTIONS: {
   value: ExportFormat;
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
+  comingSoon?: boolean;
 }[] = [
   { value: 'pdf', label: 'PDF', icon: FileText },
   { value: 'docx', label: 'DOCX', icon: FileType },
   { value: 'markdown', label: 'Markdown', icon: Hash },
   { value: 'html', label: 'HTML', icon: FileCode },
-  { value: 'slack', label: 'Slack', icon: MessageSquare },
-  { value: 'jira', label: 'Jira', icon: ClipboardList },
+  { value: 'slack', label: 'Slack', icon: MessageSquare, comingSoon: true },
+  { value: 'jira', label: 'Jira', icon: ClipboardList, comingSoon: true },
 ];
 
 interface ExportModalProps {
@@ -105,19 +105,6 @@ export function ExportModal({ open, onOpenChange, prdId }: ExportModalProps) {
 
       if (!res.ok) {
         toast.error('Export failed. Please try again.');
-        return;
-      }
-
-      // Text-based formats: show for copy or download
-      if (format === 'slack' || format === 'jira') {
-        const text = await res.text();
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        } catch {
-          toast.error('Failed to copy to clipboard');
-        }
         return;
       }
 
@@ -165,6 +152,20 @@ export function ExportModal({ open, onOpenChange, prdId }: ExportModalProps) {
             >
               {FORMAT_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
+                if (opt.comingSoon) {
+                  return (
+                    <div
+                      key={opt.value}
+                      className="border-ink-quaternary/50 relative flex cursor-not-allowed items-center gap-2 rounded-lg border border-dashed p-2.5 opacity-50"
+                    >
+                      <Icon size={16} className="flex-shrink-0 text-ink-tertiary" />
+                      <span className="text-sm text-ink-tertiary">{opt.label}</span>
+                      <span className="bg-ink-quaternary/20 ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-tertiary">
+                        Soon
+                      </span>
+                    </div>
+                  );
+                }
                 return (
                   <RadioCardItem
                     key={opt.value}
@@ -226,16 +227,10 @@ export function ExportModal({ open, onOpenChange, prdId }: ExportModalProps) {
               <Loader2 size={14} className="mr-1.5 animate-spin" />
             ) : copied ? (
               <Check size={14} className="mr-1.5" />
-            ) : format === 'slack' || format === 'jira' ? (
-              <Copy size={14} className="mr-1.5" />
             ) : (
               <Download size={14} className="mr-1.5" />
             )}
-            {copied
-              ? 'Copied!'
-              : format === 'slack' || format === 'jira'
-                ? 'Copy to clipboard'
-                : 'Export'}
+            {copied ? 'Copied!' : 'Export'}
           </Button>
         </DialogFooter>
       </DialogContent>

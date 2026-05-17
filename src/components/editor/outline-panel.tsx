@@ -40,6 +40,10 @@ interface OutlinePanelProps {
   hiddenSections?: string[];
   onToggleSection?: (sectionKey: string) => void;
   onCommentClick?: (commentId: string, range: { from: number; to: number }) => void;
+  onCommentDeleted?: (commentId: string) => void;
+  onCommentResolved?: (commentId: string) => void;
+  onCommentReopened?: (commentId: string) => void;
+  activeCommentId?: string | null;
 }
 
 export function OutlinePanel({
@@ -49,6 +53,10 @@ export function OutlinePanel({
   hiddenSections = [],
   onToggleSection,
   onCommentClick,
+  onCommentDeleted,
+  onCommentResolved,
+  onCommentReopened,
+  activeCommentId,
 }: OutlinePanelProps) {
   const { activeOutlineTab, setOutlineTab, toggleOutline } = useEditorStore();
   const [activeHeading, setActiveHeading] = useState('');
@@ -349,7 +357,15 @@ export function OutlinePanel({
         {/* Comments tab */}
         <TabsContent value="comments" className="flex-1 overflow-y-auto">
           {userId ? (
-            <CommentsPanel prdId={prd.id} currentUserId={userId} onCommentClick={onCommentClick} />
+            <CommentsPanel
+              prdId={prd.id}
+              currentUserId={userId}
+              onCommentClick={onCommentClick}
+              onCommentDeleted={onCommentDeleted}
+              onCommentResolved={onCommentResolved}
+              onCommentReopened={onCommentReopened}
+              activeCommentId={activeCommentId}
+            />
           ) : (
             <div className="flex h-32 items-center justify-center px-4">
               <span className="text-sm text-ink-tertiary">Sign in to comment</span>

@@ -21,7 +21,7 @@ interface Notification {
   created_at: string;
 }
 
-const ANNOUNCEMENT_TYPES = ['integration_event'];
+const ANNOUNCEMENT_TYPES = ['integration_event', 'ticket_update'];
 
 function isAnnouncement(type: string) {
   return ANNOUNCEMENT_TYPES.includes(type);
@@ -54,6 +54,7 @@ const TYPE_LABELS: Record<string, string> = {
   member_removed: 'Workspace',
   invitation_declined: 'Invite',
   integration_event: 'Announcement',
+  ticket_update: 'Tiket',
 };
 
 export function NotificationsInbox() {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRealtimeSubscription } from '@/hooks/use-realtime-subscription';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
@@ -8,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   addComment,
   resolveComment,
+  unresolveComment,
   editComment,
   deleteComment,
   fetchComments,
@@ -55,6 +57,10 @@ export interface CommentsPanelProps {
   prdId: string;
   currentUserId: string;
   onCommentClick?: (commentId: string, range: { from: number; to: number }) => void;
+  onCommentDeleted?: (commentId: string) => void;
+  onCommentResolved?: (commentId: string) => void;
+  onCommentReopened?: (commentId: string) => void;
+  activeCommentId?: string | null;
 }
 
 function relativeTime(dateStr: string): string {
@@ -93,16 +99,28 @@ function buildThreads(comments: Comment[]): Comment[] {
 function CommentCard({
   comment,
   currentUserId,
-  onReply,
+  activeReplyId,
+  replyBody,
+  onReplyClick,
+  onReplyBodyChange,
+  onReplySubmit,
+  onReplyCancel,
   onResolve,
+  onReopen,
   onEdit,
   onDelete,
   onCommentClick,
 }: {
   comment: Comment;
   currentUserId: string;
-  onReply: (parentId: string) => void;
+  activeReplyId: string | null;
+  replyBody: string;
+  onReplyClick: (commentId: string) => void;
+  onReplyBodyChange: (v: string) => void;
+  onReplySubmit: (parentId: string) => void;
+  onReplyCancel: () => void;
   onResolve: (commentId: string) => void;
+  onReopen: (commentId: string) => void;
   onEdit: (commentId: string, body: string) => void;
   onDelete: (commentId: string) => void;
   onCommentClick?: (commentId: string, range: { from: number; to: number }) => void;
@@ -262,7 +280,7 @@ function CommentCard({
               className="font-mono text-[11px] text-ink-tertiary transition-colors hover:text-ink-primary"
               onClick={(e) => {
                 e.stopPropagation();
-                onReply(comment.id);
+                onReplyClick(comment.id);
               }}
             >
               Reply
@@ -279,6 +297,18 @@ function CommentCard({
                 Resolve
               </button>
             )}
+            {comment.resolved_at && (
+              <button
+                type="button"
+                className="font-mono text-[11px] text-ink-tertiary transition-colors hover:text-ink-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReopen(comment.id);
+                }}
+              >
+                Reopen
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -291,8 +321,14 @@ function CommentCard({
               key={reply.id}
               comment={reply}
               currentUserId={currentUserId}
-              onReply={onReply}
+              activeReplyId={activeReplyId}
+              replyBody={replyBody}
+              onReplyClick={onReplyClick}
+              onReplyBodyChange={onReplyBodyChange}
+              onReplySubmit={onReplySubmit}
+              onReplyCancel={onReplyCancel}
               onResolve={onResolve}
+              onReopen={onReopen}
               onEdit={onEdit}
               onDelete={onDelete}
               onCommentClick={onCommentClick}
@@ -300,16 +336,67 @@ function CommentCard({
           ))}
         </div>
       )}
+
+      {/* Inline reply textarea */}
+      {activeReplyId === comment.id && (
+        <div className="ml-8 mt-2 flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+          <p className="font-mono text-[10px] text-ink-tertiary">
+            Replying to {comment.author?.full_name ?? 'Unknown'}
+          </p>
+          <textarea
+            autoFocus
+            rows={2}
+            value={replyBody}
+            onChange={(e) => onReplyBodyChange(e.target.value)}
+            placeholder="Write a reply..."
+            className="w-full resize-none rounded-md border border-subtle bg-bg-surface px-3 py-2 text-sm text-ink-primary placeholder:text-ink-quaternary focus:outline-none focus:ring-1 focus:ring-accent"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                onReplySubmit(comment.id);
+              }
+              if (e.key === 'Escape') onReplyCancel();
+            }}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!replyBody.trim()}
+              onClick={() => onReplySubmit(comment.id)}
+              className="rounded-md bg-[#1a1a1a] px-3 py-1 text-[12px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+            >
+              Reply
+            </button>
+            <button
+              type="button"
+              onClick={onReplyCancel}
+              className="rounded-md px-3 py-1 text-[12px] text-ink-tertiary transition-colors hover:text-ink-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export function CommentsPanel({ prdId, currentUserId, onCommentClick }: CommentsPanelProps) {
+export function CommentsPanel({
+  prdId,
+  currentUserId,
+  onCommentClick,
+  onCommentDeleted,
+  onCommentResolved,
+  onCommentReopened,
+  activeCommentId,
+}: CommentsPanelProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [filter, setFilter] = useState<'open' | 'resolved' | 'me'>('open');
   const [newComment, setNewComment] = useState('');
-  const [replyTo, setReplyTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState('');
+  const commentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const loadComments = useCallback(async () => {
     try {
@@ -329,13 +416,22 @@ export function CommentsPanel({ prdId, currentUserId, onCommentClick }: Comments
     loadComments();
   }, [loadComments]);
 
-  // Poll for new comments every 5 seconds (replaces realtime subscription)
+  // Realtime subscription — refetch when any comment on this PRD changes
+  useRealtimeSubscription({
+    channel: `comments-${prdId}`,
+    table: 'comments',
+    filter: `prd_id=eq.${prdId}`,
+    onChange: () => loadCommentsRef.current(),
+  });
+
+  // S6: scroll to + highlight comment when editor highlight is clicked
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadCommentsRef.current();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [prdId]);
+    if (!activeCommentId) return;
+    const el = commentRefs.current[activeCommentId];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeCommentId]);
 
   const threads = useMemo(() => buildThreads(comments), [comments]);
   const openCount = useMemo(
@@ -343,25 +439,41 @@ export function CommentsPanel({ prdId, currentUserId, onCommentClick }: Comments
     [comments],
   );
 
+  // Top-level comment submit
   const handleSubmit = async () => {
     const body = newComment.trim();
     if (!body || submitting) return;
-
     setSubmitting(true);
-    await addComment(prdId, body, replyTo);
+    await addComment(prdId, body, null);
     setNewComment('');
-    setReplyTo(null);
     setSubmitting(false);
     loadComments();
   };
 
-  const handleResolve = async (commentId: string) => {
-    await resolveComment(commentId);
+  // Inline reply handlers
+  const handleReplyClick = (commentId: string) => {
+    setActiveReplyId((prev) => (prev === commentId ? null : commentId));
+    setReplyBody('');
+  };
+
+  const handleReplySubmit = async (parentId: string) => {
+    const body = replyBody.trim();
+    if (!body) return;
+    await addComment(prdId, body, parentId);
+    setActiveReplyId(null);
+    setReplyBody('');
     loadComments();
   };
 
-  const handleReply = (parentId: string) => {
-    setReplyTo(parentId);
+  const handleReplyCancel = () => {
+    setActiveReplyId(null);
+    setReplyBody('');
+  };
+
+  const handleResolve = async (commentId: string) => {
+    await resolveComment(commentId);
+    onCommentResolved?.(commentId);
+    loadComments();
   };
 
   const handleEdit = async (commentId: string, body: string) => {
@@ -371,6 +483,13 @@ export function CommentsPanel({ prdId, currentUserId, onCommentClick }: Comments
 
   const handleDelete = async (commentId: string) => {
     await deleteComment(commentId);
+    onCommentDeleted?.(commentId);
+    loadComments();
+  };
+
+  const handleReopen = async (commentId: string) => {
+    await unresolveComment(commentId);
+    onCommentReopened?.(commentId);
     loadComments();
   };
 
@@ -405,35 +524,36 @@ export function CommentsPanel({ prdId, currentUserId, onCommentClick }: Comments
         ) : (
           <div className="divide-y divide-subtle">
             {threads.map((thread) => (
-              <CommentCard
+              <div
                 key={thread.id}
-                comment={thread}
-                currentUserId={currentUserId}
-                onReply={handleReply}
-                onResolve={handleResolve}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onCommentClick={onCommentClick}
-              />
+                ref={(el) => {
+                  commentRefs.current[thread.id] = el;
+                }}
+                className={`rounded transition-colors ${activeCommentId === thread.id ? 'bg-accent/8 ring-accent/30 ring-1' : ''}`}
+              >
+                <CommentCard
+                  comment={thread}
+                  currentUserId={currentUserId}
+                  activeReplyId={activeReplyId}
+                  replyBody={replyBody}
+                  onReplyClick={handleReplyClick}
+                  onReplyBodyChange={setReplyBody}
+                  onReplySubmit={handleReplySubmit}
+                  onReplyCancel={handleReplyCancel}
+                  onResolve={handleResolve}
+                  onReopen={handleReopen}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onCommentClick={onCommentClick}
+                />
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Add comment form */}
+      {/* Add top-level comment form */}
       <div className="border-t border-subtle px-4 py-3">
-        {replyTo && (
-          <div className="mb-2 flex items-center gap-2">
-            <span className="font-mono text-[11px] text-ink-tertiary">Replying to thread</span>
-            <button
-              type="button"
-              className="font-mono text-[11px] text-ink-tertiary hover:text-ink-primary"
-              onClick={() => setReplyTo(null)}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
         <Textarea
           rows={2}
           placeholder="Add a comment..."

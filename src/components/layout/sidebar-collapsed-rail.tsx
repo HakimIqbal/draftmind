@@ -11,6 +11,7 @@ import { LogoTier2 } from '@/components/icons/logo-tier2';
 import { ProfileModal } from '@/components/settings/profile-modal';
 import { Avatar } from '@/components/ui/avatar';
 import { createClient } from '@/lib/supabase/client';
+import { useUserStore } from '@/stores/user-store';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -37,6 +38,11 @@ export function SidebarCollapsedRail({
   const router = useRouter();
   const [logoHovered, setLogoHovered] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const storeName = useUserStore((s) => s.name);
+  const storeAvatarUrl = useUserStore((s) => s.avatarUrl);
+  const displayName = storeName || userName;
+  const displayAvatar = storeAvatarUrl !== null ? storeAvatarUrl : userAvatarUrl;
 
   async function handleLogout() {
     const supabase = createClient();
@@ -102,7 +108,7 @@ export function SidebarCollapsedRail({
               className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-bg-surface"
               aria-label="Profile menu"
             >
-              <Avatar name={userName ?? 'User'} size="sm" avatarUrl={userAvatarUrl} />
+              <Avatar name={displayName ?? 'User'} size="sm" avatarUrl={displayAvatar} />
             </button>
           </PopoverTrigger>
           <PopoverContent
@@ -114,10 +120,10 @@ export function SidebarCollapsedRail({
               onClick={() => setProfileOpen(true)}
               className="flex w-full items-center gap-3 border-b border-[#f0f0ee] px-4 py-3.5 text-left transition-colors hover:bg-[#fafaf9] focus:outline-none"
             >
-              <Avatar name={userName ?? 'User'} size="lg" avatarUrl={userAvatarUrl} />
+              <Avatar name={displayName ?? 'User'} size="lg" avatarUrl={displayAvatar} />
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">
-                  {userName ?? 'User'}
+                  {displayName ?? 'User'}
                 </p>
                 <p className="truncate text-[11px] text-[#aaa]">{userEmail ?? ''}</p>
               </div>

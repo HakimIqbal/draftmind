@@ -258,7 +258,7 @@ export default function AdminProvidersPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="text-[12px] text-[#888]">
-                        {p.avg_latency_ms > 0 ? `${p.avg_latency_ms}ms` : '—'}
+                        {p.avg_latency_ms > 0 ? `${p.avg_latency_ms}ms` : '-'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-right">

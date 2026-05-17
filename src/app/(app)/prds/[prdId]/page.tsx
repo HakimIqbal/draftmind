@@ -63,7 +63,7 @@ export default async function EditorPage({
   const userName =
     (user.user_metadata as Record<string, string> | undefined)?.full_name ?? user.email ?? 'User';
 
-  // Fetch current user's avatar for presence display
+  // Fetch current user's profile for presence display
   const { data: userProfile } = await supabase
     .from('profiles')
     .select('avatar_url')
@@ -73,6 +73,15 @@ export default async function EditorPage({
     userProfile?.avatar_url ??
     (user.user_metadata as Record<string, string> | undefined)?.avatar_url ??
     null;
+
+  // Fetch last editor profile (may differ from current user on collaborative PRDs)
+  const lastEditorId =
+    ((prd as Record<string, unknown>).last_edited_by as string | null) ?? prd.owner_id;
+  const { data: lastEditorProfile } = await supabase
+    .from('profiles')
+    .select('full_name, email, avatar_url')
+    .eq('id', lastEditorId)
+    .single();
 
   // Fetch active AI providers for copilot model selector (admin client bypasses RLS)
   const { createAdminClient } = await import('@/lib/supabase/admin');
@@ -116,6 +125,9 @@ export default async function EditorPage({
       userAvatar={userAvatar}
       userId={user.id}
       workspaceId={workspace.id as string}
+      lastEditorName={lastEditorProfile?.full_name ?? lastEditorProfile?.email ?? 'Unknown'}
+      lastEditorEmail={lastEditorProfile?.email ?? undefined}
+      lastEditorAvatar={lastEditorProfile?.avatar_url ?? null}
     />
   );
 }

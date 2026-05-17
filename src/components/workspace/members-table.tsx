@@ -194,7 +194,7 @@ export function MembersTable({
 
                   {/* Role (profesi) */}
                   <td className="whitespace-nowrap px-4 py-3.5">
-                    <span className="text-[12px] text-[#666]">{role ?? '—'}</span>
+                    <span className="text-[12px] text-[#666]">{role ?? '-'}</span>
                   </td>
 
                   {/* Access (permission) */}

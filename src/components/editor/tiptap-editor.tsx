@@ -18,11 +18,13 @@ import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import * as Y from 'yjs';
 import { CommentMark, SectionVisibility } from '@/lib/editor/extensions';
 
-// Real-time collaboration: y-supabase@0.0.4-alpha is incompatible with
-// Next.js 15 webpack — it imports @supabase/realtime-js TypeScript source
-// files directly, which webpack cannot parse. Collab remains local-only
-// until y-supabase releases a compatible version.
-// To enable: install compatible y-supabase, set NEXT_PUBLIC_ENABLE_COLLAB=true
+// TODO: Real-time collaborative editing (Yjs CRDT) - Post-FYP feature
+// Requires: WebSocket server (e.g. Hocuspocus) running separately on VPS
+// Current state: Presence-only (cursor avatar, section badge) via Supabase Realtime - already working
+// To implement:
+//   1. Setup Hocuspocus WebSocket server
+//   2. Connect Yjs provider to WebSocket
+//   3. Enable NEXT_PUBLIC_ENABLE_COLLAB env var toggle
 import { SlashMenu, useSlashMenu } from '@/components/editor/slash-menu';
 
 interface TiptapEditorProps {
@@ -77,8 +79,12 @@ export function TiptapEditor({
         placeholder: 'Start writing or type / for commands...',
       }),
       Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { class: 'text-accent underline' },
+        openOnClick: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          class: 'text-blue-600 underline hover:text-blue-800',
+        },
       }),
       Underline,
       TextAlign.configure({

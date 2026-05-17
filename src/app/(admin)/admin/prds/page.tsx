@@ -91,16 +91,16 @@ export default async function AdminPRDsPage({
                     {prd.health_score ? (
                       <span className="font-mono text-[12px] text-[#666]">{prd.health_score}%</span>
                     ) : (
-                      <span className="text-[12px] text-[#ccc]">—</span>
+                      <span className="text-[12px] text-[#ccc]">-</span>
                     )}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className="text-[12px] text-[#888]">
-                      {owner?.full_name ?? owner?.email ?? '—'}
+                      {owner?.full_name ?? owner?.email ?? '-'}
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className="text-[12px] text-[#888]">{ws?.name ?? '—'}</span>
+                    <span className="text-[12px] text-[#888]">{ws?.name ?? '-'}</span>
                   </td>
                   <td className="px-5 py-3.5">
                     <span className="text-[12px] text-[#aaa]">

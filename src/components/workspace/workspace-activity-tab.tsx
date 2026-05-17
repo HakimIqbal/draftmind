@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '@/components/ui/avatar';
 import { getWorkspaceActivity } from '@/app/(app)/workspace/settings/actions';
@@ -57,6 +58,9 @@ export function WorkspaceActivityTab({ workspaceId }: { workspaceId: string }) {
   >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const workspaceIdRef = useRef(workspaceId);
+  workspaceIdRef.current = workspaceId;
 
   useEffect(() => {
     async function load() {
@@ -73,6 +77,23 @@ export function WorkspaceActivityTab({ workspaceId }: { workspaceId: string }) {
     }
     load();
   }, [workspaceId]);
+
+  // Poll every 30s — only when tab is visible, no loading flicker
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const result = await getWorkspaceActivity(workspaceIdRef.current);
+        setActivities(result.activities);
+        setActorMap(result.actorMap);
+        router.refresh();
+      } catch {
+        // silent — don't disrupt UI on background poll failure
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   if (loading)
     return <p className="py-8 text-center text-[13px] text-[#aaa]">Loading activity...</p>;

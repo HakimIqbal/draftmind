@@ -9,7 +9,7 @@ export default async function AdminWorkspacesPage() {
 
   const { data: workspaces } = await admin
     .from('workspaces')
-    .select('id, name, slug, owner_id, industry, team_size, created_at')
+    .select('id, name, slug, owner_id, industry, team_size, created_at, icon_custom_url')
     .order('created_at', { ascending: false });
 
   const { data: memberCounts } = await admin.from('workspace_members').select('workspace_id');

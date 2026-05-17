@@ -156,7 +156,7 @@ export default async function AdminAIRunsPage({
         <div className="rounded-xl border border-[#eee] bg-white p-4">
           <p className="text-[11px] font-medium uppercase text-[#aaa]">Avg Latency</p>
           <p className="mt-1 text-[24px] font-bold text-[#1a1a1a]">
-            {avgLatencyToday ? `${(avgLatencyToday / 1000).toFixed(1)}s` : '—'}
+            {avgLatencyToday ? `${(avgLatencyToday / 1000).toFixed(1)}s` : '-'}
           </p>
           <p className="text-[11px] text-[#bbb]">today</p>
         </div>
@@ -170,7 +170,7 @@ export default async function AdminAIRunsPage({
           <p className="text-[11px] text-[#bbb]">
             {todayRuns.length > 0
               ? `${Math.round(((todayRuns.length - errorsToday) / todayRuns.length) * 100)}% success`
-              : '—'}
+              : '-'}
           </p>
         </div>
         <div className="rounded-xl border border-[#eee] bg-white p-4">
@@ -228,7 +228,7 @@ export default async function AdminAIRunsPage({
                     <div className="flex justify-between text-[11px]">
                       <span className="text-[#aaa]">Avg Latency</span>
                       <span className="font-medium text-[#555]">
-                        {avgLatency ? `${(avgLatency / 1000).toFixed(1)}s` : '—'}
+                        {avgLatency ? `${(avgLatency / 1000).toFixed(1)}s` : '-'}
                       </span>
                     </div>
                     <div className="flex justify-between text-[11px]">
@@ -273,7 +273,7 @@ export default async function AdminAIRunsPage({
                     <div className="flex justify-between text-[11px]">
                       <span className="text-[#aaa]">Avg Latency</span>
                       <span className="font-medium text-[#555]">
-                        {avgLatency ? `${(avgLatency / 1000).toFixed(1)}s` : '—'}
+                        {avgLatency ? `${(avgLatency / 1000).toFixed(1)}s` : '-'}
                       </span>
                     </div>
                     <div className="flex justify-between text-[11px]">
@@ -348,22 +348,22 @@ export default async function AdminAIRunsPage({
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="font-mono text-[11px] text-[#888]">
-                        {run.model_used ?? '—'}
+                        {run.model_used ?? '-'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="font-mono text-[11px] text-[#888]" suppressHydrationWarning>
-                        {tokens ? tokens.toLocaleString() : '—'}
+                        {tokens ? tokens.toLocaleString() : '-'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="font-mono text-[11px] text-[#888]">
-                        {run.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : '—'}
+                        {run.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : '-'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="text-[12px] text-[#888]">
-                        {wsMap.get(run.workspace_id)?.name ?? '—'}
+                        {wsMap.get(run.workspace_id)?.name ?? '-'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">

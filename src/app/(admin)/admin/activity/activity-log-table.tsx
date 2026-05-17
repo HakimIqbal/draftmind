@@ -114,7 +114,7 @@ export function ActivityLogTable({ initialActivities, initialActorMap, initialWs
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Auto-refresh every 10s
+  // Auto-refresh every 30s — only when tab is visible
   const refresh = useCallback(async () => {
     try {
       const result = await fetchActivityLog();
@@ -127,7 +127,10 @@ export function ActivityLogTable({ initialActivities, initialActorMap, initialWs
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(refresh, 10000);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      refresh();
+    }, 30_000);
     return () => clearInterval(interval);
   }, [refresh]);
 
@@ -287,12 +290,12 @@ export function ActivityLogTable({ initialActivities, initialActorMap, initialWs
                       </div>
                       <div>
                         <p className="text-[10px] font-medium uppercase text-[#aaa]">Workspace</p>
-                        <p className="mt-1 text-[#555]">{ws?.name ?? '—'}</p>
+                        <p className="mt-1 text-[#555]">{ws?.name ?? '-'}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-medium uppercase text-[#aaa]">Resource</p>
                         <p className="mt-1 text-[#555]">
-                          {a.resource_type ?? '—'}
+                          {a.resource_type ?? '-'}
                           {a.resource_id && (
                             <span className="ml-1 text-[#bbb]">
                               ({a.resource_id.slice(0, 8)}...)

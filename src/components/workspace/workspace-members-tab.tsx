@@ -173,7 +173,7 @@ export function WorkspaceMembersTab({
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3.5">
-                    <span className="text-[12px] text-[#666]">{role ?? '—'}</span>
+                    <span className="text-[12px] text-[#666]">{role ?? '-'}</span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3.5">
                     {isAdmin && !isSelf ? (

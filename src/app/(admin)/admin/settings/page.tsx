@@ -48,7 +48,7 @@ export default async function AdminSettingsPage() {
         value: isLangSmithEnabled() ? 'Active' : 'Not configured',
         accent: isLangSmithEnabled(),
       },
-      { label: 'LangSmith Project', value: isLangSmithEnabled() ? getLangSmithProject() : '—' },
+      { label: 'LangSmith Project', value: isLangSmithEnabled() ? getLangSmithProject() : '-' },
     ],
     security: [
       { label: 'CSP Headers', value: 'Enabled (next.config.mjs)', accent: true },
@@ -68,7 +68,7 @@ export default async function AdminSettingsPage() {
       { label: 'From Address', value: emailFrom },
       {
         label: 'Status',
-        value: hasResendKey ? 'Active — emails will be sent' : 'Inactive — emails skipped silently',
+        value: hasResendKey ? 'Active - emails will be sent' : 'Inactive - emails skipped silently',
         accent: hasResendKey,
       },
     ],
@@ -77,7 +77,7 @@ export default async function AdminSettingsPage() {
       { label: 'Hosting', value: isCloud ? 'Supabase Cloud' : 'Self-hosted (local)' },
       {
         label: 'File Storage',
-        value: 'Active — avatars bucket (2MB max, JPG/PNG/WebP)',
+        value: 'Active - avatars bucket (2MB max, JPG/PNG/WebP)',
         accent: true,
       },
       { label: 'Supabase URL', value: supabaseUrl || 'Not set' },

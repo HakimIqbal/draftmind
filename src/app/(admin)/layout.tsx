@@ -1,5 +1,6 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { AdminShell } from '@/components/admin/admin-shell';
 
@@ -17,10 +18,17 @@ export default async function AdminRootLayout({ children }: { children: React.Re
     redirect('/dashboard');
   }
 
+  const admin = createAdminClient();
+  const { count: openTicketCount } = await admin
+    .from('tickets')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'open');
+
   return (
     <AdminShell
       userName={profile.full_name ?? user.email ?? 'Admin'}
       userEmail={profile.email ?? user.email ?? ''}
+      openTicketCount={openTicketCount ?? 0}
     >
       {children}
     </AdminShell>

@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let userEmail;
   let userAvatarUrl: string | undefined;
   let recentPRDs: { id: string; title: string }[] = [];
+  let openTicketCount = 0;
 
   if (user) {
     workspaces = await getUserWorkspaces(user.id);
@@ -33,8 +34,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (profile?.avatar_url) userAvatarUrl = profile.avatar_url;
     if (profile?.full_name) userName = profile.full_name;
 
+    const ticketCountPromise = supabase
+      .from('tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .in('status', ['open', 'in_progress']);
+
     if (currentWorkspaceId) {
-      const [prdsResult] = await Promise.all([
+      const [ticketResult, prdsResult] = await Promise.all([
+        ticketCountPromise,
         supabase
           .from('prds')
           .select('id, title')
@@ -42,14 +50,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           .eq('owner_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(5),
-        // Update last_active_at for the current workspace member
         supabase
           .from('workspace_members')
           .update({ last_active_at: new Date().toISOString() })
           .eq('workspace_id', currentWorkspaceId)
           .eq('user_id', user.id),
       ]);
+      openTicketCount = ticketResult.count ?? 0;
       recentPRDs = (prdsResult.data ?? []).map((p) => ({ id: p.id, title: p.title ?? 'Untitled' }));
+    } else {
+      const { count } = await ticketCountPromise;
+      openTicketCount = count ?? 0;
     }
   }
 
@@ -62,6 +73,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       userEmail={userEmail}
       userAvatarUrl={userAvatarUrl}
       recentPRDs={recentPRDs}
+      openTicketCount={openTicketCount}
+      userId={user?.id}
     >
       {children}
     </AppShell>

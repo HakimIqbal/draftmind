@@ -31,6 +31,7 @@ export async function savePRDContent(
       word_count: wordCount,
       read_time_minutes: readTimeMinutes,
       updated_at: new Date().toISOString(),
+      last_edited_by: user.id,
     })
     .eq('id', prdId)
     .eq('workspace_id', workspace.id);

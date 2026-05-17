@@ -32,7 +32,7 @@ const STATUS_FILTERS = [
 ] as const;
 
 function HealthDot({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-[12px] text-[#ccc]">—</span>;
+  if (score === null) return <span className="text-[12px] text-[#ccc]">-</span>;
   const color = score >= 80 ? 'bg-emerald-400' : score >= 60 ? 'bg-amber-400' : 'bg-red-400';
   return (
     <span className="inline-flex items-center gap-1.5 text-[12px] text-[#666]">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -29,6 +29,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { createClient } from '@/lib/supabase/client';
 import { InviteModal } from '@/components/workspace/invite-modal';
 import {
   changeRole,
@@ -147,6 +148,30 @@ export function WorkspaceHub({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // Realtime: refresh member list when someone joins or leaves
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`workspace-hub-members-${workspace.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workspace_members',
+          filter: `workspace_id=eq.${workspace.id}`,
+        },
+        () => {
+          router.refresh();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [workspace.id, router]);
+
   const tabs: { key: Tab; label: string; icon: React.ElementType; show: boolean }[] = [
     { key: 'members', label: 'Members', icon: UsersIcon, show: true },
     { key: 'settings', label: 'Settings', icon: Settings, show: isAdmin },
@@ -163,7 +188,7 @@ export function WorkspaceHub({
           {workspace.team_size ? `${workspace.team_size} people` : 'Team size not set'} · Created{' '}
           {workspace.created_at
             ? formatDistanceToNow(new Date(workspace.created_at), { addSuffix: true })
-            : '—'}
+            : '-'}
         </p>
       </div>
 
@@ -330,7 +355,7 @@ function MembersTab({
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3.5">
-                    <span className="text-[12px] text-[#666]">{role ?? '—'}</span>
+                    <span className="text-[12px] text-[#666]">{role ?? '-'}</span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3.5">
                     {isAdmin && !isSelf ? (
@@ -686,6 +711,8 @@ function ActivityTab({ workspaceId }: { workspaceId: string }) {
     Record<string, { full_name: string | null; avatar_url: string | null }>
   >({});
   const [loading, setLoading] = useState(true);
+  const workspaceIdRef = useRef(workspaceId);
+  workspaceIdRef.current = workspaceId;
 
   useEffect(() => {
     async function load() {
@@ -700,6 +727,23 @@ function ActivityTab({ workspaceId }: { workspaceId: string }) {
     }
     load();
   }, [workspaceId]);
+
+  // Poll every 30s — only when browser tab is visible
+  // Component unmounts automatically when user switches to another tab, so no extra tab-active check needed
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const result = await getWorkspaceActivity(workspaceIdRef.current);
+        setActivities(result.activities);
+        setActorMap(result.actorMap);
+      } catch {
+        // silent — don't disrupt UI on background poll failure
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) return <p className="text-[13px] text-[#aaa]">Loading activity...</p>;
 

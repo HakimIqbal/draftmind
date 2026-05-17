@@ -48,7 +48,7 @@ export default async function AdminOverviewPage() {
   // ALL profiles for actor/owner resolution (small table, one query instead of multiple)
   const allProfilesPromise = admin
     .from('profiles')
-    .select('id, full_name, email, created_at, last_active_at, avatar_url');
+    .select('id, full_name, email, created_at, avatar_url');
 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -98,7 +98,12 @@ export default async function AdminOverviewPage() {
       .eq('level', 'error')
       .order('created_at', { ascending: false })
       .limit(3),
-    admin.from('activity_log').select('actor_id').gte('created_at', todayStart),
+    admin
+      .from('workspace_members')
+      .select('user_id, last_active_at')
+      .not('last_active_at', 'is', null)
+      .gte('last_active_at', weekStart)
+      .order('last_active_at', { ascending: false }),
     langSmithPromise,
   ]);
 
@@ -117,7 +122,7 @@ export default async function AdminOverviewPage() {
   const providersR = safeResult(results[11], { data: null, error: null });
   const topPrdsR = safeResult(results[12], { data: null, error: null });
   const recentErrorsR = safeResult(results[13], { data: null, error: null });
-  const activeUsersR = safeResult(results[14], { data: null, error: null });
+  const activeMembersR = safeResult(results[14], { data: null, error: null });
   // LangSmith fallback: total_runs: 0 hides the section when call fails
   const langSmithR = safeResult(results[15], {
     runs: [],
@@ -133,15 +138,42 @@ export default async function AdminOverviewPage() {
   // Build profile lookup map from single query (replaces 3 sequential queries)
   const allProfiles = allProfilesR.data ?? [];
   const profileMap = new Map(allProfiles.map((p) => [p.id, p]));
-  const recentUsersR = {
-    data: [...allProfiles]
-      .sort((a, b) =>
-        (b.last_active_at ?? b.created_at).localeCompare(a.last_active_at ?? a.created_at),
-      )
-      .slice(0, 5),
-  };
   const actorMap = profileMap;
   const ownerMap = profileMap;
+
+  // Active Today + Recently Active — derived from workspace_members.last_active_at
+  const activeMembers = activeMembersR.data ?? [];
+  const activeTodayUserIds = new Set(
+    activeMembers
+      .filter((m) => m.last_active_at && m.last_active_at >= todayStart)
+      .map((m) => m.user_id),
+  );
+  const seenUserIds = new Set<string>();
+  const recentActiveMembers: { user_id: string; last_active_at: string }[] = [];
+  for (const m of activeMembers) {
+    if (!m.last_active_at) continue;
+    if (!seenUserIds.has(m.user_id)) {
+      seenUserIds.add(m.user_id);
+      recentActiveMembers.push({ user_id: m.user_id, last_active_at: m.last_active_at });
+      if (recentActiveMembers.length >= 5) break;
+    }
+  }
+  const recentUsersR = {
+    data: recentActiveMembers
+      .map((m) => {
+        const profile = profileMap.get(m.user_id);
+        if (!profile) return null;
+        return {
+          id: profile.id,
+          full_name: profile.full_name,
+          email: profile.email,
+          avatar_url: profile.avatar_url,
+          created_at: profile.created_at,
+          last_active_at: m.last_active_at,
+        };
+      })
+      .filter((u): u is NonNullable<typeof u> => u !== null),
+  };
 
   // System Health — derived from same queries, no extra DB calls
   const sysDbOk = usersR.count !== null && !usersR.error;
@@ -150,9 +182,7 @@ export default async function AdminOverviewPage() {
   ).length;
   const sysErrors24h = errorsR.count ?? 0;
   const sysWarns24h = warnsR.count ?? 0;
-  const sysActiveUsersToday = new Set(
-    (activeUsersR.data ?? []).map((a: { actor_id: string }) => a.actor_id),
-  ).size;
+  const sysActiveUsersToday = activeTodayUserIds.size;
 
   // Calculate system health
   const errorCount = errorsR.count ?? 0;
@@ -393,7 +423,7 @@ export default async function AdminOverviewPage() {
               <p className="mt-1 text-[20px] font-bold text-[#1a1a1a]">
                 {langSmithR.summary.avg_latency_ms
                   ? `${(langSmithR.summary.avg_latency_ms / 1000).toFixed(1)}s`
-                  : '—'}
+                  : '-'}
               </p>
             </div>
             <div>
@@ -432,7 +462,7 @@ export default async function AdminOverviewPage() {
                   <div className="flex justify-between text-[11px]">
                     <span className="text-[#aaa]">Avg Latency</span>
                     <span className="text-[#555]">
-                      {p.avg_latency_ms ? `${Math.round(p.avg_latency_ms)}ms` : '—'}
+                      {p.avg_latency_ms ? `${Math.round(p.avg_latency_ms)}ms` : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between text-[11px]">
@@ -440,7 +470,7 @@ export default async function AdminOverviewPage() {
                     <span className="text-[#555]">
                       {p.total_requests
                         ? `${Math.round(((p.successful_requests ?? 0) / p.total_requests) * 100)}%`
-                        : '—'}
+                        : '-'}
                     </span>
                   </div>
                 </div>
@@ -595,7 +625,7 @@ export default async function AdminOverviewPage() {
             ))}
             {(recentErrorsR.data ?? []).length === 0 && (
               <div className="px-5 py-8 text-center text-[13px] text-[#aaa]">
-                No errors — system is clean
+                No errors - system is clean
               </div>
             )}
           </div>

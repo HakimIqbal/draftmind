@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   History,
@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { duplicatePRD, deletePRD, updatePRDStatus } from '@/app/(app)/prds/[prdId]/actions';
 import { createTemplate } from '@/app/(app)/templates/actions';
+import { slugify } from '@/lib/utils/slug';
 
 const PRD_STATUSES = [
   { value: 'draft', label: 'Draft' },
@@ -66,6 +67,10 @@ interface EditorHeaderProps {
   workspaceId?: string;
   canChangeStatus?: boolean;
   onToggleHistory?: () => void;
+  lastEditorName?: string;
+  lastEditorEmail?: string;
+  lastEditorAvatar?: string | null;
+  updatedAt: string;
 }
 
 function relativeTime(dateStr: string): string {
@@ -87,9 +92,27 @@ export function EditorHeader({
   workspaceId: _workspaceId,
   canChangeStatus,
   onToggleHistory,
+  lastEditorName,
+  lastEditorEmail,
+  lastEditorAvatar,
+  updatedAt,
 }: EditorHeaderProps) {
   const router = useRouter();
+  const [avatarPopupOpen, setAvatarPopupOpen] = useState(false);
+  const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+
+  useEffect(() => {
+    if (!avatarPopupOpen) return;
+    function handleOutsideClick(e: MouseEvent) {
+      if (avatarButtonRef.current?.contains(e.target as Node)) return;
+      setAvatarPopupOpen(false);
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [avatarPopupOpen]);
+
+  const displayEditorName = lastEditorName ?? userName;
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [templateName, setTemplateName] = useState(prd.title);
   const [templateDesc, setTemplateDesc] = useState('');
@@ -172,12 +195,22 @@ export function EditorHeader({
       });
       if (!res.ok) throw new Error('Export failed');
 
+      // Slack and Jira: copy formatted text to clipboard
+      if (format === 'slack' || format === 'jira') {
+        const text = await res.text();
+        await navigator.clipboard.writeText(text);
+        toast.success(`${format === 'slack' ? 'Slack' : 'Jira'} format copied to clipboard`);
+        setExportOpen(false);
+        return;
+      }
+
+      // Binary / text file download
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       const ext = format === 'markdown' ? 'md' : format;
-      a.download = `${prd.title.replace(/[^a-zA-Z0-9]/g, '-')}.${ext}`;
+      a.download = `${slugify(prd.title)}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -298,9 +331,43 @@ export function EditorHeader({
       <h1 className="font-display text-2xl font-bold text-ink-primary">{prd.title}</h1>
 
       <div className="flex items-center gap-2">
-        <Avatar name={userName} size="sm" />
+        <div className="relative" data-last-editor-avatar="">
+          <button
+            ref={avatarButtonRef}
+            type="button"
+            onClick={() => setAvatarPopupOpen((prev) => !prev)}
+            className="focus:outline-none"
+          >
+            <Avatar name={displayEditorName} size="sm" avatarUrl={lastEditorAvatar ?? undefined} />
+          </button>
+          {avatarPopupOpen && (
+            <div
+              className="absolute bottom-full left-1/2 z-50 mb-3 min-w-[180px] -translate-x-1/2 rounded-xl border border-[#e4e4e7] bg-white p-3 shadow-xl"
+              data-last-editor-avatar=""
+            >
+              <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-[#e4e4e7] bg-white" />
+              <div className="flex items-center gap-2.5">
+                <Avatar
+                  name={displayEditorName}
+                  size="lg"
+                  avatarUrl={lastEditorAvatar ?? undefined}
+                />
+                <div className="flex min-w-0 flex-col">
+                  <span className="max-w-[120px] truncate text-[13px] font-semibold leading-snug text-[#111]">
+                    {displayEditorName}
+                  </span>
+                  {lastEditorEmail && (
+                    <span className="max-w-[120px] truncate text-[11px] leading-tight text-[#888]">
+                      {lastEditorEmail}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <span className="font-mono text-[11px] text-ink-tertiary">
-          last edit {relativeTime(prd.updated_at)}
+          last edit {relativeTime(updatedAt)}
         </span>
       </div>
 

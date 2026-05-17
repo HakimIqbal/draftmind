@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Building2, Users, FileText, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
+import { createClient } from '@/lib/supabase/client';
 
 interface WorkspaceItem {
   id: string;
@@ -12,6 +14,7 @@ interface WorkspaceItem {
   industry: string | null;
   team_size: string | null;
   created_at: string;
+  icon_custom_url: string | null;
 }
 
 interface OwnerInfo {
@@ -47,6 +50,30 @@ export function WorkspacesClient({
   const [selected, setSelected] = useState<WorkspaceItem | null>(null);
   const [members, setMembers] = useState<MemberInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    const wsChannel = supabase
+      .channel('admin-workspaces-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workspaces' }, () => {
+        router.refresh();
+      })
+      .subscribe();
+
+    const membersChannel = supabase
+      .channel('admin-workspace-members-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workspace_members' }, () => {
+        router.refresh();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(wsChannel);
+      supabase.removeChannel(membersChannel);
+    };
+  }, [router]);
 
   useEffect(() => {
     if (!selected) return;
@@ -82,8 +109,16 @@ export function WorkspacesClient({
               className="cursor-pointer rounded-xl border border-[#eee] bg-white p-5 text-left transition-all hover:border-[#ddd] hover:shadow-sm"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                  <Building2 size={18} className="text-violet-500" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-violet-50">
+                  {ws.icon_custom_url ? (
+                    <img
+                      src={ws.icon_custom_url}
+                      alt={ws.name}
+                      className="h-full w-full rounded-lg object-cover"
+                    />
+                  ) : (
+                    <Building2 size={18} className="text-violet-500" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-semibold text-[#1a1a1a]">{ws.name}</p>
