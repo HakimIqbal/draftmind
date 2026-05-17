@@ -116,7 +116,7 @@ export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceS
         className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/60"
         disabled={isPending}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-accent text-[11px] font-bold text-white">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f0f0ee] text-[11px] font-bold text-[#555]">
           {current?.icon_custom_url ? (
             <Image
               src={current.icon_custom_url}
