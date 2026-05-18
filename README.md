@@ -21,7 +21,7 @@
 
 ## Overview
 
-DraftMind is an AI-powered Product Requirement Document (PRD) platform built for B2B internal product teams. It streamlines the entire PRD lifecycle — from AI-assisted generation to collaborative editing, structured review, and multi-format export.
+DraftMind is an AI-powered Product Requirement Document (PRD) platform built for B2B internal product teams. It streamlines the entire PRD lifecycle - from AI-assisted generation to collaborative editing, structured review, and multi-format export.
 
 Product managers write better PRDs faster by combining a purpose-built rich text editor with AI tools that generate, review, refine, and score document quality in real time. Teams collaborate in shared workspaces with role-based access, inline comments, and live notifications.
 
@@ -33,57 +33,57 @@ The platform is fully multi-tenant with workspace isolation enforced at the data
 
 ### PRD Management
 
-- **AI PRD Generation** — Generate complete structured PRDs from a brief using any configured AI provider
-- **Rich Text Editor** — Tiptap-based block editor with headings, tables, task lists, and slash commands
-- **Auto-save** — Dual-trigger auto-save (3-second idle + 5-minute interval) with visual save status
-- **Version History** — Automatic snapshots on every save; restore any previous version with full diff view
-- **Pipeline / Kanban Board** — Visual board grouped by PRD status (Draft → In Review → Refined → Approved → Shipped)
-- **Status Workflow** — Six-stage lifecycle: `draft → in_review → reviewed → refined → approved → final`
-- **Duplicate & Pin** — Duplicate any PRD; pin important PRDs to the top of the list
-- **Share Links** — Generate public share links with optional expiry; hidden sections are filtered from public view
+- **AI PRD Generation** - Generate complete structured PRDs from a brief using any configured AI provider
+- **Rich Text Editor** - Tiptap-based block editor with headings, tables, task lists, and slash commands
+- **Auto-save** - Dual-trigger auto-save (3-second idle + 5-minute interval) with visual save status
+- **Version History** - Automatic snapshots on every save; restore any previous version with full diff view
+- **Pipeline / Kanban Board** - Visual board grouped by PRD status (Draft → In Review → Refined → Approved → Shipped)
+- **Status Workflow** - Six-stage lifecycle: `draft → in_review → reviewed → refined → approved → final`
+- **Duplicate & Pin** - Duplicate any PRD; pin important PRDs to the top of the list
+- **Share Links** - Generate public share links with optional expiry; hidden sections are filtered from public view
 
 ### AI-Powered Features
 
-- **AI Review** — Automated quality analysis scoring completeness, specificity, structural quality, and consistency (0–100 health score)
-- **AI Copilot** — Chat-based AI assistant embedded in the editor for questions, feedback, and guidance
-- **AI Assist** — Select text and apply 13 inline actions: rewrite, expand, summarize, shorten, translate, add examples, add metrics, convert to table, and more
-- **Refine Section** — AI rewrites individual PRD sections with content safety checks
-- **Multi-Provider** — Anthropic, OpenAI, Google Gemini, and Groq; priority-based fallback routing if a provider is unavailable
+- **AI Review** - Automated quality analysis scoring completeness, specificity, structural quality, and consistency (0–100 health score)
+- **AI Copilot** - Chat-based AI assistant embedded in the editor for questions, feedback, and guidance
+- **AI Assist** - Select text and apply 13 inline actions: rewrite, expand, summarize, shorten, translate, add examples, add metrics, convert to table, and more
+- **Refine Section** - AI rewrites individual PRD sections with content safety checks
+- **Multi-Provider** - Anthropic, OpenAI, Google Gemini, and Groq; priority-based fallback routing if a provider is unavailable
 
 ### Collaboration
 
-- **Inline Comments** — Add, reply to, resolve, and reopen comments on any section
-- **@Mentions** — Mention team members in comments to trigger targeted notifications
-- **Notifications** — Real-time bell icon with 17+ notification types (review requests, mentions, status changes, member events, etc.)
-- **Workspace Members** — Invite by email; roles: `admin`, `editor`, `commenter`, `viewer`
-- **Online Presence** — Last-active timestamps with online/offline indicator (5-minute threshold)
+- **Inline Comments** - Add, reply to, resolve, and reopen comments on any section
+- **@Mentions** - Mention team members in comments to trigger targeted notifications
+- **Notifications** - Real-time bell icon with 17+ notification types (review requests, mentions, status changes, member events, etc.)
+- **Workspace Members** - Invite by email; roles: `admin`, `editor`, `commenter`, `viewer`
+- **Online Presence** - Last-active timestamps with online/offline indicator (5-minute threshold)
 
 ### Export & Sharing
 
-- **PDF** — Styled export via headless Chromium
-- **DOCX** — Microsoft Word format
-- **Markdown** — GitHub-flavored Markdown
-- **HTML** — Standalone styled HTML
-- **Slack** — Slack block kit format
-- **Jira** — Jira wiki markup (ADF-compatible)
+- **PDF** - Styled export via headless Chromium
+- **DOCX** - Microsoft Word format
+- **Markdown** - GitHub-flavored Markdown
+- **HTML** - Standalone styled HTML
+- **Slack** - Slack block kit format
+- **Jira** - Jira wiki markup (ADF-compatible)
 
 ### Template System
 
-- **Built-in Templates** — Library of pre-built templates (feature PRD, experiment brief, RFC, one-pager, research brief, and more)
-- **Custom Templates** — Save any PRD as a workspace-specific template
-- **Template Gallery** — Browse and filter templates by category
+- **Built-in Templates** - Library of pre-built templates (feature PRD, experiment brief, RFC, one-pager, research brief, and more)
+- **Custom Templates** - Save any PRD as a workspace-specific template
+- **Template Gallery** - Browse and filter templates by category
 
 ### Admin System
 
-- **User Management** — Create, ban/unban, reset passwords, toggle admin status
-- **Workspace Monitoring** — View all workspaces with member and PRD counts
-- **AI Provider Config** — Add and manage AI providers; API keys encrypted with AES-256-GCM
-- **AI Runs Dashboard** — Per-operation stats: token usage, latency, success rate, LangSmith traces
-- **System Logs** — Real-time error/warning/info log viewer with resolve tracking and JSON export
-- **Analytics** — Platform-wide usage metrics: PRDs by status, AI runs by type, user growth
-- **Announcements** — Broadcast notifications to all users, by role, or to specific users
-- **Support Tickets** — User-submitted tickets with admin status management and automated notifications
-- **Activity Log** — Full audit trail of admin actions
+- **User Management** - Create, ban/unban, reset passwords, toggle admin status
+- **Workspace Monitoring** - View all workspaces with member and PRD counts
+- **AI Provider Config** - Add and manage AI providers; API keys encrypted with AES-256-GCM
+- **AI Runs Dashboard** - Per-operation stats: token usage, latency, success rate, LangSmith traces
+- **System Logs** - Real-time error/warning/info log viewer with resolve tracking and JSON export
+- **Analytics** - Platform-wide usage metrics: PRDs by status, AI runs by type, user growth
+- **Announcements** - Broadcast notifications to all users, by role, or to specific users
+- **Support Tickets** - User-submitted tickets with admin status management and automated notifications
+- **Activity Log** - Full audit trail of admin actions
 
 ---
 
@@ -98,7 +98,7 @@ The platform is fully multi-tenant with workspace isolation enforced at the data
 | UI Primitives | Radix UI (Dialog, Dropdown, Select, Tabs, Tooltip, etc.)        | latest           |
 | Icons         | Lucide React                                                    | ^0.400.0         |
 | Editor        | Tiptap (ProseMirror-based) with custom extensions               | ^2.27.x          |
-| Database      | Supabase — PostgreSQL + Auth + Storage + Realtime               | ^2.45.0          |
+| Database      | Supabase - PostgreSQL + Auth + Storage + Realtime               | ^2.45.0          |
 | AI Framework  | Vercel AI SDK                                                   | ^4.0.0           |
 | AI Providers  | @ai-sdk/anthropic, @ai-sdk/openai, @ai-sdk/google, @ai-sdk/groq | various          |
 | Observability | LangSmith                                                       | ^0.6.0           |
@@ -110,17 +110,17 @@ The platform is fully multi-tenant with workspace isolation enforced at the data
 | Image Crop    | react-avatar-editor                                             | ^15.1.0          |
 | Validation    | Zod + react-hook-form                                           | ^3.23.0          |
 | Testing       | Vitest + Playwright                                             | ^2.0.0 / ^1.46.0 |
-| Linting       | ESLint + Prettier + Husky + lint-staged                         | —                |
-| Deployment    | Docker (standalone output) + Caddy reverse proxy                | —                |
+| Linting       | ESLint + Prettier + Husky + lint-staged                         | -                |
+| Deployment    | Docker (standalone output) + Caddy reverse proxy                | -                |
 
 ---
 
 ## Prerequisites
 
-- **Node.js** >= 20.11.0 — see `.nvmrc` (use `nvm use` to switch automatically)
-- **pnpm** 9.x — `npm install -g pnpm`
-- **Supabase CLI** — [Installation guide](https://supabase.com/docs/guides/cli)
-- **Docker** — Required for Supabase local development and production deployment
+- **Node.js** >= 20.11.0 - see `.nvmrc` (use `nvm use` to switch automatically)
+- **pnpm** 9.x - `npm install -g pnpm`
+- **Supabase CLI** - [Installation guide](https://supabase.com/docs/guides/cli)
+- **Docker** - Required for Supabase local development and production deployment
 
 ---
 
@@ -186,14 +186,14 @@ Open [http://localhost:3000](http://localhost:3000).
 | `DATABASE_URL`                  |    ✅    | PostgreSQL connection string                                                                       |
 | `NEXT_PUBLIC_APP_URL`           |    ✅    | Public URL of the app (e.g. `https://app.draftmind.com`)                                           |
 | `ENCRYPTION_KEY`                |    ✅    | 32-byte base64 key for AES-256-GCM encryption of provider API keys                                 |
-| `DEPLOYMENT_TARGET`             |    —     | `local` or `production` (affects some config behavior)                                             |
-| `SKIP_ENV_VALIDATION`           |    —     | Set `true` only during Docker build                                                                |
-| `RESEND_API_KEY`                |    —     | Resend API key for transactional email (invitation emails). Emails are silently skipped if not set |
-| `EMAIL_FROM`                    |    —     | Sender address (e.g. `DraftMind <noreply@draftmind.app>`)                                          |
-| `LANGCHAIN_API_KEY`             |    —     | LangSmith API key for AI observability                                                             |
-| `LANGCHAIN_PROJECT`             |    —     | LangSmith project name                                                                             |
-| `LANGCHAIN_TRACING_V2`          |    —     | Set `true` to enable LangSmith tracing                                                             |
-| `SUPABASE_WEBHOOK_SECRET`       |    —     | HMAC-SHA256 secret for validating Supabase webhooks                                                |
+| `DEPLOYMENT_TARGET`             |    -     | `local` or `production` (affects some config behavior)                                             |
+| `SKIP_ENV_VALIDATION`           |    -     | Set `true` only during Docker build                                                                |
+| `RESEND_API_KEY`                |    -     | Resend API key for transactional email (invitation emails). Emails are silently skipped if not set |
+| `EMAIL_FROM`                    |    -     | Sender address (e.g. `DraftMind <noreply@draftmind.app>`)                                          |
+| `LANGCHAIN_API_KEY`             |    -     | LangSmith API key for AI observability                                                             |
+| `LANGCHAIN_PROJECT`             |    -     | LangSmith project name                                                                             |
+| `LANGCHAIN_TRACING_V2`          |    -     | Set `true` to enable LangSmith tracing                                                             |
+| `SUPABASE_WEBHOOK_SECRET`       |    -     | HMAC-SHA256 secret for validating Supabase webhooks                                                |
 
 Generate `ENCRYPTION_KEY`:
 
@@ -325,8 +325,8 @@ supabase db push
 
 GitHub Actions workflows are included in `.github/workflows/`:
 
-- **`ci.yml`** — Runs on every pull request: `typecheck → lint → vitest`
-- **`e2e.yml`** — Runs on push to `main`: Playwright end-to-end tests
+- **`ci.yml`** - Runs on every pull request: `typecheck → lint → vitest`
+- **`e2e.yml`** - Runs on push to `main`: Playwright end-to-end tests
 
 ---
 
