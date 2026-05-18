@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
-import { createClient } from '@supabase/supabase-js';
 
 export async function middleware(request: NextRequest) {
   const { user, response } = await updateSession(request);
@@ -61,19 +60,24 @@ export async function middleware(request: NextRequest) {
 
   // Authenticated user — enforce role-based access
   if (user && (isAdminRoute || isUserRoute || isAuthRoute)) {
-    // Use service role key to bypass RLS — anon key subject to RLS policies
-    // which may block profile reads for users without a workspace.
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } },
+    // Use native fetch + service role key — fully compatible with Edge Runtime.
+    // @supabase/supabase-js createClient may not reliably resolve in Edge Runtime.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+    const profileRes = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_super_admin,force_password_change&limit=1`,
+      {
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json',
+        },
+      },
     );
 
-    const { data: profile } = await adminClient
-      .from('profiles')
-      .select('is_super_admin, force_password_change')
-      .eq('id', user.id)
-      .single();
+    const profiles = await profileRes.json();
+    const profile = profiles?.[0] ?? null;
 
     console.log('[middleware] user.id:', user?.id);
     console.log('[middleware] profile:', JSON.stringify(profile));
