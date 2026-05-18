@@ -1,14 +1,13 @@
 import { requireUser } from '@/lib/auth/permissions';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { AdminShell } from '@/components/admin/admin-shell';
 
 export default async function AdminRootLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('profiles')
     .select('is_super_admin, full_name, email, avatar_url')
     .eq('id', user.id)
@@ -18,7 +17,6 @@ export default async function AdminRootLayout({ children }: { children: React.Re
     redirect('/dashboard');
   }
 
-  const admin = createAdminClient();
   const { count: openTicketCount } = await admin
     .from('tickets')
     .select('id', { count: 'exact', head: true })
