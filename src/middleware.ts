@@ -76,7 +76,20 @@ export async function middleware(request: NextRequest) {
       },
     );
 
-    const profiles = await profileRes.json();
+    console.log('[middleware] fetch status:', profileRes.status);
+    console.log(
+      '[middleware] fetch url:',
+      `${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_super_admin,force_password_change&limit=1`,
+    );
+    const responseText = await profileRes.text();
+    console.log('[middleware] response text:', responseText.substring(0, 200));
+
+    let profiles: { is_super_admin: boolean; force_password_change: boolean }[] = [];
+    try {
+      profiles = JSON.parse(responseText);
+    } catch (e) {
+      console.log('[middleware] JSON parse error:', (e as Error).message);
+    }
     const profile = profiles?.[0] ?? null;
 
     console.log('[middleware] user.id:', user?.id);
