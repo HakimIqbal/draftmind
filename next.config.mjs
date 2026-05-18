@@ -7,12 +7,28 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
+  webpack: (config, { nextRuntime, webpack }) => {
     // Force single Yjs instance to prevent "Yjs was already imported" warning
     config.resolve.alias = {
       ...config.resolve.alias,
       yjs: resolve(__dirname, 'node_modules/yjs'),
     };
+
+    // Inject server env vars into Edge Runtime bundle (middleware).
+    // Non-NEXT_PUBLIC_ vars are stripped from the edge bundle at build time.
+    if (nextRuntime === 'edge') {
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'process.env.SUPABASE_SERVICE_ROLE_KEY': JSON.stringify(
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+          ),
+          'process.env.NEXT_PUBLIC_SUPABASE_URL': JSON.stringify(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+          ),
+        }),
+      );
+    }
+
     return config;
   },
   images: {
