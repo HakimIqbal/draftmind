@@ -65,6 +65,12 @@ export async function middleware(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+    console.log('[middleware] key length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
+    console.log(
+      '[middleware] key prefix:',
+      process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20),
+    );
+
     const profileRes = await fetch(
       `${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_super_admin,force_password_change&limit=1`,
       {
