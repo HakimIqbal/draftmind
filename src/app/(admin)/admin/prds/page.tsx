@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Pill } from '@/components/ui/pill';
 import { formatDistanceToNow } from 'date-fns';
+import { AdminPRDsPoller } from './admin-prds-poller';
 
 export const metadata = { title: 'Admin — DraftMind' };
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export default async function AdminPRDsPage({
 
   return (
     <div>
+      <AdminPRDsPoller />
       <div className="mb-6">
         <h1 className="text-[22px] font-bold text-[#1a1a1a]">All PRDs</h1>
         <p className="mt-0.5 text-[13px] text-[#888]">

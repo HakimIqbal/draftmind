@@ -293,6 +293,7 @@ export async function fetchComments(prdId: string, filter: 'open' | 'resolved' |
     .from('comments')
     .select('*, author:profiles!comments_author_id_fkey(full_name, avatar_color_seed, avatar_url)')
     .eq('prd_id', prdId)
+    .limit(200)
     .order('created_at', { ascending: true });
 
   if (filter === 'open') query = query.is('resolved_at', null);

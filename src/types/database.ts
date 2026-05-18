@@ -1041,7 +1041,8 @@ export type Database = {
         | 'comment_reply'
         | 'ai_suggestion_ready'
         | 'integration_event'
-        | 'workspace_invite';
+        | 'workspace_invite'
+        | 'ticket_submitted';
       prd_status:
         | 'draft'
         | 'in_review'
@@ -1234,6 +1235,7 @@ export const Constants = {
         'ai_suggestion_ready',
         'integration_event',
         'workspace_invite',
+        'ticket_submitted',
       ],
       prd_status: [
         'draft',

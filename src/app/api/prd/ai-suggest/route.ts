@@ -46,6 +46,27 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
+  if (instruction && instruction.length > 5000) {
+    return Response.json(
+      { error: 'Instruction too long. Maximum 5000 characters.' },
+      { status: 400 },
+    );
+  }
+
+  if (selectedText && selectedText.length > 10000) {
+    return Response.json(
+      { error: 'Selected text too long. Maximum 10000 characters.' },
+      { status: 400 },
+    );
+  }
+
+  if (customInstruction && customInstruction.length > 5000) {
+    return Response.json(
+      { error: 'Custom instruction too long. Maximum 5000 characters.' },
+      { status: 400 },
+    );
+  }
+
   const workspace = await getCurrentWorkspace(user.id);
 
   // For copilot mode: fetch PRD content as context

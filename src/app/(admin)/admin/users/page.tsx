@@ -46,7 +46,7 @@ export default async function AdminUsersPage({
 
   return (
     <div>
-      <AdminUsersTable users={users} />
+      <AdminUsersTable users={users} totalCount={count ?? 0} />
 
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-4">

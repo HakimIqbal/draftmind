@@ -125,7 +125,7 @@ export function HomeFeed({
       <div className="mt-5 grid grid-cols-4 gap-3">
         <Stat
           icon={FileText}
-          label="Active PRDs"
+          label="Total PRDs"
           value={stats.activePRDs}
           bg="bg-blue-50"
           color="text-blue-600"

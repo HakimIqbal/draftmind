@@ -10,7 +10,7 @@ export default async function AdminRootLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_super_admin, full_name, email')
+    .select('is_super_admin, full_name, email, avatar_url')
     .eq('id', user.id)
     .single();
 
@@ -28,6 +28,7 @@ export default async function AdminRootLayout({ children }: { children: React.Re
     <AdminShell
       userName={profile.full_name ?? user.email ?? 'Admin'}
       userEmail={profile.email ?? user.email ?? ''}
+      userAvatarUrl={profile.avatar_url ?? undefined}
       openTicketCount={openTicketCount ?? 0}
     >
       {children}

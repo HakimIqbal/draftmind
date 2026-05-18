@@ -8,6 +8,7 @@ import {
   getNeedsAttention,
 } from '@/lib/db/queries/dashboard';
 import { HomeFeed } from '@/components/dashboard/home-feed';
+import { DashboardPoller } from './dashboard-poller';
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -83,14 +84,17 @@ export default async function HomePage() {
   }));
 
   return (
-    <HomeFeed
-      userName={fullName}
-      workspaceId={wsId}
-      stats={stats}
-      continueWorking={continueWorking}
-      activityFeed={activity}
-      needsAttention={attention}
-      templates={templates}
-    />
+    <>
+      <DashboardPoller />
+      <HomeFeed
+        userName={fullName}
+        workspaceId={wsId}
+        stats={stats}
+        continueWorking={continueWorking}
+        activityFeed={activity}
+        needsAttention={attention}
+        templates={templates}
+      />
+    </>
   );
 }

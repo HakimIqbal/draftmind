@@ -3,6 +3,7 @@ import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { getPRDsByWorkspace } from '@/lib/db/queries/prd';
 import { redirect } from 'next/navigation';
 import { PRDPipelineBoard } from '@/components/dashboard/prd-pipeline-board';
+import { PipelineRealtimePoller } from './pipeline-realtime-poller';
 
 export default async function PrdPipelinePage() {
   const user = await requireUser();
@@ -19,5 +20,10 @@ export default async function PrdPipelinePage() {
     shipped: items.filter((p) => p.status === 'shipped'),
   };
 
-  return <PRDPipelineBoard columns={columns} />;
+  return (
+    <>
+      <PipelineRealtimePoller workspaceId={workspace.id as string} />
+      <PRDPipelineBoard columns={columns} />
+    </>
+  );
 }

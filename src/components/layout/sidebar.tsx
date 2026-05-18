@@ -189,7 +189,7 @@ export function Sidebar({
                 />
                 My Tickets
                 {badgeCount > 0 && (
-                  <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-100 px-1 text-[10px] font-semibold text-blue-600">
+                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#E8733A] text-[11px] font-medium text-white">
                     {badgeCount}
                   </span>
                 )}

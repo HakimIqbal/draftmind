@@ -22,11 +22,8 @@ export async function POST(request: Request) {
     .eq('user_id', user.id)
     .single();
 
-  if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
-    return NextResponse.json(
-      { error: 'Only owners and admins can invite members' },
-      { status: 403 },
-    );
+  if (!member || member.role !== 'admin') {
+    return NextResponse.json({ error: 'Only admins can invite members' }, { status: 403 });
   }
 
   const { data, error } = await supabase

@@ -12,16 +12,37 @@ export default async function AdminWorkspacesPage() {
     .select('id, name, slug, owner_id, industry, team_size, created_at, icon_custom_url')
     .order('created_at', { ascending: false });
 
-  const { data: memberCounts } = await admin.from('workspace_members').select('workspace_id');
+  const workspaceIds = (workspaces ?? []).map((w) => w.id);
+
+  const [memberCountResults, prdCountResults] = await Promise.all([
+    Promise.all(
+      workspaceIds.map((id) =>
+        admin
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', id)
+          .then(({ count }) => ({ id, count: count ?? 0 })),
+      ),
+    ),
+    Promise.all(
+      workspaceIds.map((id) =>
+        admin
+          .from('prds')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', id)
+          .then(({ count }) => ({ id, count: count ?? 0 })),
+      ),
+    ),
+  ]);
+
   const countMap: Record<string, number> = {};
-  (memberCounts ?? []).forEach((m) => {
-    countMap[m.workspace_id] = (countMap[m.workspace_id] || 0) + 1;
+  memberCountResults.forEach((r) => {
+    countMap[r.id] = r.count;
   });
 
-  const { data: prdCounts } = await admin.from('prds').select('workspace_id');
   const prdMap: Record<string, number> = {};
-  (prdCounts ?? []).forEach((p) => {
-    prdMap[p.workspace_id] = (prdMap[p.workspace_id] || 0) + 1;
+  prdCountResults.forEach((r) => {
+    prdMap[r.id] = r.count;
   });
 
   const ownerIds = [...new Set((workspaces ?? []).map((w) => w.owner_id))];

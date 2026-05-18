@@ -1,6 +1,8 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { createClient } from '@/lib/supabase/server';
 import { getUserWorkspaces, getCurrentWorkspace } from '@/lib/db/queries/workspace';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -17,8 +19,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let recentPRDs: { id: string; title: string }[] = [];
   let openTicketCount = 0;
 
+  const pathname = (await headers()).get('x-pathname') ?? '';
+
   if (user) {
     workspaces = await getUserWorkspaces(user.id);
+
+    // Guard: user has no workspace membership and is on a workspace-specific route
+    if (workspaces && workspaces.length === 0 && pathname.startsWith('/workspace')) {
+      redirect('/dashboard');
+    }
     const ws = await getCurrentWorkspace(user.id);
     currentWorkspaceId = ws?.id;
     currentUserRole = ws?.currentRole;
@@ -59,8 +68,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       openTicketCount = ticketResult.count ?? 0;
       recentPRDs = (prdsResult.data ?? []).map((p) => ({ id: p.id, title: p.title ?? 'Untitled' }));
     } else {
-      const { count } = await ticketCountPromise;
+      const [{ count }, { data: firstMembership }] = await Promise.all([
+        ticketCountPromise,
+        supabase
+          .from('workspace_members')
+          .select('workspace_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .single(),
+      ]);
       openTicketCount = count ?? 0;
+      if (firstMembership) {
+        void supabase
+          .from('workspace_members')
+          .update({ last_active_at: new Date().toISOString() })
+          .eq('workspace_id', firstMembership.workspace_id)
+          .eq('user_id', user.id)
+          .then();
+      }
     }
   }
 

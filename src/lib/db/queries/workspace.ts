@@ -17,23 +17,22 @@ export async function getCurrentWorkspace(userId: string): Promise<CurrentWorksp
   const supabase = await createClient();
 
   if (workspaceId) {
-    const { data: member } = await supabase
-      .from('workspace_members')
-      .select('role')
-      .eq('workspace_id', workspaceId)
-      .eq('user_id', userId)
-      .single();
-
-    if (member) {
-      const { data: workspace } = await supabase
+    const [{ data: member }, { data: workspace }] = await Promise.all([
+      supabase
+        .from('workspace_members')
+        .select('role')
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', userId)
+        .single(),
+      supabase
         .from('workspaces')
         .select('id, name, slug, icon_pattern, is_private, owner_id')
         .eq('id', workspaceId)
-        .single();
+        .single(),
+    ]);
 
-      if (workspace) {
-        return { ...workspace, currentRole: member.role };
-      }
+    if (member && workspace) {
+      return { ...workspace, currentRole: member.role };
     }
   }
 

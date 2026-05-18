@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Search, Shield, ShieldOff, UserX, UserPlus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
-import { createClient } from '@/lib/supabase/client';
 import {
   toggleSuperAdmin,
   toggleUserStatus,
@@ -25,27 +24,27 @@ interface AdminUser {
   avatar_url: string | null;
 }
 
-export function AdminUsersTable({ users }: { users: AdminUser[] }) {
+export function AdminUsersTable({ users, totalCount }: { users: AdminUser[]; totalCount: number }) {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [localUsers, setLocalUsers] = useState<AdminUser[]>(users);
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel('admin-users-profiles-realtime')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
-        router.refresh();
-      })
-      .subscribe();
+    setLocalUsers(users);
+  }, [users]);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        router.refresh();
+      }
+    }, 30_000);
+    return () => clearInterval(id);
   }, [router]);
 
-  const filtered = users.filter((u) => {
+  const filtered = localUsers.filter((u) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (u.full_name?.toLowerCase().includes(q) ?? false) || u.email.toLowerCase().includes(q);
@@ -55,22 +54,33 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
     startTransition(async () => {
       const result = await toggleSuperAdmin(userId);
       if (result.error) toast.error(result.error);
-      else toast.success('Admin status updated');
+      else {
+        toast.success('Admin status updated');
+        router.refresh();
+      }
     });
   }
 
   function handleToggleStatus(userId: string) {
+    const prev = localUsers;
+    setLocalUsers(
+      localUsers.map((u) => (u.id === userId ? { ...u, is_disabled: !u.is_disabled } : u)),
+    );
     startTransition(async () => {
       const result = await toggleUserStatus(userId);
-      if (result.error) toast.error(result.error);
-      else toast.success(result.disabled ? 'User disabled' : 'User enabled');
+      if (result.error) {
+        toast.error(result.error);
+        setLocalUsers(prev);
+      } else {
+        toast.success(result.disabled ? 'User disabled' : 'User enabled');
+      }
     });
   }
 
   function handleResetPassword(userId: string) {
     startTransition(async () => {
       const result = await resetUserPassword(userId);
-      if (result.error) toast.error(result.error);
+      if (result?.error) toast.error(result.error);
       else toast.success('Password reset to default. User will be forced to change on next login.');
     });
   }
@@ -80,7 +90,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-[#1a1a1a]">Users</h1>
-          <p className="mt-0.5 text-[13px] text-[#888]">{users.length} registered users</p>
+          <p className="mt-0.5 text-[13px] text-[#888]">{totalCount} registered users</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-60">
@@ -147,7 +157,9 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                   </div>
                 </td>
                 <td className="px-5 py-3.5">
-                  <span className="text-[12px] text-[#666]">{u.role_self_reported ?? '-'}</span>
+                  <span className="text-[12px] text-[#666]">
+                    {u.is_super_admin ? 'System Administrator' : (u.role_self_reported ?? '-')}
+                  </span>
                 </td>
                 <td className="px-5 py-3.5">
                   <span
@@ -222,6 +234,10 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
       {showModal && (
         <CreateUserModal
           onClose={() => setShowModal(false)}
+          onSuccess={() => {
+            setShowModal(false);
+            router.refresh();
+          }}
           isPending={isPending}
           startTransition={startTransition}
         />
@@ -232,10 +248,12 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
 
 function CreateUserModal({
   onClose,
+  onSuccess,
   isPending,
   startTransition,
 }: {
   onClose: () => void;
+  onSuccess: () => void;
   isPending: boolean;
   startTransition: (callback: () => Promise<void>) => void;
 }) {
@@ -268,7 +286,7 @@ function CreateUserModal({
         toast.error(result.error);
       } else {
         toast.success('User created successfully');
-        onClose();
+        onSuccess();
       }
     });
   }
@@ -331,33 +349,35 @@ function CreateUserModal({
               </button>
             </div>
           </div>
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] focus:border-accent focus:outline-none focus:ring-1"
-            >
-              <option>Product Manager</option>
-              <option>Product Owner</option>
-              <option>Software Engineer</option>
-              <option>Engineering Manager</option>
-              <option>UX Designer</option>
-              <option>Data Analyst</option>
-              <option>Founder / CEO</option>
-              <option>Other</option>
-            </select>
-            {isOther && (
-              <input
-                type="text"
-                value={customRole}
-                onChange={(e) => setCustomRole(e.target.value)}
-                placeholder="Enter custom role..."
-                required
-                className="focus:ring-accent/30 mt-2 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
-              />
-            )}
-          </div>
+          {!isAdmin && (
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] focus:border-accent focus:outline-none focus:ring-1"
+              >
+                <option>Product Manager</option>
+                <option>Product Owner</option>
+                <option>Software Engineer</option>
+                <option>Engineering Manager</option>
+                <option>UX Designer</option>
+                <option>Data Analyst</option>
+                <option>Founder / CEO</option>
+                <option>Other</option>
+              </select>
+              {isOther && (
+                <input
+                  type="text"
+                  value={customRole}
+                  onChange={(e) => setCustomRole(e.target.value)}
+                  placeholder="Enter custom role..."
+                  required
+                  className="focus:ring-accent/30 mt-2 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
+                />
+              )}
+            </div>
+          )}
           <div>
             <label className="flex cursor-pointer items-center gap-2.5">
               <input

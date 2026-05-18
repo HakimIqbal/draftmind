@@ -3,7 +3,16 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, FileText, LayoutTemplate, Users, BarChart3, PanelLeft, LogOut } from 'lucide-react';
+import {
+  Home,
+  FileText,
+  LayoutTemplate,
+  Users,
+  BarChart3,
+  PanelLeft,
+  LogOut,
+  Ticket,
+} from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -41,6 +50,8 @@ export function SidebarCollapsedRail({
 
   const storeName = useUserStore((s) => s.name);
   const storeAvatarUrl = useUserStore((s) => s.avatarUrl);
+  const storeTicketCount = useUserStore((s) => s.openTicketCount);
+  const badgeCount = storeTicketCount ?? 0;
   const displayName = storeName || userName;
   const displayAvatar = storeAvatarUrl !== null ? storeAvatarUrl : userAvatarUrl;
 
@@ -99,6 +110,31 @@ export function SidebarCollapsedRail({
           );
         })}
       </nav>
+
+      {/* Support: My Tickets */}
+      <div className="w-full border-t border-subtle px-1.5 py-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/tickets"
+              className={cn(
+                'relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
+                pathname === '/tickets' || pathname.startsWith('/tickets/')
+                  ? 'bg-bg-surface text-ink-primary'
+                  : 'text-ink-tertiary hover:bg-bg-surface hover:text-ink-primary',
+              )}
+            >
+              <Ticket size={18} />
+              {badgeCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E8733A] text-[10px] font-medium text-white">
+                  {badgeCount}
+                </span>
+              )}
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">My Tickets</TooltipContent>
+        </Tooltip>
+      </div>
 
       {/* Bottom: avatar with popover */}
       <div className="pb-3 pt-2">

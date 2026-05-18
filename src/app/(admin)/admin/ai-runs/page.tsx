@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { formatDistanceToNow } from 'date-fns';
 import { fetchLangSmithRuns, isLangSmithEnabled, getLangSmithProject } from '@/lib/ai/langsmith';
 import { ArrowUpRight } from 'lucide-react';
+import { AdminAIRunsPoller } from './admin-ai-runs-poller';
 
 export const metadata = { title: 'AI Runs — Admin — DraftMind' };
 export const revalidate = 60;
@@ -116,6 +117,7 @@ export default async function AdminAIRunsPage({
 
   return (
     <div>
+      <AdminAIRunsPoller />
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>

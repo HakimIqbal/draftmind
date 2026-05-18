@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
 import { useRealtimeSubscription } from '@/hooks/use-realtime-subscription';
 import { MoreHorizontal, Search, UserPlus, Mail } from 'lucide-react';
@@ -59,6 +61,7 @@ export function WorkspaceMembersTab({
   invitations,
   disabledUserIds = [],
 }: Props) {
+  const router = useRouter();
   useRefreshOnFocus();
   useRealtimeSubscription({
     channel: `members-${workspaceId}`,
@@ -68,8 +71,10 @@ export function WorkspaceMembersTab({
   useRealtimeSubscription({
     channel: `invitations-${workspaceId}`,
     table: 'workspace_invitations',
-    filter: `workspace_id=eq.${workspaceId}`,
   });
+  const [localMembers, setLocalMembers] = useState(members);
+  useEffect(() => setLocalMembers(members), [members]);
+
   const disabledSet = new Set(disabledUserIds);
   const isAdmin = currentUserRole === 'admin';
   const [search, setSearch] = useState('');
@@ -78,7 +83,35 @@ export function WorkspaceMembersTab({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const filtered = members.filter((m) => {
+  function handleChangeRole(userId: string, newRole: 'admin' | 'editor' | 'commenter' | 'viewer') {
+    const prev = localMembers;
+    setLocalMembers(localMembers.map((m) => (m.user_id === userId ? { ...m, role: newRole } : m)));
+    startTransition(async () => {
+      const result = await changeRole(workspaceId, userId, newRole);
+      if (result?.error) {
+        toast.error(result.error);
+        setLocalMembers(prev);
+      }
+    });
+  }
+
+  function handleRemoveMember(userId: string) {
+    const prev = localMembers;
+    setLocalMembers(localMembers.filter((m) => m.user_id !== userId));
+    startTransition(async () => {
+      const result = await removeMember(workspaceId, userId);
+      if (result?.error) {
+        toast.error(result.error);
+        setLocalMembers(prev);
+        return;
+      }
+      if (userId === currentUserId) {
+        router.push('/dashboard');
+      }
+    });
+  }
+
+  const filtered = localMembers.filter((m) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -100,7 +133,7 @@ export function WorkspaceMembersTab({
           />
         </div>
         <span className="text-[12px] text-[#bbb]">
-          {members.length} member{members.length !== 1 ? 's' : ''}
+          {localMembers.length} member{localMembers.length !== 1 ? 's' : ''}
         </span>
         {isAdmin && (
           <button
@@ -180,13 +213,10 @@ export function WorkspaceMembersTab({
                       <Select
                         value={member.role}
                         onValueChange={(val) =>
-                          startTransition(async () => {
-                            await changeRole(
-                              workspaceId,
-                              member.user_id,
-                              val as 'admin' | 'editor' | 'commenter' | 'viewer',
-                            );
-                          })
+                          handleChangeRole(
+                            member.user_id,
+                            val as 'admin' | 'editor' | 'commenter' | 'viewer',
+                          )
                         }
                         disabled={isPending}
                       >
@@ -229,11 +259,7 @@ export function WorkspaceMembersTab({
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             className="text-red-500"
-                            onClick={() =>
-                              startTransition(async () => {
-                                await removeMember(workspaceId, member.user_id);
-                              })
-                            }
+                            onClick={() => handleRemoveMember(member.user_id)}
                           >
                             Remove
                           </DropdownMenuItem>

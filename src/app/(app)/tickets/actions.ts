@@ -2,6 +2,7 @@
 
 import { requireUser } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export type Ticket = {
   id: string;
@@ -35,14 +36,33 @@ export async function submitTicket(input: {
   const user = await requireUser();
   const supabase = await createClient();
 
-  const { error } = await supabase.from('tickets').insert({
-    user_id: user.id,
-    category: input.category,
-    subject: input.subject.trim(),
-    message: input.message.trim(),
-  });
+  const { data: newTicket, error } = await supabase
+    .from('tickets')
+    .insert({
+      user_id: user.id,
+      category: input.category,
+      subject: input.subject.trim(),
+      message: input.message.trim(),
+    })
+    .select('id')
+    .single();
 
   if (error) return { success: false, error: 'Failed to submit ticket. Please try again.' };
+
+  try {
+    const adminClient = createAdminClient();
+    await adminClient.from('notifications').insert({
+      recipient_id: user.id,
+      type: 'ticket_submitted',
+      title: 'Ticket received',
+      body: `Your ticket "${input.subject.trim()}" has been received. We'll get back to you as soon as possible.`,
+      resource_type: 'ticket',
+      resource_id: newTicket.id,
+      action_url: '/tickets',
+    });
+  } catch {
+    // Notification failure must not block ticket submission
+  }
 
   return { success: true };
 }

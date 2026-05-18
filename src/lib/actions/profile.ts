@@ -1,5 +1,6 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -142,6 +143,27 @@ export async function uploadAvatar(formData: FormData) {
   revalidatePath('/', 'layout');
 
   return { success: true, avatarUrl };
+}
+
+export async function forceChangePassword(newPassword: string) {
+  const user = await requireUser();
+
+  if (newPassword.length < 6) {
+    return { error: 'Password must be at least 6 characters' };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    logError('profile.forceChangePassword', error.message, {}, user.id);
+    return { error: 'Failed to update password. Please try again.' };
+  }
+
+  const admin = createAdminClient();
+  await admin.from('profiles').update({ force_password_change: false }).eq('id', user.id);
+
+  redirect('/dashboard');
 }
 
 export async function changePassword(oldPassword: string, newPassword: string) {

@@ -126,6 +126,11 @@ export function EditorHeader({
   const [currentStatus, setCurrentStatus] = useState(prd.status);
   const [statusUpdating, setStatusUpdating] = useState(false);
 
+  // Sync when EditorShell updates prd.status via Realtime (remote status change)
+  useEffect(() => {
+    setCurrentStatus(prd.status);
+  }, [prd.status]);
+
   async function handleStatusChange(newStatus: string) {
     if (newStatus === currentStatus || statusUpdating) return;
     setStatusUpdating(true);

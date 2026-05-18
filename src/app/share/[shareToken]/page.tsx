@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PublicShareView } from '@/components/share/public-share-view';
+import { SharePoller } from '../share-poller';
 import type { PRDDocument } from '@/lib/prd/schema';
 import { PRD_SECTION_LABELS } from '@/types/prd';
 
@@ -116,5 +117,10 @@ export default async function PublicSharePage({ params }: SharePageProps) {
     tiptapContent = { ...raw, content: filtered } as unknown as typeof tiptapContent;
   }
 
-  return <PublicShareView prd={doc} tiptapContent={tiptapContent} />;
+  return (
+    <>
+      <SharePoller />
+      <PublicShareView prd={doc} tiptapContent={tiptapContent} />
+    </>
+  );
 }

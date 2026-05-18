@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { LayoutTemplate } from 'lucide-react';
+import { AdminTemplatesPoller } from './admin-templates-poller';
 
 export const metadata = { title: 'Admin — DraftMind' };
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ export default async function AdminTemplatesPage() {
 
   return (
     <div>
+      <AdminTemplatesPoller />
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-[#1a1a1a]">Templates</h1>

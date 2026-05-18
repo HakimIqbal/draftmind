@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AdminOverviewPoller } from './overview-poller';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   Users,
@@ -241,6 +242,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div>
+      <AdminOverviewPoller />
       <div className="mb-8">
         <h1 className="text-[22px] font-bold text-[#1a1a1a]">Overview</h1>
         <p className="mt-0.5 text-[13px] text-[#888]">System summary</p>

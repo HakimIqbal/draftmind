@@ -16,6 +16,7 @@ import { HistoryView } from '@/components/editor/history-panel';
 import { MarkdownView } from '@/components/editor/markdown-view';
 import { BubbleToolbar } from '@/components/editor/bubble-toolbar';
 import { InlineCommentPopover } from '@/components/editor/inline-comment-popover';
+import { createClient } from '@/lib/supabase/client';
 import { savePRDContent } from '@/components/editor/actions';
 import { fetchComments } from '@/components/editor/comments-actions';
 import { updateHiddenSections } from '@/app/(app)/prds/[prdId]/actions';
@@ -120,12 +121,35 @@ export function EditorShell({
     email: lastEditorEmail,
     avatar: storeAvatarUrl ?? lastEditorAvatar ?? null,
   });
+  const [localStatus, setLocalStatus] = useState<string>(prd.status);
+  const statusChannelId = useRef(`prd-status-${crypto.randomUUID()}`);
 
   useEffect(() => {
     if (storeAvatarUrl) {
       setLocalLastEditor((prev) => ({ ...prev, avatar: storeAvatarUrl }));
     }
   }, [storeAvatarUrl]);
+
+  // Realtime subscription — update localStatus when another user changes PRD status.
+  // setLocalStatus with the same value is a no-op in React, so no comparison needed.
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(statusChannelId.current)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'prds', filter: `id=eq.${prd.id}` },
+        (payload) => {
+          const newStatus = (payload.new as Record<string, unknown>).status as string | undefined;
+          if (newStatus) setLocalStatus(newStatus);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [prd.id]);
 
   // Recalculate word count on every editor content change
   useEffect(() => {
@@ -630,7 +654,7 @@ export function EditorShell({
             style={{ minHeight: '900px' }}
           >
             <EditorHeader
-              prd={prd}
+              prd={{ ...prd, status: localStatus }}
               userName={userName}
               canChangeStatus={canChangeStatus}
               onToggleHistory={toggleHistory}

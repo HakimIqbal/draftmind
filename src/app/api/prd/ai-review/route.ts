@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { logError, logInfo } from '@/lib/logging/system-log';
+import { checkRateLimit, AI_RATE_LIMITS } from '@/lib/utils/rate-limit';
 import { getDefaultAIClient, createAIClient, updateProviderStats } from '@/lib/ai/client';
 import { buildAIReviewPrompt } from '@/lib/ai/prompts/ai-review';
 import { logToLangSmith } from '@/lib/ai/langsmith';
@@ -13,6 +14,15 @@ import { logActivity } from '@/lib/logging/activity-log';
 
 export async function POST(request: Request) {
   const user = await requireUser();
+
+  const rateLimitResult = checkRateLimit(`review:${user.id}`, AI_RATE_LIMITS.review);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait before reviewing again.' },
+      { status: 429 },
+    );
+  }
+
   const workspace = await getCurrentWorkspace(user.id);
   if (!workspace) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 

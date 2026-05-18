@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Sidebar } from '@/components/layout/sidebar';
 import { SidebarCollapsedRail } from '@/components/layout/sidebar-collapsed-rail';
@@ -37,11 +38,67 @@ export function AppShell({
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const setOpenTicketCount = useUserStore((s) => s.setOpenTicketCount);
+  const router = useRouter();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  const wsChannelId = useRef(`app-shell-workspace-${crypto.randomUUID()}`);
+  const prdChannelId = useRef(`app-shell-prds-${crypto.randomUUID()}`);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   // Sync initial server-rendered count to store
   useEffect(() => {
     setOpenTicketCount(openTicketCount);
   }, [openTicketCount, setOpenTicketCount]);
+
+  // Realtime — workspace name/icon update → refresh SSR props for sidebar + switcher
+  useEffect(() => {
+    if (!currentWorkspaceId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(wsChannelId.current)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'workspaces',
+          filter: `id=eq.${currentWorkspaceId}`,
+        },
+        () => router.refresh(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentWorkspaceId, router]);
+
+  // Realtime — PRD changes → update sidebar recentPRDs; skip refresh on editor to avoid content reset
+  useEffect(() => {
+    if (!currentWorkspaceId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(prdChannelId.current)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'prds',
+          filter: `workspace_id=eq.${currentWorkspaceId}`,
+        },
+        () => {
+          if (/^\/prds\/[^/]+$/.test(pathnameRef.current)) return;
+          router.refresh();
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentWorkspaceId, router]);
 
   // Global Realtime subscription — updates badge count from any page
   useEffect(() => {

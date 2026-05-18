@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { logError } from '@/lib/logging/system-log';
+import { checkRateLimit, AI_RATE_LIMITS } from '@/lib/utils/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getDefaultAIClient, createAIClient, updateProviderStats } from '@/lib/ai/client';
 import { buildRefineSectionPrompt } from '@/lib/ai/prompts/refine-section';
@@ -31,6 +32,15 @@ const VALID_SECTION_KEYS = [
 
 export async function POST(request: Request) {
   const user = await requireUser();
+
+  const rateLimitResult = checkRateLimit(`refine:${user.id}`, AI_RATE_LIMITS.refine);
+  if (!rateLimitResult.allowed) {
+    return Response.json(
+      { error: 'Too many requests. Please wait before refining again.' },
+      { status: 429 },
+    );
+  }
+
   const workspace = await getCurrentWorkspace(user.id);
   if (!workspace) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -38,6 +48,13 @@ export async function POST(request: Request) {
 
   if (!prdId || !sectionKey || !instruction) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+
+  if (instruction.length > 5000) {
+    return Response.json(
+      { error: 'Instruction too long. Maximum 5000 characters.' },
+      { status: 400 },
+    );
   }
 
   if (!VALID_SECTION_KEYS.includes(sectionKey)) {

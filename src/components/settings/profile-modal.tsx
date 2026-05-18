@@ -147,8 +147,10 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       toast.error('Passwords do not match');
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error('Minimum 6 characters');
+    if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword)) {
+      toast.error(
+        'Password must be at least 8 characters, include one uppercase letter and one number.',
+      );
       return;
     }
     setChangingPw(true);

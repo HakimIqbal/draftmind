@@ -117,7 +117,7 @@ export async function createUser(data: {
       .from('profiles')
       .update({
         full_name: data.full_name,
-        role_self_reported: data.role_self_reported,
+        role_self_reported: data.is_super_admin ? 'System Administrator' : data.role_self_reported,
         is_super_admin: data.is_super_admin,
         onboarding_completed_at: new Date().toISOString(),
       })

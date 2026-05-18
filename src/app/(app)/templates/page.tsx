@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
 import { TemplatesLibrary } from '@/components/templates/templates-library';
+import { TemplatesPoller } from './templates-poller';
 
 export interface Template {
   id: string;
@@ -34,5 +35,10 @@ export default async function TemplatesPage() {
     .order('is_built_in', { ascending: false })
     .order('use_count', { ascending: false });
 
-  return <TemplatesLibrary templates={(templates as Template[]) ?? []} />;
+  return (
+    <>
+      <TemplatesPoller />
+      <TemplatesLibrary templates={(templates as Template[]) ?? []} />
+    </>
+  );
 }

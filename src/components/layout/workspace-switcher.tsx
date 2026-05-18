@@ -167,7 +167,7 @@ export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceS
                   onClick={() => handleSwitch(ws.id)}
                   disabled={isPending}
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-accent text-[12px] font-bold text-white">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f0f0ee] text-[12px] font-bold text-[#555]">
                     {ws.icon_custom_url ? (
                       <Image
                         src={ws.icon_custom_url}

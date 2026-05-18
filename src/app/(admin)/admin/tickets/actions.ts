@@ -36,6 +36,16 @@ export type AdminTicket = {
   workspace_icon_url: string | null;
 };
 
+export async function getAdminOpenTicketCount(): Promise<number> {
+  await requireSuperAdmin();
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from('tickets')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'open');
+  return count ?? 0;
+}
+
 export async function getAllTickets(): Promise<AdminTicket[]> {
   await requireSuperAdmin();
   const admin = createAdminClient();
@@ -102,7 +112,7 @@ export async function updateTicketStatus(
   ticketId: string,
   status: 'open' | 'in_progress' | 'resolved',
 ): Promise<{ success: boolean; error?: string }> {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
   // Fetch current ticket to get subject and user_id
@@ -125,15 +135,23 @@ export async function updateTicketStatus(
   // Send notification to user (only for in_progress and resolved)
   if (status === 'in_progress' || status === 'resolved') {
     const subject = ticket.subject as string;
+
+    const { data: adminProfile } = await admin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+    const adminName = adminProfile?.full_name ?? 'Admin';
+
     const notifPayload =
       status === 'in_progress'
         ? {
             title: 'Ticket in progress',
-            body: `Your ticket "${subject}" is being handled.`,
+            body: `Your ticket "${subject}" is being handled by ${adminName}.`,
           }
         : {
             title: 'Ticket resolved',
-            body: `Your ticket "${subject}" has been resolved.`,
+            body: `Your ticket "${subject}" has been resolved by ${adminName}.`,
           };
 
     const { error: notifError } = await admin.from('notifications').insert({

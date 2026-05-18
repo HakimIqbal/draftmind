@@ -20,10 +20,16 @@ import {
   Shield,
   Clock,
   Ticket,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { createClient } from '@/lib/supabase/client';
 import { logLogout } from '@/app/(app)/actions';
+import { getAdminOpenTicketCount } from '@/app/(admin)/admin/tickets/actions';
+import { Avatar } from '@/components/ui/avatar';
+import { ProfileModal } from '@/components/settings/profile-modal';
+import { useUserStore } from '@/stores/user-store';
 
 const NAV_GROUPS = [
   {
@@ -65,6 +71,7 @@ interface AdminShellProps {
   children: React.ReactNode;
   userName: string;
   userEmail: string;
+  userAvatarUrl?: string;
   openTicketCount?: number;
 }
 
@@ -72,6 +79,7 @@ export function AdminShell({
   children,
   userName,
   userEmail,
+  userAvatarUrl,
   openTicketCount = 0,
 }: AdminShellProps) {
   const pathname = usePathname();
@@ -80,13 +88,14 @@ export function AdminShell({
   const [sessionStart] = useState(() => new Date());
   const [timeAgo, setTimeAgo] = useState('just now');
   const popupRef = useRef<HTMLDivElement>(null);
+  const [liveTicketCount, setLiveTicketCount] = useState(openTicketCount);
+  const channelRef = useRef(`admin-badge-${crypto.randomUUID()}`);
 
-  const initials = userName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const storeName = useUserStore((s) => s.name);
+  const storeAvatarUrl = useUserStore((s) => s.avatarUrl);
+  const displayName = storeName || userName;
+  const displayAvatar = storeAvatarUrl !== null ? storeAvatarUrl : (userAvatarUrl ?? null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Session time tracker
   useEffect(() => {
@@ -98,6 +107,28 @@ export function AdminShell({
     }, 60000);
     return () => clearInterval(interval);
   }, [sessionStart]);
+
+  // Realtime subscription — keeps sidebar badge count live without page reload
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(channelRef.current)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, async () => {
+        try {
+          const count = await getAdminOpenTicketCount();
+          setLiveTicketCount(count);
+        } catch (err) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('[AdminShell] badge refresh failed:', err);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Click outside to close popup
   useEffect(() => {
@@ -151,7 +182,7 @@ export function AdminShell({
                     'exact' in item && item.exact
                       ? pathname === item.href
                       : pathname.startsWith(item.href);
-                  const showBadge = item.href === '/admin/tickets' && openTicketCount > 0;
+                  const showBadge = item.href === '/admin/tickets' && liveTicketCount > 0;
                   return (
                     <li key={item.href}>
                       <Link
@@ -169,8 +200,8 @@ export function AdminShell({
                         />
                         {item.label}
                         {showBadge && (
-                          <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-100 px-1 text-[10px] font-semibold text-blue-600">
-                            {openTicketCount}
+                          <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#E8733A] text-[11px] font-medium text-white">
+                            {liveTicketCount}
                           </span>
                         )}
                       </Link>
@@ -186,35 +217,44 @@ export function AdminShell({
         <div className="relative border-t border-[#e5e5e3] px-3 py-3" ref={popupRef}>
           {/* Popup panel */}
           {popupOpen && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 rounded-xl border border-[#eee] bg-white shadow-lg">
-              {/* Profile */}
-              <div className="flex items-center gap-3 border-b border-[#f0f0f0] px-4 py-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">
-                  {initials}
-                </div>
+            <div className="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-xl border border-[#eee] bg-white shadow-lg">
+              {/* Section 1 — Profile (clickable → ProfileModal) */}
+              <button
+                onClick={() => {
+                  setPopupOpen(false);
+                  setProfileOpen(true);
+                }}
+                className="flex w-full items-center gap-3 bg-[#f8f8f7] px-4 py-3 text-left transition-colors hover:bg-[#f0f0ee]"
+              >
+                <Avatar name={displayName} size="lg" avatarUrl={displayAvatar} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-[#1a1a1a]">{userName}</p>
-                  <p className="text-[11px] text-[#aaa]">{userEmail}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">
+                      {displayName}
+                    </p>
+                    <span className="bg-accent/10 flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-accent">
+                      <Shield size={9} />
+                      Admin
+                    </span>
+                  </div>
+                  <p className="truncate text-[11px] text-[#aaa]">{userEmail}</p>
                 </div>
-                <span className="bg-accent/10 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-accent">
-                  <Shield size={10} />
-                  Admin
-                </span>
-              </div>
+                <ChevronRight size={14} className="shrink-0 text-[#ccc]" />
+              </button>
 
-              {/* Session info */}
-              <div className="border-b border-[#f0f0f0] px-4 py-2.5">
+              {/* Section 2 — Session info */}
+              <div className="border-t border-[#f0f0f0] px-4 py-2.5">
                 <div className="flex items-center gap-1.5 text-[11px] text-[#aaa]">
                   <Clock size={11} />
                   Session started: {timeAgo}
                 </div>
               </div>
 
-              {/* Logout */}
-              <div className="px-4 py-2">
+              {/* Section 3 — Log out */}
+              <div className="border-t border-[#f0f0f0] px-3 py-2">
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-[12px] text-red-500 hover:bg-red-50"
+                  className="hover:bg-accent/8 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium text-accent transition-colors"
                 >
                   <LogOut size={13} />
                   Log out
@@ -228,13 +268,15 @@ export function AdminShell({
             onClick={() => setPopupOpen(!popupOpen)}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white/60"
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">
-              {initials}
-            </div>
+            <Avatar name={displayName} size="sm" avatarUrl={displayAvatar} />
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{userName}</p>
+              <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{displayName}</p>
               <p className="truncate text-[10px] text-[#999]">{userEmail}</p>
             </div>
+            <ChevronDown
+              size={13}
+              className={`shrink-0 text-[#bbb] transition-transform ${popupOpen ? 'rotate-180' : ''}`}
+            />
           </button>
         </div>
       </aside>
@@ -245,6 +287,8 @@ export function AdminShell({
           <div className="mx-auto max-w-[1100px] px-8 py-8">{children}</div>
         </main>
       </div>
+
+      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }

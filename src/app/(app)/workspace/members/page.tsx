@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { WorkspaceMembersTab } from '@/components/workspace/workspace-members-tab';
+import { WorkspaceMembersPoller } from './workspace-members-poller';
 import type { WorkspaceMemberItem, WorkspaceInvitationItem } from '@/app/(app)/workspace/page';
 
 export const dynamic = 'force-dynamic';
@@ -49,13 +50,16 @@ export default async function WorkspaceMembersPage() {
   }
 
   return (
-    <WorkspaceMembersTab
-      workspaceId={workspace.id}
-      currentUserId={user.id}
-      currentUserRole={workspace.currentRole}
-      members={(membersR.data as unknown as WorkspaceMemberItem[]) ?? []}
-      invitations={(invitationsR.data as WorkspaceInvitationItem[]) ?? []}
-      disabledUserIds={[...disabledIds]}
-    />
+    <>
+      <WorkspaceMembersPoller />
+      <WorkspaceMembersTab
+        workspaceId={workspace.id}
+        currentUserId={user.id}
+        currentUserRole={workspace.currentRole}
+        members={(membersR.data as unknown as WorkspaceMemberItem[]) ?? []}
+        invitations={(invitationsR.data as WorkspaceInvitationItem[]) ?? []}
+        disabledUserIds={[...disabledIds]}
+      />
+    </>
   );
 }

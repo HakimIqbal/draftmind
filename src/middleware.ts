@@ -23,7 +23,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/templates') ||
     pathname.startsWith('/workspace') ||
     pathname.startsWith('/ai-runs') ||
-    pathname.startsWith('/invite');
+    pathname.startsWith('/invite') ||
+    pathname === '/change-password';
   const isPublicRoute =
     pathname.startsWith('/share/') ||
     pathname === '/' ||
@@ -78,11 +79,22 @@ export async function middleware(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_super_admin')
+      .select('is_super_admin, force_password_change')
       .eq('id', user.id)
       .single();
 
     const isSuperAdmin = profile?.is_super_admin ?? false;
+    const isChangePasswordRoute = pathname === '/change-password';
+
+    // Force password change — intercept before all other routing
+    if (profile?.force_password_change && !isChangePasswordRoute) {
+      return NextResponse.redirect(new URL('/change-password', request.url));
+    }
+
+    // Guard: no longer forced but trying to access /change-password → back to dashboard
+    if (!profile?.force_password_change && isChangePasswordRoute) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
 
     // Auth route — redirect to correct dashboard
     if (isAuthRoute) {
@@ -100,7 +112,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return response;
+  // Forward pathname as request header so server components (layout) can read it via headers()
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', pathname);
+  const responseWithHeader = NextResponse.next({ request: { headers: requestHeaders } });
+  for (const cookie of response.cookies.getAll()) {
+    responseWithHeader.cookies.set(cookie);
+  }
+  return responseWithHeader;
 }
 
 export const config = {

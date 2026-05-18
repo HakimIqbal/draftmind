@@ -3,6 +3,7 @@ import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { AiRunHistoryTable } from '@/components/audit/ai-run-history-table';
+import { AIRunsPoller } from './ai-runs-poller';
 
 export default async function AiRunHistoryPage({
   searchParams,
@@ -31,6 +32,7 @@ export default async function AiRunHistoryPage({
 
   return (
     <div>
+      <AIRunsPoller />
       <AiRunHistoryTable runs={runs ?? []} />
 
       {totalPages > 1 && (

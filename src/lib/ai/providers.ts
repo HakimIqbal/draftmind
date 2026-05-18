@@ -14,6 +14,9 @@ export interface ProviderConfig {
   createModel: (apiKey: string, model: string, baseUrl?: string) => LanguageModelV1;
 }
 
+const SUMOPOD_BASE_URL = 'https://ai.sumopod.com/v1';
+const GANROUTER_BASE_URL = 'https://ganrouter.com/v1';
+
 export const PROVIDER_REGISTRY: Record<string, ProviderConfig> = {
   anthropic: {
     displayName: 'Anthropic',
@@ -54,9 +57,9 @@ export const PROVIDER_REGISTRY: Record<string, ProviderConfig> = {
     supportsStructuredOutput: false,
     supportsStreaming: true,
     requiresBaseUrl: true,
-    baseUrl: 'https://ai.sumopod.com/v1',
+    baseUrl: SUMOPOD_BASE_URL,
     createModel: (apiKey, model, baseUrl) =>
-      createOpenAI({ apiKey, baseURL: baseUrl ?? 'https://ai.sumopod.com/v1' })(model),
+      createOpenAI({ apiKey, baseURL: baseUrl ?? SUMOPOD_BASE_URL })(model),
   },
   ganrouter: {
     displayName: 'GaNRouter',
@@ -88,9 +91,9 @@ export const PROVIDER_REGISTRY: Record<string, ProviderConfig> = {
     supportsStructuredOutput: false,
     supportsStreaming: true,
     requiresBaseUrl: true,
-    baseUrl: 'https://ganrouter.com/v1',
+    baseUrl: GANROUTER_BASE_URL,
     createModel: (apiKey, model, baseUrl) =>
-      createOpenAI({ apiKey, baseURL: baseUrl ?? 'https://ganrouter.com/v1' })(model),
+      createOpenAI({ apiKey, baseURL: baseUrl ?? GANROUTER_BASE_URL })(model),
   },
 };
 
