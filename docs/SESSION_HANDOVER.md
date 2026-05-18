@@ -324,25 +324,25 @@ draftmind/
 
 ## 5. Database Schema (Tabel Utama)
 
-| Tabel                   | Keterangan                                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `profiles`              | Data user (full_name, email, is_super_admin, avatar_url, avatar_color_seed, role_self_reported, force_password_change)          |
-| `workspaces`            | Workspace (name, slug, owner_id, icon_custom_url, industry, team_size)                                                          |
-| `workspace_members`     | Join table (workspace_id, user_id, role: admin/editor/commenter/viewer, last_active_at)                                         |
-| `workspace_invitations` | Undangan (email, role, expires_at, accepted_at, revoked_at)                                                                     |
-| `prds`                  | PRD documents (title, content JSON, tiptap_content JSON, status, health_score, hidden_sections, last_edited_by uuid → profiles) |
-| `prd_versions`          | Snapshot versi PRD (version_number, content, created_by)                                                                        |
-| `prd_shares`            | Share links (share_token, is_active, expires_at, view_count)                                                                    |
-| `prd_templates`         | Template PRD (name, description, category, is_built_in, use_count)                                                              |
-| `comments`              | Komentar (prd_id, author_id, parent_id, body, selection_range JSON, resolved_at)                                                |
-| `ai_runs`               | Log penggunaan AI (type, status, prd_id, input_tokens, output_tokens, total_tokens)                                             |
-| `ai_review_findings`    | Hasil AI review (ai_run_id, severity, section, finding, recommendation)                                                         |
-| `providers`             | AI provider config (type, display_name, api_key encrypted, base_url, priority, status, default_model)                           |
-| `notifications`         | Notifikasi user (recipient_id, type, title, body, read_at, resource_type, resource_id, action_url)                              |
-| `activity_log`          | Log aktivitas (actor_id, type, resource_type, resource_id, workspace_id)                                                        |
-| `system_logs`           | Log sistem (level, source, message, metadata, user_id, resolved_at)                                                             |
-| `tickets`               | Support ticket (user_id, category, subject, message, status: open/in_progress/resolved)                                         |
-| `yjs_documents`         | Yjs CRDT documents (opsional, untuk collab realtime)                                                                            |
+| Tabel                   | Keterangan                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`              | Data user (full_name, email, is_super_admin, avatar_url, avatar_color_seed, role_self_reported, force_password_change)                                                                                                                                                                      |
+| `workspaces`            | Workspace (name, slug, owner_id, icon_custom_url, industry, team_size)                                                                                                                                                                                                                      |
+| `workspace_members`     | Join table (workspace_id, user_id, role: admin/editor/commenter/viewer, last_active_at). RLS UPDATE: ada 2 policy — (1) admin bisa update semua member di workspace mereka, (2) setiap user bisa update row mereka sendiri (migration 0037)                                                 |
+| `workspace_invitations` | Undangan (email, role, expires_at, accepted_at, revoked_at)                                                                                                                                                                                                                                 |
+| `prds`                  | PRD documents (title, content JSON, tiptap_content JSON, status, health_score, hidden_sections, last_edited_by uuid → profiles)                                                                                                                                                             |
+| `prd_versions`          | Snapshot versi PRD (version_number, content, created_by)                                                                                                                                                                                                                                    |
+| `prd_shares`            | Share links (share_token, is_active, expires_at, view_count)                                                                                                                                                                                                                                |
+| `prd_templates`         | Template PRD (name, description, category, is_built_in, use_count)                                                                                                                                                                                                                          |
+| `comments`              | Komentar (prd_id, author_id, parent_id, body, selection_range JSON, resolved_at)                                                                                                                                                                                                            |
+| `ai_runs`               | Log penggunaan AI (type, status, prd_id, input_tokens, output_tokens, total_tokens)                                                                                                                                                                                                         |
+| `ai_review_findings`    | Hasil AI review (ai_run_id, severity, section, finding, recommendation)                                                                                                                                                                                                                     |
+| `providers`             | AI provider config (type, display_name, api_key encrypted, base_url, priority, status, default_model)                                                                                                                                                                                       |
+| `notifications`         | Notifikasi user (recipient_id, type, title, body, read_at, resource_type, resource_id, action_url)                                                                                                                                                                                          |
+| `activity_log`          | Log aktivitas (actor_id, type, resource_type, resource_id, workspace_id)                                                                                                                                                                                                                    |
+| `system_logs`           | Log sistem (level, source, message, metadata, user_id, resolved_at)                                                                                                                                                                                                                         |
+| `tickets`               | Support ticket (user_id, category, subject, message, status: open/in_progress/resolved)                                                                                                                                                                                                     |
+| `yjs_documents`         | Yjs CRDT documents (collaborative editing). Kolom: `id`, `prd_id` (FK → prds CASCADE DELETE), `data` (bytea), `created_at`, `updated_at`. RLS: workspace-aware — READ untuk semua workspace member, WRITE hanya admin dan editor. Migration: 0020 (create) + 0036 (fix RLS + tambah prd_id) |
 
 **Realtime enabled tables:** `prds`, `comments`, `notifications`, `workspace_members`, `workspace_invitations`, `profiles`, `workspaces`, `tickets`
 
@@ -411,7 +411,7 @@ if (!profile?.is_super_admin) redirect('/dashboard');
 - ✅ Activity log (platform-wide) — polling 30s dengan visibility check
 - ✅ System logs (filter, resolve, mark all resolved, download, copy dengan Safari fallback)
 - ✅ Settings (read-only config: AI, security, email, storage)
-- ✅ Tickets (list semua ticket Realtime `event: '*'` + polling 5s fallback, detail panel, update status Open/In Progress/Resolved, auto-notif user, badge count open tickets di sidebar)
+- ✅ Tickets (list semua ticket Realtime `event: '*'` + polling 5s fallback, detail panel, update status Open/In Progress/Resolved, auto-notif user dengan nama admin yang handle, badge count open tickets di sidebar — real-time via Zustand + Realtime subscription)
 
 ### Workspace Admin & Editor (`/dashboard`)
 
@@ -470,7 +470,7 @@ if (!profile?.is_super_admin) redirect('/dashboard');
 - ✅ Health score display (score + breakdown per dimensi)
 - ✅ Outline panel (navigasi section, scroll sync, show/hide section)
 - ✅ Info tab di outline panel: readability score, word count, read time
-- ✅ Support tickets (`/tickets`) — submit, list status, Realtime update, badge di sidebar (open + in_progress)
+- ✅ Support tickets (`/tickets`) — submit, list status, Realtime update, badge di sidebar (open + in_progress), notifikasi "Ticket received" di bell icon (tab Announcements) saat submit
 - ✅ Sidebar collapsed state (SidebarCollapsedRail — icon-only rail dengan tooltip + popover profile)
 - ✅ Recent PRDs section di sidebar (5 terbaru milik user)
 
@@ -489,7 +489,7 @@ if (!profile?.is_super_admin) redirect('/dashboard');
 - ✅ Email/password login
 - ✅ Remember Me checkbox (sets `remember_me` cookie, max-age 30 hari)
 - ✅ Session expired detection (middleware detects stale cookie, redirects dengan `?reason=session_expired`, login page menampilkan banner)
-- ✅ `force_password_change` flag (redirect ke `/dashboard?force_password_change=true` setelah login)
+- ✅ `force_password_change` — admin reset password user → flag di-set true di DB → middleware intercept semua route → redirect ke `/change-password` → user wajib ganti password sebelum bisa akses halaman lain → setelah ganti password, flag di-clear dan redirect ke `/dashboard`
 - ✅ Banned/disabled user: pesan spesifik (bukan generic error)
 - ✅ Role-based redirect setelah login: super admin → `/admin`, user → `/dashboard`
 
@@ -626,6 +626,25 @@ setLocalLastEditor({ name: userName, email: userEmail, avatar: userAvatar ?? nul
 4. Jika user ada dan hits auth/admin/user route → cek `is_super_admin` dari profiles
 5. Super admin di user route → redirect `/admin`; regular user di admin route → redirect `/dashboard`
 
+### Realtime + Polling Pattern (seluruh app)
+
+Dua mekanisme dipakai secara konsisten:
+
+- **Realtime subscription (Supabase)** — untuk data yang sering berubah dan butuh update instan (tickets, PRDs, notifications, workspace members, comments)
+- **Polling fallback** — untuk halaman SSR yang tidak punya Realtime subscription. Pattern: client component minimal (`return null`) dengan `setInterval` + visibility check (pause saat tab tidak aktif) → `router.refresh()`
+
+Polling intervals yang dipakai:
+
+- **5s** — Admin System Logs, Admin Tickets fallback
+- **10s** — Notifications bell, Admin Providers stats
+- **30s** — Workspace Activity, Admin Activity Log, Dashboard, AI Runs user, Workspace Members
+- **60s** — Admin Overview, Admin PRDs, Admin AI Runs, Templates user, Admin Templates, Share link
+
+**Pathname guard di AppShell PRD Realtime:**
+
+- Saat user di `/prds/[id]` (editor), `router.refresh()` di-skip untuk mencegah reset konten Tiptap
+- Di semua halaman lain, PRD change trigger refresh normal
+
 ---
 
 ## 9. File Paling Kritis
@@ -668,6 +687,37 @@ setLocalLastEditor({ name: userName, email: userEmail, avatar: userAvatar ?? nul
 15. **Tweaks:** `TweaksProvider` dipasang di root layout (`src/app/layout.tsx`), bukan di (app)/layout. Ini berarti tweaks aktif di semua halaman termasuk admin dan landing page
 16. **Middleware `isUserRoute`:** list ini harus diupdate setiap kali route baru ditambahkan ke `(app)` group. Saat ini mencakup: `/dashboard`, `/prds`, `/templates`, `/workspace`, `/ai-runs`, `/invite`. `/tickets` belum ada di list ini (tidak perlu karena user routes fallthrough ke protected check)
 17. **`tickets` di admin sidebar:** badge count hanya menghitung status `open` (bukan `in_progress`) — konsisten dengan urgency-first view untuk admin
+18. **Admin badge count tickets:** dihandle di `AdminShell` via Zustand local state + Realtime subscription `event: '*'` ke tabel `tickets` tanpa filter user_id — unique channel via `useRef` + `crypto.randomUUID()`
+19. **Notifikasi ticket_submitted:** dikirim via `createAdminClient()` di `submitTicket` server action — failure tidak block submit ticket (wrapped dalam try/catch terpisah)
+20. **Nama admin di notifikasi ticket:** `updateTicketStatus` fetch `full_name` dari `profiles` menggunakan `user.id` dari `requireSuperAdmin()` — di-include di body notifikasi "in progress" dan "resolved"
+21. **Admin profile edit:** `AdminShell` punya `ProfileModal` — trigger dengan klik area foto/nama di popup sidebar. Local state `liveUserName` dan `liveAvatarUrl` sync dari `useUserStore` setelah save, tanpa `router.refresh()`
+22. **Role "System Administrator":** user dengan `is_super_admin = true` selalu tampil "System Administrator" di kolom Role tabel admin users — di-override di `createUser` server action dan di render tabel
+23. **Pipeline Board Realtime:** `pipeline-realtime-poller.tsx` — client component minimal yang subscribe ke tabel `prds` filtered `workspace_id`, event `'*'`, handler `router.refresh()`. Di-mount di `pipeline/page.tsx` sebagai sibling `PRDPipelineBoard`.
+24. **PRD Editor status header:** `localStatus` state di `EditorShell` + Realtime subscription UPDATE pada tabel `prds` filtered by `id=eq.${prd.id}`. Tidak pakai `router.refresh()` di EditorShell — akan merusak cursor Tiptap. `editor-header.tsx` punya `useEffect([prd.status])` yang sync `setCurrentStatus` saat prop berubah dari parent.
+25. **Poller components pattern:** semua poller adalah client component minimal (`'use client'`, `return null`) dengan `setInterval` + `document.visibilityState` check + `router.refresh()`. Naming convention: `[feature]-poller.tsx`. List poller yang ada: `pipeline-realtime-poller.tsx`, `dashboard-poller.tsx`, `ai-runs-poller.tsx`, `admin-overview-poller.tsx`, `admin-prds-poller.tsx`, `admin-ai-runs-poller.tsx`, `templates-poller.tsx`, `admin-templates-poller.tsx`, `share-poller.tsx`, `workspace-members-poller.tsx`.
+26. **AppShell Realtime subscriptions:** sekarang ada 3 subscription di AppShell — tickets badge, workspace updates, dan PRD changes (dengan pathname guard untuk skip refresh saat di editor).
+27. **Version History** — sengaja di-skip dari auto-update. SSR fresh saat route dibuka — acceptable karena user buka dengan intent spesifik. Bukan halaman pasif.
+28. **yjs_documents RLS:** policy lama `USING (true)` diganti di migration 0036. Kolom `prd_id` ditambahkan (nullable, FK → prds CASCADE DELETE). Policy baru: READ untuk semua workspace member, WRITE hanya admin dan editor via `has_workspace_role()`. Dokumen lama tanpa `prd_id` menjadi inaccessible (orphaned).
+29. **Rate limiting AI routes:** `checkRateLimit` sudah ditambahkan ke semua AI routes: `/api/prd/generate` (5 req/min), `/api/prd/ai-suggest` (20 req/min), `/api/prd/ai-review` (10 req/min), `/api/prd/refine` (10 req/min). Key pattern: `${action}:${user.id}`
+30. **Admin workspaces count:** tidak lagi pakai full-table scan. Gunakan `Promise.all` of per-workspace `.select('*', { count: 'exact', head: true })` — hanya transfer integer count, bukan semua rows.
+31. **getCurrentWorkspace parallel:** path cookie-based sekarang pakai `Promise.all` untuk query `workspace_members` dan `workspaces` secara paralel. Path fallback tetap sequential (benar — karena `firstMember.workspace_id` baru diketahui setelah query pertama).
+32. **AI input validation:** semua AI routes punya length validation setelah parse body: `instruction` ≤ 5000 chars, `selectedText` ≤ 10000 chars, `customInstruction` ≤ 5000 chars. Return 400 kalau exceeded.
+33. **fetchComments limit:** `.limit(200)` ditambahkan sebagai safety guard di `comments-actions.ts`.
+34. **Provider URL:** `SUMOPOD_BASE_URL` dan `GANROUTER_BASE_URL` sekarang sebagai konstanta module-level di `providers.ts`. DB `base_url` tetap primary source, konstanta hanya fallback.
+35. **Workspace members optimistic update:** `changeRole()` dan `removeMember()` sekarang punya optimistic update + rollback on error — sama dengan pattern admin ban/unban di `admin-users-table.tsx`.
+36. **Admin users profiles subscription:** Realtime subscription ke tabel profiles dihapus (terlalu noisy). Diganti dengan polling 30s + visibility check — konsisten dengan pattern poller yang sudah ada.
+37. **force_password_change flow:**
+    - Admin reset password → `DraftMind2026!` + flag `true` di DB
+    - Middleware cek `force_password_change` dari profiles setiap request — kalau true dan bukan di `/change-password` → redirect ke `/change-password`
+    - `/change-password` ada di root `src/app/change-password/` (bukan dalam `(app)/`) — tidak dapat AppShell/sidebar
+    - Server action: `forceChangePassword()` di `profile.ts` — tidak butuh old password, langsung update + clear flag + redirect('/dashboard')
+    - Guard dua arah di middleware: force=true → redirect ke /change-password; force=false + di /change-password → redirect ke /dashboard
+38. **last_active_at update:** di-update di `(app)/layout.tsx` setiap page load via `workspace_members` UPDATE. Dua kondisi:
+    - Cookie `current_workspace_id` ada → update langsung
+    - Cookie tidak ada → `getCurrentWorkspace()` punya DB fallback sendiri (ambil membership pertama) → currentWorkspaceId tetap truthy → if branch jalan
+    - RLS fix di migration 0037: non-admin user (editor, viewer, commenter) sekarang bisa update `last_active_at` di row mereka sendiri
+39. **Admin "Recently Active":** query pakai window 7 hari dari `workspace_members.last_active_at`. User muncul kalau last_active_at dalam 7 hari terakhir. Top 5 per workspace, deduplicate per user.
+40. **Password default reset:** `DraftMind2026!` hardcoded di `src/app/(admin)/admin/actions.ts` sebagai `DEFAULT_PASSWORD`. Server-only — tidak ter-expose ke client (verified via strings command + DevTools + curl).
 
 ---
 
@@ -829,7 +879,63 @@ Semua cleanup memory leak (removeChannel, clearInterval) sudah diimplementasikan
 - Side fix: `src/app/(app)/tickets/tickets-client.tsx` — fix 3 lint error
   `react/no-unescaped-entities` (pre-existing, tidak terkait bug ini).
 
-**BUG 10 — ReferenceError: useRouter tidak ditemukan di browser (FIXED)**
+**BUG 10 — Admin sidebar badge count tickets tidak real-time (FIXED)**
+
+- File: `src/components/admin/admin-shell.tsx` + `src/app/(admin)/admin/tickets/actions.ts`
+- Root cause: Badge count di-fetch sekali saat SSR di `(admin)/layout.tsx`
+  dan membeku selamanya — tidak ada Realtime subscription atau Zustand store
+  di AdminShell untuk update otomatis.
+- Fix: Tambah `useState(openTicketCount)` sebagai `liveTicketCount`,
+  tambah `useRef(crypto.randomUUID())` sebagai channel name unik,
+  tambah `useEffect` dengan Supabase Realtime subscription `event: '*'`
+  ke tabel `tickets` tanpa filter user_id — setiap perubahan ticket
+  trigger `getAdminOpenTicketCount()` → `setLiveTicketCount(count)`.
+  Tambah `getAdminOpenTicketCount()` server action di tickets/actions.ts.
+
+**IMPROVEMENT 5 — Admin profile edit (nama + foto + password) (DONE)**
+
+- File: `src/components/admin/admin-shell.tsx` + `src/app/(admin)/admin/layout.tsx`
+- Tambah `avatar_url` ke query di layout, pass sebagai prop `userAvatarUrl`
+- AdminShell: tambah `ProfileModal`, local state `liveUserName` +
+  `liveAvatarUrl` + `profileOpen`, Avatar component, chevron rotate
+- Popup sidebar direstrukturisasi: area foto/nama clickable → trigger
+  ProfileModal, session info, logout
+- Post-save sync via `useUserStore` watch — sidebar update tanpa reload
+
+**IMPROVEMENT 6 — Nama admin di notifikasi ticket (DONE)**
+
+- File: `src/app/(admin)/admin/tickets/actions.ts`
+- `updateTicketStatus` sekarang fetch `full_name` dari `profiles`
+  menggunakan `user.id` dari `requireSuperAdmin()`
+- Body notifikasi diperbarui:
+  - In Progress: "...is being handled by ${adminName}."
+  - Resolved: "...has been resolved by ${adminName}."
+
+**IMPROVEMENT 7 — Notifikasi "Ticket received" saat user submit (DONE)**
+
+- Migration: `0035_notification_ticket_submitted.sql`
+  — ALTER TYPE notification_type ADD VALUE 'ticket_submitted'
+- File: `src/app/(app)/tickets/actions.ts`
+- `submitTicket` sekarang:
+  - Insert tickets dengan `.select('id').single()` untuk tangkap ticket id
+  - Import `createAdminClient` untuk bypass RLS saat insert notifikasi
+  - Insert notifikasi type `ticket_submitted` ke user setelah submit sukses
+  - Failure notifikasi tidak block submit — wrapped try/catch terpisah
+- User menerima notifikasi di bell icon tab Announcements:
+  "Your ticket '[subject]' has been received."
+
+**IMPROVEMENT 8 — Role "System Administrator" untuk admin system (DONE)**
+
+- File: `src/components/admin/admin-users-table.tsx` +
+  `src/app/(admin)/admin/actions.ts`
+- CreateUserModal: field Role hilang sepenuhnya saat checkbox
+  "Set as admin system" dicentang (`{!isAdmin && (...)}`)
+- `createUser` server action: `role_self_reported` di-override ke
+  'System Administrator' jika `is_super_admin: true`
+- Kolom Role di tabel users: tampil "System Administrator" untuk
+  admin system, bukan `role_self_reported` dari DB
+
+**BUG 11 — ReferenceError: useRouter tidak ditemukan di browser (FIXED)**
 
 - Root cause: Bukan masalah source code — file sudah bersih tanpa `useRouter`
   sama sekali. Error berasal dari stale `.next` build cache yang masih
@@ -857,3 +963,191 @@ Yang masih perlu ditest:
 
 - Area 20 — Multi-user (presence, cursor, real-time edit)
 - Area 21 — Sidebar collapsed
+
+**IMPROVEMENT 9 — Auto-update menyeluruh seluruh app (DONE)**
+
+Total 17 item di-fix, 1 skip (Version History).
+
+🔴 Critical (2):
+
+- Pipeline Board: tambah `pipeline-realtime-poller.tsx` — Realtime subscription prds → router.refresh()
+- PRD Editor status header: `localStatus` state + Realtime UPDATE subscription di EditorShell. `editor-header.tsx` tambah `useEffect` sync saat prop berubah.
+
+🟡 Medium (9):
+
+- Admin Overview: `AdminOverviewPoller` polling 60s
+- Admin Users ban/unban: optimistic update + rollback on error
+- Admin Users create/toggle admin: `router.refresh()` di client setelah action sukses
+- Admin PRDs: `AdminPRDsPoller` polling 30s
+- Workspace name → member lain + sidebar: Realtime subscription `workspaces` UPDATE di AppShell → `router.refresh()`
+- Dashboard activity feed: `DashboardPoller` polling 30s
+- AI Runs user: `AIRunsPoller` polling 30s
+- Admin AI Runs: `AdminAIRunsPoller` polling 60s (cover stats juga)
+
+🟢 Low (5, 1 tidak perlu perubahan):
+
+- Templates user: `TemplatesPoller` polling 60s
+- Admin Templates: `AdminTemplatesPoller` polling 60s
+- Recent PRDs sidebar: Realtime `prds` di AppShell dengan pathname guard (skip saat di editor)
+- Share link: `SharePoller` polling 60s
+- Workspace Members online dot: `WorkspaceMembersPoller` polling 30s
+- Comment card avatar: tidak perlu perubahan — `fetchComments` sudah join `profiles(avatar_url)`, Realtime handler sudah call `loadComments()`
+
+⏭️ Skip (1):
+
+- Version History — acceptable, SSR fresh saat route dibuka
+
+**COMPREHENSIVE FINAL AUDIT — Pre-deployment (DONE)**
+
+Total temuan: 1 Critical, 2 Medium, 7 Low, 4 INFO (skip).
+Semua 10 item di-fix dalam 3 batch.
+
+🔴 Critical (1):
+
+- yjs_documents RLS USING (true) → fix di migration 0036: tambah kolom prd_id + workspace-aware policy
+
+🟡 Medium (2):
+
+- Rate limit missing di ai-review & refine → tambah checkRateLimit di kedua route
+- Admin workspaces full-table scan → ganti dengan Promise.all per-workspace count query
+
+🟢 Low (7):
+
+- getCurrentWorkspace sequential → Promise.all parallel
+- Invite dead 'owner' role check → ganti ke 'admin' only
+- AI input length validation → tambah di ai-suggest & refine
+- fetchComments tanpa limit → tambah .limit(200)
+- Provider URL hardcode → ekstrak sebagai konstanta fallback
+- Workspace members tanpa optimistic update → tambah optimistic update + rollback
+- Admin profiles subscription noisy → ganti ke polling 30s
+
+ℹ️ INFO — Skip (4):
+
+- prd_shares no DELETE policy — intentional (soft-delete)
+- system_logs no user policy — intentional (service role only)
+- crypto.randomUUID() di useRef — negligible overhead
+- 1 TODO comment — intentional roadmap note (post-FYP)
+
+Deployment readiness: 🟡 CONDITIONAL → setelah semua fix: ✅ READY TO DEPLOY
+
+**BUG 11 — force_password_change tidak berfungsi (FIXED)**
+
+- Root cause: query param `?force_password_change=true` dikirim ke /dashboard dari login tapi tidak ada yang membacanya — tidak ada modal, redirect, atau guard yang ter-trigger. User bisa bypass dan masuk dashboard normal tanpa ganti password.
+- Fix:
+  - Middleware extend select → tambah `force_password_change`
+  - Guard di middleware: force=true + bukan di /change-password → redirect ke /change-password
+  - Guard reverse: force=false + di /change-password → redirect ke /dashboard
+  - Buat `src/app/change-password/page.tsx` — halaman baru di root (bukan dalam (app)/) tanpa AppShell
+  - Tambah `forceChangePassword()` server action di profile.ts
+
+**BUG 12 — TypeError: result.error di admin reset password (FIXED)**
+
+- File: `src/components/admin/admin-users-table.tsx` line 81
+- Root cause: `result.error` diakses tanpa optional chaining saat result bisa undefined
+- Fix: ganti `result.error` → `result?.error`
+
+**BUG 13 — last_active_at tidak ter-update untuk non-admin user (FIXED)**
+
+- Root cause: RLS policy di migration 0002 hanya allow UPDATE workspace_members untuk workspace admin. Non-admin (editor, viewer, commenter) tidak bisa update row mereka sendiri — update silently 0 rows affected tanpa error.
+- Fix: migration 0037 — tambah policy baru "Members can update own last_active_at" dengan USING (auth.uid() = user_id). Dua policy UPDATE sekarang co-exist:
+  (1) admin update semua member di workspace mereka
+  (2) setiap user update row mereka sendiri
+- Side investigation: else branch yang ditambahkan di fix pertama tidak pernah ter-eksekusi karena getCurrentWorkspace() punya DB fallback sendiri — currentWorkspaceId selalu truthy untuk user yang punya workspace membership.
+
+**INVESTIGASI TOTAL — Verifikasi semua fitur (DONE)**
+Investigasi langsung dari source code — 2026-05-18.
+Total: ~75 ✅ Working, 9 ⚠️ Partial, 6 ❌ Bug, 1 ❓ Unverified.
+
+Fitur yang ada di source tapi tidak di SESSION_HANDOVER:
+
+- 6 format export (HTML, DOCX, Slack, Jira) — selain PDF + Markdown
+- Transfer ownership workspace — owner-only, ada di workspace settings
+- Admin Settings page — read-only system configuration overview
+- Provider health monitoring — real-time stats per provider
+- System Logs export to JSON
+- Copilot "More Actions" — 7 action tambahan (translate, add_examples, dll)
+
+**BUG 14 — last_active_at RLS block untuk non-admin (FIXED)**
+
+- File: supabase/migrations/0037_workspace_members_self_update.sql
+- Root cause: RLS policy lama hanya allow UPDATE workspace_members
+  untuk workspace admin. Non-admin (editor, viewer, commenter)
+  tidak bisa update last_active_at mereka sendiri — silent 0 rows.
+- Fix: migration 0037 tambah policy baru "Members can update own
+  last_active_at" dengan USING (auth.uid() = user_id).
+  Dua policy UPDATE sekarang co-exist.
+- Side finding: else branch di layout.tsx tidak pernah jalan
+  karena getCurrentWorkspace() punya DB fallback sendiri —
+  currentWorkspaceId selalu truthy untuk user yang punya membership.
+
+**IMPROVEMENT 10 — Label "Active PRDs" → "Total PRDs" (DONE)**
+
+- File: src/components/dashboard/home-feed.tsx line 128
+- Label stat card diganti dari "Active PRDs" ke "Total PRDs"
+  karena query menghitung semua PRD tanpa filter status.
+
+**IMPROVEMENT 11 — Password strength validation (DONE)**
+
+- File: src/app/change-password/page.tsx +
+  src/components/settings/profile-modal.tsx
+- Requirement baru: minimal 8 karakter + 1 huruf besar + 1 angka
+- Regex: /^(?=._[A-Z])(?=._\d).{8,}$/
+- Error message: "Password must be at least 8 characters,
+  include one uppercase letter and one number."
+- Berlaku di force change password page dan profile modal
+
+**IMPROVEMENT 12 — Admin user count dari DB (DONE)**
+
+- File: src/components/admin/admin-users-table.tsx +
+  src/app/(admin)/admin/users/page.tsx
+- Tambah prop totalCount: number ke AdminUsersTable
+- page.tsx pass totalCount={count ?? 0} dari query yang sudah ada
+- "X registered users" sekarang akurat dari DB, bukan localUsers.length
+
+**SOON (post-FYP) — Fitur yang ditunda:**
+
+- AI Copilot streaming — refactor generateText() ke streamText()
+- Pipeline drag & drop — implement @dnd-kit atau sejenisnya
+- Notifikasi delete PRD — kirim notif ke semua workspace member
+  saat PRD dihapus
+
+**SKIP (acceptable untuk FYP):**
+
+- Rename PRD — title static by design, user tidak perlu rename
+- Continue Working filter — by design, tampilkan semua PRD workspace
+- Announcements admin — admin tidak perlu terima announcement sendiri
+- Template "Create PRD" button — flow dari /prds/new sudah cukup
+- Share link revoke — tidak perlu revoke by design
+- Comments soft delete — over-engineering untuk FYP
+- Outline panel hidden sections persist — minor UX
+- Copilot chat history — nice to have
+- Register flow — invite-only by design
+- Delete PRD permission feedback — Soon
+
+**BUG 15 — App crash saat member di-remove dari workspace (FIXED)**
+
+- Root cause: Saat removeMember() berhasil, Realtime trigger
+  router.refresh() di semua client termasuk user yang di-remove.
+  User yang di-remove → getCurrentWorkspace() return null →
+  page component crash karena tidak handle workspaceId = undefined.
+  Admin juga crash karena race condition saat refresh.
+- Fix (3 layer):
+  1. workspace-members-tab.tsx — setelah removeMember() sukses,
+     jika userId === currentUserId → router.push('/dashboard')
+  2. middleware.ts + layout.tsx — forward x-pathname sebagai header,
+     layout redirect('/dashboard') jika workspaces.length === 0
+     dan pathname startsWith('/workspace')
+  3. workspace/members/page.tsx — sudah ada safety net:
+     if (!workspace) redirect('/dashboard')
+
+**BUG 16 — Pending invitation tidak auto-update setelah di-accept (FIXED)**
+
+- File: src/components/workspace/workspace-members-tab.tsx line 74
+- Root cause: Subscription workspace_invitations pakai filter
+  workspace_id=eq.{workspaceId}. Saat UPDATE accepted_at, WAL
+  payload tidak include workspace_id (tidak berubah) → Supabase
+  Realtime tidak bisa evaluate filter → event tidak di-deliver
+  ke admin subscriber → list tidak update tanpa reload.
+- Fix: Hapus filter dari subscription workspace_invitations —
+  listen ke semua event pada tabel tanpa filter. Bandwidth
+  overhead minimal karena tabel ini jarang berubah.
