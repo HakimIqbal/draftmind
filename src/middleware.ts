@@ -65,12 +65,6 @@ export async function middleware(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-    console.log('[middleware] key length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
-    console.log(
-      '[middleware] key prefix:',
-      process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20),
-    );
-
     const profileRes = await fetch(
       `${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_super_admin,force_password_change&limit=1`,
       {
@@ -82,25 +76,14 @@ export async function middleware(request: NextRequest) {
       },
     );
 
-    console.log('[middleware] fetch status:', profileRes.status);
-    console.log(
-      '[middleware] fetch url:',
-      `${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_super_admin,force_password_change&limit=1`,
-    );
     const responseText = await profileRes.text();
-    console.log('[middleware] response text:', responseText.substring(0, 200));
-
     let profiles: { is_super_admin: boolean; force_password_change: boolean }[] = [];
     try {
       profiles = JSON.parse(responseText);
-    } catch (e) {
-      console.log('[middleware] JSON parse error:', (e as Error).message);
+    } catch {
+      // malformed response — profile stays empty, isSuperAdmin defaults to false
     }
     const profile = profiles?.[0] ?? null;
-
-    console.log('[middleware] user.id:', user?.id);
-    console.log('[middleware] profile:', JSON.stringify(profile));
-    console.log('[middleware] isSuperAdmin:', !!profile?.is_super_admin);
 
     const isSuperAdmin = profile?.is_super_admin ?? false;
     const isChangePasswordRoute = pathname === '/change-password';
