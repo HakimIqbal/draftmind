@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 export async function middleware(request: NextRequest) {
   const { user, response } = await updateSession(request);
@@ -61,23 +61,15 @@ export async function middleware(request: NextRequest) {
 
   // Authenticated user — enforce role-based access
   if (user && (isAdminRoute || isUserRoute || isAuthRoute)) {
-    // Check if super admin
-    const supabase = createServerClient(
+    // Use service role key to bypass RLS — anon key subject to RLS policies
+    // which may block profile reads for users without a workspace.
+    const adminClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {
-            /* read-only in middleware check */
-          },
-        },
-      },
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
-    const { data: profile } = await supabase
+    const { data: profile } = await adminClient
       .from('profiles')
       .select('is_super_admin, force_password_change')
       .eq('id', user.id)
