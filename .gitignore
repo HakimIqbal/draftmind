@@ -47,9 +47,6 @@ Thumbs.db
 # vercel
 .vercel
 
-# supabase
-supabase/
-
 # misc
 *.pem
 
@@ -70,3 +67,14 @@ draftmind_claude_code_prompts.zip
 03_PHASE3_GENERATE_EDITOR.md
 04_PHASE4_REMAINING.md
 docs/PROJECT_REVIEW.md
+
+# internal development docs (not for public repo)
+docs/SESSION_HANDOVER.md
+docs/FEATURE_REPORT.md
+docs/FIX_REPORT.md
+
+# raw/source assets not used at runtime
+icon-export-formats/
+
+# vercel config (deploy ke VPS, bukan Vercel)
+vercel.json

@@ -1,0 +1,20 @@
+-- Expand activity_type enum with missing action types
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'prd_duplicated';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'prd_deleted';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'prd_pinned';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'prd_version_restored';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'comment_edited';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'comment_deleted';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'workspace_deleted';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'workspace_left';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'workspace_ownership_transferred';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'member_invitation_revoked';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'provider_set_default';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'template_created';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'template_updated';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'template_deleted';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'user_banned';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'user_unbanned';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'user_created_by_admin';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'super_admin_toggled';
+ALTER TYPE activity_type ADD VALUE IF NOT EXISTS 'password_changed';
