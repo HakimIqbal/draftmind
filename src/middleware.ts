@@ -75,6 +75,10 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    console.log('[middleware] user.id:', user?.id);
+    console.log('[middleware] profile:', JSON.stringify(profile));
+    console.log('[middleware] isSuperAdmin:', !!profile?.is_super_admin);
+
     const isSuperAdmin = profile?.is_super_admin ?? false;
     const isChangePasswordRoute = pathname === '/change-password';
 
