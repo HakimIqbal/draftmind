@@ -2,16 +2,11 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
-import { createClient } from '@/lib/supabase/server';
 
 async function requireSuperAdmin() {
   const user = await requireUser();
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('profiles')
-    .select('is_super_admin')
-    .eq('id', user.id)
-    .single();
+  const admin = createAdminClient();
+  const { data } = await admin.from('profiles').select('is_super_admin').eq('id', user.id).single();
   if (!data?.is_super_admin) throw new Error('Forbidden');
   return user;
 }

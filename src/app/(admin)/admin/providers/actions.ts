@@ -1,19 +1,16 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { requireUser } from '@/lib/auth/permissions';
 import { encryptApiKey } from '@/lib/utils/crypto';
 import { PROVIDER_REGISTRY } from '@/lib/ai/providers';
 import { revalidatePath } from 'next/cache';
 import { logWarn } from '@/lib/logging/system-log';
 
 async function requireSuperAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-  const { data: profile } = await supabase
+  const user = await requireUser();
+  const admin = createAdminClient();
+  const { data: profile } = await admin
     .from('profiles')
     .select('is_super_admin')
     .eq('id', user.id)
