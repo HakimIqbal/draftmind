@@ -260,7 +260,7 @@ function CreateUserModal({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Product Manager');
+  const [role, setRole] = useState('');
   const [customRole, setCustomRole] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -268,6 +268,7 @@ function CreateUserModal({
     fullName?: string;
     email?: string;
     password?: string;
+    role?: string;
     customRole?: string;
   }>({});
 
@@ -289,6 +290,7 @@ function CreateUserModal({
     } else if (!/[0-9]/.test(password)) {
       newErrors.password = 'Password must contain at least one number';
     }
+    if (!isAdmin && !role) newErrors.role = 'Role is required';
     if (isOther && !customRole.trim()) newErrors.customRole = 'Custom role is required';
 
     if (Object.keys(newErrors).length > 0) {
@@ -388,6 +390,9 @@ function CreateUserModal({
                 onChange={(e) => setRole(e.target.value)}
                 className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] focus:border-accent focus:outline-none focus:ring-1"
               >
+                <option value="" disabled>
+                  Select a role
+                </option>
                 <option>Product Manager</option>
                 <option>Product Owner</option>
                 <option>Software Engineer</option>
@@ -397,6 +402,7 @@ function CreateUserModal({
                 <option>Founder / CEO</option>
                 <option>Other</option>
               </select>
+              {errors.role && <p className="mt-1 text-[11px] text-red-500">{errors.role}</p>}
               {isOther && (
                 <>
                   <input
@@ -447,6 +453,7 @@ function CreateUserModal({
                 password.length < 8 ||
                 !/[A-Z]/.test(password) ||
                 !/[0-9]/.test(password) ||
+                (!isAdmin && !role) ||
                 (isOther && !customRole.trim())
               }
               className="flex-1 rounded-lg bg-[#1a1a1a] py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
