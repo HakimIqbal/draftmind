@@ -117,6 +117,13 @@ export async function createUser(data: {
   if (authError) return { error: authError.message };
 
   if (newUser.user) {
+    console.log('[createUser] role_self_reported received:', data.role_self_reported);
+    console.log('[createUser] is_super_admin:', data.is_super_admin);
+    console.log(
+      '[createUser] final role to upsert:',
+      data.is_super_admin ? 'System Administrator' : data.role_self_reported,
+    );
+
     // Use upsert instead of update — the handle_new_user trigger may not have
     // committed the profiles row yet when this runs (race condition).
     const nameParts = data.full_name.trim().split(' ');
