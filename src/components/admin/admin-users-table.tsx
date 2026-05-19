@@ -47,7 +47,10 @@ export function AdminUsersTable({ users, totalCount }: { users: AdminUser[]; tot
   const filtered = localUsers.filter((u) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (u.full_name?.toLowerCase().includes(q) ?? false) || u.email.toLowerCase().includes(q);
+    return (
+      (u.full_name?.toLowerCase().includes(q) ?? false) ||
+      (u.email?.toLowerCase().includes(q) ?? false)
+    );
   });
 
   function handleToggleAdmin(userId: string) {

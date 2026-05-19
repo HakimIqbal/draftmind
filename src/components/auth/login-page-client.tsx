@@ -60,23 +60,9 @@ function LoginForm() {
         document.cookie = 'remember_me=false; path=/';
       }
 
-      // Quick role check from client — single query, no server action overhead
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_super_admin, force_password_change')
-        .eq('id', data.user.id)
-        .single();
-
-      // Log login in background (fire-and-forget via server action, don't await)
-      checkUserRole().catch(() => {});
-
-      if (profile?.force_password_change) {
-        router.push('/dashboard?force_password_change=true');
-      } else if (profile?.is_super_admin) {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      // Use server action: logs login + resolves redirect via service role
+      const result = await checkUserRole().catch(() => ({ redirect: '/dashboard' }));
+      router.push(result.redirect);
     } else {
       router.push('/dashboard');
     }

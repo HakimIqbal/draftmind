@@ -84,7 +84,7 @@ export function InviteModal({ workspaceId, open, onOpenChange }: InviteModalProp
   const query = email.toLowerCase();
   const filtered = users.filter(
     (u) =>
-      u.email.toLowerCase().includes(query) ||
+      (u.email?.toLowerCase().includes(query) ?? false) ||
       (u.full_name?.toLowerCase().includes(query) ?? false),
   );
 
