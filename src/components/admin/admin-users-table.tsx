@@ -264,14 +264,38 @@ function CreateUserModal({
   const [customRole, setCustomRole] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{
+    fullName?: string;
+    email?: string;
+    password?: string;
+    customRole?: string;
+  }>({});
 
   const isOther = role === 'Other';
   const finalRole = isOther ? customRole : role;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !password || !fullName) return;
-    if (isOther && !customRole.trim()) return;
+    const newErrors: typeof errors = {};
+
+    if (!fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!email.trim()) newErrors.email = 'Email is required';
+    if (!password) {
+      newErrors.password = 'Password is required';
+    } else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/[A-Z]/.test(password)) {
+      newErrors.password = 'Password must contain at least one uppercase letter';
+    } else if (!/[0-9]/.test(password)) {
+      newErrors.password = 'Password must contain at least one number';
+    }
+    if (isOther && !customRole.trim()) newErrors.customRole = 'Custom role is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
 
     startTransition(async () => {
       const result = await createUser({
@@ -307,7 +331,9 @@ function CreateUserModal({
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Full name</label>
+            <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">
+              Full name *
+            </label>
             <input
               type="text"
               value={fullName}
@@ -316,9 +342,10 @@ function CreateUserModal({
               required
               className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
             />
+            {errors.fullName && <p className="mt-1 text-[11px] text-red-500">{errors.fullName}</p>}
           </div>
           <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Email</label>
+            <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Email *</label>
             <input
               type="email"
               value={email}
@@ -327,17 +354,20 @@ function CreateUserModal({
               required
               className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
             />
+            {errors.email && <p className="mt-1 text-[11px] text-red-500">{errors.email}</p>}
           </div>
           <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Password</label>
+            <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">
+              Password *
+            </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 chars, 1 uppercase, 1 number"
                 required
-                minLength={6}
+                minLength={8}
                 className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 pr-10 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
               />
               <button
@@ -348,10 +378,11 @@ function CreateUserModal({
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
+            {errors.password && <p className="mt-1 text-[11px] text-red-500">{errors.password}</p>}
           </div>
           {!isAdmin && (
             <div>
-              <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Role</label>
+              <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Role *</label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
@@ -367,14 +398,19 @@ function CreateUserModal({
                 <option>Other</option>
               </select>
               {isOther && (
-                <input
-                  type="text"
-                  value={customRole}
-                  onChange={(e) => setCustomRole(e.target.value)}
-                  placeholder="Enter custom role..."
-                  required
-                  className="focus:ring-accent/30 mt-2 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
-                />
+                <>
+                  <input
+                    type="text"
+                    value={customRole}
+                    onChange={(e) => setCustomRole(e.target.value)}
+                    placeholder="Enter custom role..."
+                    required
+                    className="focus:ring-accent/30 mt-2 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
+                  />
+                  {errors.customRole && (
+                    <p className="mt-1 text-[11px] text-red-500">{errors.customRole}</p>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -404,7 +440,14 @@ function CreateUserModal({
             <button
               type="submit"
               disabled={
-                isPending || !email || !password || !fullName || (isOther && !customRole.trim())
+                isPending ||
+                !email ||
+                !password ||
+                !fullName ||
+                password.length < 8 ||
+                !/[A-Z]/.test(password) ||
+                !/[0-9]/.test(password) ||
+                (isOther && !customRole.trim())
               }
               className="flex-1 rounded-lg bg-[#1a1a1a] py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >

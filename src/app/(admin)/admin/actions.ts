@@ -96,6 +96,15 @@ export async function createUser(data: {
   is_super_admin: boolean;
 }) {
   await requireSuperAdmin();
+
+  if (!data.full_name?.trim()) return { error: 'Full name is required' };
+  if (!data.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+    return { error: 'Valid email is required' };
+  if (!data.password || data.password.length < 8)
+    return { error: 'Password must be at least 8 characters' };
+  if (!/[A-Z]/.test(data.password) || !/[0-9]/.test(data.password))
+    return { error: 'Password must contain uppercase and number' };
+
   const admin = createAdminClient();
 
   const { data: newUser, error: authError } = await admin.auth.admin.createUser({
