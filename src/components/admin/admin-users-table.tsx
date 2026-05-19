@@ -391,7 +391,7 @@ function CreateUserModal({
                 className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] focus:border-accent focus:outline-none focus:ring-1"
               >
                 <option value="" disabled>
-                  Select a role
+                  -- Select Role --
                 </option>
                 <option>Product Manager</option>
                 <option>Product Owner</option>
