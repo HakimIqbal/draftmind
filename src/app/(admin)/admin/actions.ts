@@ -117,15 +117,35 @@ export async function createUser(data: {
   if (authError) return { error: authError.message };
 
   if (newUser.user) {
-    await admin
-      .from('profiles')
-      .update({
+    // Use upsert instead of update — the handle_new_user trigger may not have
+    // committed the profiles row yet when this runs (race condition).
+    const nameParts = data.full_name.trim().split(' ');
+    const initials = (
+      (nameParts[0]?.charAt(0) ?? '') + (nameParts[1]?.charAt(0) ?? '')
+    ).toUpperCase();
+
+    const { error: profileError } = await admin.from('profiles').upsert(
+      {
+        id: newUser.user.id,
+        email: data.email,
         full_name: data.full_name,
+        avatar_initials: initials,
+        avatar_color_seed: newUser.user.id,
         role_self_reported: data.is_super_admin ? 'System Administrator' : data.role_self_reported,
         is_super_admin: data.is_super_admin,
         onboarding_completed_at: new Date().toISOString(),
-      })
-      .eq('id', newUser.user.id);
+      },
+      { onConflict: 'id' },
+    );
+
+    if (profileError) {
+      logWarn(
+        'admin.action',
+        `profile_upsert_failed: ${profileError.message}`,
+        {},
+        newUser.user.id,
+      );
+    }
   }
 
   if (newUser.user) {
