@@ -8,10 +8,12 @@ export const dynamic = 'force-dynamic';
 export default async function AdminTemplatesPage() {
   const admin = createAdminClient();
 
-  const { data: templates } = await admin
+  const { data: templates, error: templatesError } = await admin
     .from('prd_templates')
     .select('id, name, description, category, is_built_in, use_count, created_at')
     .order('use_count', { ascending: false });
+
+  if (templatesError) console.error('[admin/templates] query error:', templatesError);
 
   const builtIn = (templates ?? []).filter((t) => t.is_built_in);
   const custom = (templates ?? []).filter((t) => !t.is_built_in);
