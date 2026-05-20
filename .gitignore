@@ -78,3 +78,7 @@ icon-export-formats/
 
 # vercel config (deploy ke VPS, bukan Vercel)
 vercel.json
+
+.env.production
+next
+start.sh

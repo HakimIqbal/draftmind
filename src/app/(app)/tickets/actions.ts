@@ -3,6 +3,7 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logError } from '@/lib/logging/system-log';
 
 export type Ticket = {
   id: string;
@@ -47,7 +48,18 @@ export async function submitTicket(input: {
     .select('id')
     .single();
 
-  if (error) return { success: false, error: 'Failed to submit ticket. Please try again.' };
+  if (error) {
+    logError(
+      'ticket.submit',
+      error.message,
+      {
+        category: input.category,
+        subject: input.subject?.slice(0, 80),
+      },
+      user.id,
+    );
+    return { success: false, error: 'Failed to submit ticket. Please try again.' };
+  }
 
   try {
     const adminClient = createAdminClient();

@@ -56,8 +56,16 @@ export async function getProfile() {
     supabase.from('workspace_members').select('role').eq('user_id', user.id).limit(1).single(),
   ]);
 
+  const fallbackName =
+    (user.user_metadata as Record<string, string> | undefined)?.full_name ?? user.email ?? '';
+
   return {
-    profile: profile ?? null,
+    profile: profile
+      ? {
+          ...profile,
+          full_name: profile.full_name ?? fallbackName,
+        }
+      : { full_name: fallbackName, role_self_reported: null, created_at: null, avatar_url: null },
     email: user.email ?? '',
     workspaceRole: membership?.role ?? null,
   };
@@ -124,7 +132,8 @@ export async function uploadAvatar(formData: FormData) {
   const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
   const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-  const { error: updateError } = await supabase
+  const admin = createAdminClient();
+  const { error: updateError } = await admin
     .from('profiles')
     .update({ avatar_url: avatarUrl })
     .eq('id', user.id);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
@@ -20,7 +20,6 @@ export function LoginPageClient() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionExpired = searchParams.get('reason') === 'session_expired';
   const [email, setEmail] = useState('');
@@ -62,9 +61,9 @@ function LoginForm() {
 
       // Use server action: logs login + resolves redirect via service role
       const result = await checkUserRole().catch(() => ({ redirect: '/dashboard' }));
-      router.push(result.redirect);
+      window.location.href = result.redirect;
     } else {
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     }
   }
 
