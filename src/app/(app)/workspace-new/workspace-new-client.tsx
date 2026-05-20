@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { createWorkspace } from '@/app/(app)/workspace/settings/actions';
-import { setCurrentWorkspace } from '@/app/(app)/actions';
 
 const INDUSTRY_OPTIONS = [
   'Technology',
@@ -21,7 +19,6 @@ const INDUSTRY_OPTIONS = [
 const TEAM_SIZE_OPTIONS = ['1-5', '6-20', '21-50', '51-200', '200+'];
 
 export function WorkspaceNewClient() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState('');
@@ -48,11 +45,7 @@ export function WorkspaceNewClient() {
       }
 
       toast.success('Workspace created');
-      if (result.workspaceId) {
-        await setCurrentWorkspace(result.workspaceId);
-      }
-      router.push('/dashboard');
-      router.refresh();
+      window.location.href = '/dashboard';
     });
   }
 
