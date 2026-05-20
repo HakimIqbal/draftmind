@@ -157,7 +157,7 @@ export async function createPRDAndGenerate(data: {
     authenticatedUserId,
   );
 
-  await supabase.from('ai_runs').insert({
+  const { error: aiRunError } = await supabase.from('ai_runs').insert({
     workspace_id: data.workspaceId,
     prd_id: prd.id,
     user_id: authenticatedUserId,
@@ -187,6 +187,10 @@ export async function createPRDAndGenerate(data: {
       preferred_provider_id: data.preferredProviderId,
     },
   });
+
+  if (aiRunError) {
+    throw new Error('Failed to queue PRD generation');
+  }
 
   redirect(`/prds/${prd.id}?generating=true`);
 }
@@ -239,7 +243,7 @@ export async function createPRDFromTemplate(data: {
   });
 
   // Create AI run to generate content based on template
-  await supabase.from('ai_runs').insert({
+  const { error: aiRunError } = await supabase.from('ai_runs').insert({
     workspace_id: data.workspaceId,
     prd_id: prd.id,
     user_id: authenticatedUserId,
@@ -257,6 +261,8 @@ export async function createPRDFromTemplate(data: {
       ).sections,
     },
   });
+
+  if (aiRunError) throw new Error('Failed to queue PRD generation');
 
   // Increment use count
   const { data: currentTemplate } = await supabase

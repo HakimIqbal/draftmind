@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -78,7 +78,7 @@ function parseTemplateSections(template?: Template | null): {
 
 export function TemplateFormModal({ open, onOpenChange, template }: TemplateFormModalProps) {
   const isEdit = !!template;
-  const parsed = parseTemplateSections(template);
+  const parsed = useMemo(() => parseTemplateSections(template), [template]);
 
   const [name, setName] = useState(template?.name ?? '');
   const [description, setDescription] = useState(template?.description ?? '');
@@ -87,6 +87,16 @@ export function TemplateFormModal({ open, onOpenChange, template }: TemplateForm
   const [guidelines, setGuidelines] = useState<Record<string, string>>(parsed.guidelines);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(template?.name ?? '');
+    setDescription(template?.description ?? '');
+    setCategory(template?.category ?? 'custom');
+    setSelectedSections(parsed.sections);
+    setGuidelines(parsed.guidelines);
+    setExpandedSection(null);
+  }, [open, template, parsed]);
 
   const reset = useCallback(() => {
     setName('');
