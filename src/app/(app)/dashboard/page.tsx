@@ -48,7 +48,7 @@ export default async function HomePage() {
           invitation from your team.
         </p>
         <a
-          href="/workspace/new"
+          href="/workspace-new"
           className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-[#1a1a1a] px-6 text-[13px] font-medium text-white hover:bg-[#333]"
         >
           Create Workspace
