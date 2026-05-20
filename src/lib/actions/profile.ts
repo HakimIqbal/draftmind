@@ -116,6 +116,7 @@ export async function uploadAvatar(formData: FormData) {
     .upload(path, file, { upsert: true, contentType: file.type });
 
   if (uploadError) {
+    console.error('[uploadAvatar] storage upload error:', uploadError);
     logError('profile.avatar', uploadError.message, {}, user.id);
     return { error: 'Failed to upload avatar' };
   }
@@ -129,6 +130,7 @@ export async function uploadAvatar(formData: FormData) {
     .eq('id', user.id);
 
   if (updateError) {
+    console.error('[uploadAvatar] profile update error:', updateError);
     logError('profile.avatar', updateError.message, {}, user.id);
     return { error: 'Failed to save avatar' };
   }
