@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { logError } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
 import { sendNotification } from '@/lib/notifications/send';
@@ -92,8 +93,7 @@ export async function deletePRD(prdId: string) {
   const supabase = await createClient();
 
   // Clean up notifications referencing this PRD before delete
-  const { createAdminClient: getAdmin } = await import('@/lib/supabase/admin');
-  const admin = getAdmin();
+  const admin = createAdminClient();
   await admin.from('notifications').delete().eq('resource_id', prdId);
 
   const { error } = await supabase

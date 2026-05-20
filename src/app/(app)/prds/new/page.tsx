@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { redirect } from 'next/navigation';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { GenerateForm } from '@/components/generate/generate-form';
 
 export default async function GeneratePrdPage({
@@ -16,7 +17,6 @@ export default async function GeneratePrdPage({
   const initialBrief = params.brief ?? '';
 
   // Fetch active providers for model selector
-  const { createAdminClient } = await import('@/lib/supabase/admin');
   const adminSupa = createAdminClient();
   const { data: providersList } = await adminSupa
     .from('providers')

@@ -2,6 +2,7 @@
 
 import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { logError } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
@@ -112,7 +113,6 @@ export async function createWorkspace(data: {
   const user = await requireUser();
 
   // Use admin client to bypass RLS — user can't SELECT new workspace before being a member
-  const { createAdminClient } = await import('@/lib/supabase/admin');
   const admin = createAdminClient();
 
   const slug =

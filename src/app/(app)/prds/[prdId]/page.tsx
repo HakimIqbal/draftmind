@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect, notFound } from 'next/navigation';
 import { logWarn } from '@/lib/logging/system-log';
 import { GenerationLoading } from '@/components/generate/generation-loading';
@@ -84,7 +85,6 @@ export default async function EditorPage({
     .single();
 
   // Fetch active AI providers for copilot model selector (admin client bypasses RLS)
-  const { createAdminClient } = await import('@/lib/supabase/admin');
   const adminSupa = createAdminClient();
   const { data: providersList } = await adminSupa
     .from('providers')

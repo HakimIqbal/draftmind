@@ -12,7 +12,6 @@ export async function getInvitableUsers(workspaceId: string) {
   await requireWorkspaceRole(workspaceId, ['admin']);
 
   // Use admin client to bypass RLS — need to see ALL registered users
-  const { createAdminClient } = await import('@/lib/supabase/admin');
   const admin = createAdminClient();
 
   // Get current member IDs to exclude
