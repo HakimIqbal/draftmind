@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { checkUserRole, checkBannedStatus } from '@/app/(auth)/login/actions';
+import { checkBannedStatus } from '@/app/(auth)/login/actions';
 
 export function LoginPageClient() {
   return (
@@ -59,9 +59,8 @@ function LoginForm() {
         document.cookie = 'remember_me=false; path=/';
       }
 
-      // Use server action: logs login + resolves redirect via service role
-      const result = await checkUserRole().catch(() => ({ redirect: '/dashboard' }));
-      window.location.href = result.redirect;
+      const redirectTo = searchParams.get('redirectTo');
+      window.location.href = redirectTo || '/dashboard';
     } else {
       window.location.href = '/dashboard';
     }
