@@ -71,9 +71,9 @@ export interface WorkspaceListItem {
 }
 
 export async function getUserWorkspaces(userId: string): Promise<WorkspaceListItem[]> {
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data: members } = await supabase
+  const { data: members } = await admin
     .from('workspace_members')
     .select('workspace_id, role')
     .eq('user_id', userId)
@@ -82,7 +82,7 @@ export async function getUserWorkspaces(userId: string): Promise<WorkspaceListIt
   if (!members || members.length === 0) return [];
 
   const wsIds = members.map((m) => m.workspace_id);
-  const { data: workspaces } = await supabase
+  const { data: workspaces } = await admin
     .from('workspaces')
     .select('id, name, slug, icon_pattern, icon_custom_url')
     .in('id', wsIds);
