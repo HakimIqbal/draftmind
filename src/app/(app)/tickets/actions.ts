@@ -18,9 +18,9 @@ export type Ticket = {
 
 export async function getMyTickets(): Promise<Ticket[]> {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('tickets')
     .select('*')
     .eq('user_id', user.id)
