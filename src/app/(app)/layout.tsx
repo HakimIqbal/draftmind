@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getUserWorkspaces, getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -38,8 +39,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     userName = (user.user_metadata as Record<string, string> | undefined)?.full_name ?? undefined;
     userEmail = user.email;
 
-    // Fetch avatar URL from profile
-    const { data: profile } = await supabase
+    // Fetch avatar URL from profile (admin client to avoid RLS read issues)
+    const admin = createAdminClient();
+    const { data: profile } = await admin
       .from('profiles')
       .select('avatar_url, full_name')
       .eq('id', user.id)

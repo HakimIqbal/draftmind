@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { Plus, CircleDot, Clock, CheckCircle2, Ticket, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
-import { getMyTickets, submitTicket, type Ticket as TicketType } from './actions';
+import { getMyTickets, type Ticket as TicketType } from './actions';
 import { createClient } from '@/lib/supabase/client';
 import { useUserStore } from '@/stores/user-store';
 
@@ -64,11 +64,22 @@ function NewTicketModal({ onClose, onSuccess }: NewTicketModalProps) {
 
   function handleSubmit() {
     startTransition(async () => {
-      const result = await submitTicket({ category, subject, message });
-      if (!result.success) {
-        toast.error(result.error ?? 'Failed to submit ticket.');
+      const res = await fetch('/api/tickets/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, subject, message }),
+      });
+
+      const data = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        error?: string;
+      } | null;
+
+      if (!res.ok || !data?.success) {
+        toast.error(data?.error ?? 'Failed to submit ticket.');
         return;
       }
+
       toast.success('Ticket submitted!');
       const fresh = await getMyTickets();
       onSuccess(fresh);
