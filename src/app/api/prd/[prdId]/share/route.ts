@@ -36,7 +36,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ prd
     .select('share_token')
     .single();
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'public_share_created',

@@ -52,7 +52,7 @@ export async function duplicatePRD(prdId: string) {
     return { error: 'Failed to duplicate PRD' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'prd_duplicated',
@@ -107,7 +107,7 @@ export async function deletePRD(prdId: string) {
     return { error: 'Failed to delete PRD' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'prd_deleted',
@@ -173,7 +173,7 @@ export async function restoreVersion(prdId: string, versionId: string) {
     return { error: 'Failed to restore version' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'prd_version_restored',
@@ -201,7 +201,7 @@ export async function renameVersion(prdId: string, versionId: string, name: stri
   if (error) return { error: 'Failed to rename version' };
 
   if (workspace) {
-    logActivity({
+    await logActivity({
       workspaceId: workspace.id,
       actorId: user.id,
       type: 'prd_edited',
@@ -246,7 +246,7 @@ export async function updatePRDStatus(prdId: string, status: string) {
 
   if (error) return { error: 'Failed to update status' };
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'prd_status_changed',
@@ -309,7 +309,7 @@ export async function togglePRDPin(prdId: string, isPinned: boolean) {
 
   if (error) return { error: 'Failed to update pin' };
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'prd_pinned',
@@ -341,7 +341,7 @@ export async function updateHiddenSections(prdId: string, hiddenSections: string
     return { error: 'Failed to update section visibility' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'prd_edited',

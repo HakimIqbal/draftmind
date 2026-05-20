@@ -215,7 +215,7 @@ export async function POST(request: Request) {
         () => {},
       );
 
-    logActivity({
+    await logActivity({
       workspaceId: workspace.id as string,
       actorId: user.id,
       type: 'ai_refinement_applied',

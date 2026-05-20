@@ -185,7 +185,7 @@ export async function POST(request: Request) {
 
     // Log activity (fire-and-forget)
     if (workspace) {
-      logActivity({
+      await logActivity({
         workspaceId: workspace.id as string,
         actorId: user.id,
         type: isCopilot ? 'ai_copilot_used' : 'ai_suggest_used',

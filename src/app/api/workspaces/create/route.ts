@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create workspace member' }, { status: 400 });
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: ws.id,
     actorId: user.id,
     type: 'workspace_created',

@@ -110,7 +110,7 @@ export async function inviteMember(
     });
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'member_invited',
@@ -148,7 +148,7 @@ export async function changeRole(
     return { success: false, error: 'Operation failed. Please try again.' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'member_role_changed',
@@ -176,7 +176,7 @@ export async function removeMember(workspaceId: string, userId: string) {
     return { success: false, error: 'Operation failed. Please try again.' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'member_removed',
@@ -227,7 +227,7 @@ export async function resendInvitation(workspaceId: string, invitationId: string
     return { success: false, error: 'Operation failed. Please try again.' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'member_invited',
@@ -255,7 +255,7 @@ export async function revokeInvitation(workspaceId: string, invitationId: string
     return { success: false, error: 'Operation failed. Please try again.' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'member_invitation_revoked',
@@ -319,7 +319,7 @@ export async function acceptInvitation(invitationId: string) {
       .eq('id', invitationId),
   ]);
 
-  logActivity({
+  await logActivity({
     workspaceId: invitation.workspace_id,
     actorId: user.id,
     type: 'member_joined',

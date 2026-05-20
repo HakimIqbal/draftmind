@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'workspace_settings_changed',

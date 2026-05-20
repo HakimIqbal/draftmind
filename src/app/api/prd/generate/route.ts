@@ -736,7 +736,7 @@ export async function POST(request: Request) {
     }
 
     // Activity log — use admin client (RLS blocks user insert on activity_log)
-    logActivity({
+    await logActivity({
       workspaceId,
       actorId: user.id,
       type: 'prd_created',

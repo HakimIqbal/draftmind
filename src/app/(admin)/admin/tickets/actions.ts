@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
+import { logActivity } from '@/lib/logging/activity-log';
 
 async function requireSuperAdmin() {
   const user = await requireUser();
@@ -126,6 +127,24 @@ export async function updateTicketStatus(
     .eq('id', ticketId);
 
   if (error) return { success: false, error: 'Failed to update ticket status' };
+
+  const { data: membership } = await admin
+    .from('workspace_members')
+    .select('workspace_id')
+    .eq('user_id', ticket.user_id as string)
+    .limit(1)
+    .maybeSingle();
+
+  if (membership?.workspace_id) {
+    await logActivity({
+      workspaceId: membership.workspace_id as string,
+      actorId: user.id,
+      type: 'ticket_status_changed',
+      resourceType: 'ticket',
+      resourceId: ticketId,
+      metadata: { subject: ticket.subject as string, status },
+    });
+  }
 
   // Send notification to user (only for in_progress and resolved)
   if (status === 'in_progress' || status === 'resolved') {

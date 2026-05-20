@@ -142,7 +142,7 @@ export async function createPRDAndGenerate(data: {
 
   if (error || !prd) throw new Error('Failed to create PRD');
 
-  logActivity({
+  await logActivity({
     workspaceId: data.workspaceId,
     actorId: authenticatedUserId,
     type: 'prd_created',
@@ -229,7 +229,7 @@ export async function createPRDFromTemplate(data: {
 
   if (error || !prd) throw new Error('Failed to create PRD');
 
-  logActivity({
+  await logActivity({
     workspaceId: data.workspaceId,
     actorId: authenticatedUserId,
     type: 'prd_created',

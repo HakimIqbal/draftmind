@@ -9,9 +9,9 @@ import { logActivity } from '@/lib/logging/activity-log';
 
 export async function getWorkspaceActivity(workspaceId: string) {
   await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data: activities } = await supabase
+  const { data: activities } = await admin
     .from('activity_log')
     .select('id, type, actor_id, resource_type, resource_id, metadata, created_at')
     .eq('workspace_id', workspaceId)
@@ -22,7 +22,7 @@ export async function getWorkspaceActivity(workspaceId: string) {
   const actorIds = [...new Set((activities ?? []).map((a) => a.actor_id).filter(Boolean))];
   let actorMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
   if (actorIds.length > 0) {
-    const { data: actors } = await supabase
+    const { data: actors } = await admin
       .from('profiles')
       .select('id, full_name, avatar_url')
       .in('id', actorIds);
@@ -90,7 +90,7 @@ export async function updateWorkspaceSettings(
     return { error: 'Failed to update workspace' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'workspace_settings_changed',
@@ -147,7 +147,7 @@ export async function createWorkspace(data: {
     role: 'admin',
   });
 
-  logActivity({
+  await logActivity({
     workspaceId: ws.id,
     actorId: user.id,
     type: 'workspace_created',
@@ -186,7 +186,7 @@ export async function leaveWorkspace(workspaceId: string) {
     return { error: 'Failed to leave workspace' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'workspace_left',
@@ -220,7 +220,7 @@ export async function deleteWorkspace(workspaceId: string) {
     return { error: 'Failed to delete workspace' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'workspace_deleted',
@@ -277,7 +277,7 @@ export async function transferOwnership(workspaceId: string, newOwnerId: string)
     .eq('workspace_id', workspaceId)
     .eq('user_id', newOwnerId);
 
-  logActivity({
+  await logActivity({
     workspaceId,
     actorId: user.id,
     type: 'workspace_ownership_transferred',

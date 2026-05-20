@@ -43,7 +43,7 @@ export async function createTemplate(data: TemplateFormData) {
     return { error: 'Operation failed. Please try again.' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'template_created',
@@ -94,7 +94,7 @@ export async function updateTemplate(templateId: string, data: Partial<TemplateF
     return { error: 'Operation failed. Please try again.' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'template_updated',
@@ -131,7 +131,7 @@ export async function deleteTemplate(templateId: string) {
     return { error: 'Operation failed. Please try again.' };
   }
 
-  logActivity({
+  await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
     type: 'template_deleted',
