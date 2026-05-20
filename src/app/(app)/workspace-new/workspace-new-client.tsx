@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { createWorkspace } from '@/app/(app)/workspace/settings/actions';
 
 const INDUSTRY_OPTIONS = [
   'Technology',
@@ -33,14 +32,23 @@ export function WorkspaceNewClient() {
     const finalIndustry = isOther ? customIndustry.trim() : industry;
 
     startTransition(async () => {
-      const result = await createWorkspace({
-        name: name.trim(),
-        industry: finalIndustry || undefined,
-        team_size: teamSize || undefined,
+      const res = await fetch('/api/workspaces/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          industry: finalIndustry || undefined,
+          team_size: teamSize || undefined,
+        }),
       });
 
-      if (result.error) {
-        toast.error(result.error);
+      const data = (await res.json().catch(() => null)) as {
+        workspaceId?: string;
+        error?: string;
+      } | null;
+
+      if (!res.ok || data?.error) {
+        toast.error(data?.error ?? 'Failed to create workspace');
         return;
       }
 
