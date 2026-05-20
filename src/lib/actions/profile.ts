@@ -45,15 +45,15 @@ async function logProfileActivity(
 
 export async function getProfile() {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   const [{ data: profile }, { data: membership }] = await Promise.all([
-    supabase
+    admin
       .from('profiles')
       .select('full_name, role_self_reported, created_at, avatar_url')
       .eq('id', user.id)
       .single(),
-    supabase.from('workspace_members').select('role').eq('user_id', user.id).limit(1).single(),
+    admin.from('workspace_members').select('role').eq('user_id', user.id).limit(1).single(),
   ]);
 
   const fallbackName =
