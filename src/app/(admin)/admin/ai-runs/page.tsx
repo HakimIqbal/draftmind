@@ -177,7 +177,9 @@ export default async function AdminAIRunsPage({
         </div>
         <div className="rounded-xl border border-[#eee] bg-white p-4">
           <p className="text-[11px] font-medium uppercase text-[#aaa]">Total</p>
-          <p className="mt-1 text-[24px] font-bold text-[#1a1a1a]">{runsResult.count ?? 0}</p>
+          <p className="mt-1 text-[24px] font-bold text-[#1a1a1a]">
+            {runsResult.count ?? runs.length}
+          </p>
           <p className="text-[11px] text-[#bbb]">all time</p>
         </div>
       </div>

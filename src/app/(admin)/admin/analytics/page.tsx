@@ -9,10 +9,10 @@ export default async function AdminAnalyticsPage() {
   const admin = createAdminClient();
 
   const [usersR, wsR, prdsR, aiR, newUsersR, prdsByStatusR, runsByTypeR] = await Promise.all([
-    admin.from('profiles').select('*', { count: 'exact', head: true }),
-    admin.from('workspaces').select('*', { count: 'exact', head: true }),
-    admin.from('prds').select('*', { count: 'exact', head: true }),
-    admin.from('ai_runs').select('*', { count: 'exact', head: true }),
+    admin.from('profiles').select('id', { count: 'exact' }).limit(1),
+    admin.from('workspaces').select('id', { count: 'exact' }).limit(1),
+    admin.from('prds').select('id', { count: 'exact' }).limit(1),
+    admin.from('ai_runs').select('id', { count: 'exact' }).limit(1),
     admin
       .from('profiles')
       .select('id')
