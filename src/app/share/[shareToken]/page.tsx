@@ -93,8 +93,12 @@ export default async function PublicSharePage({ params }: SharePageProps) {
   const hiddenSections: string[] =
     ((prd as Record<string, unknown>).hidden_sections as string[]) ?? [];
 
-  // Filter tiptap content to exclude hidden sections
+  // Filter tiptap content to exclude hidden sections. Empty tiptap docs fall back to legacy PRD content.
   let tiptapContent = prd.tiptap_content as Parameters<typeof PublicShareView>[0]['tiptapContent'];
+  const rawTiptap = tiptapContent as unknown as { content?: unknown[] } | null;
+  if (!rawTiptap?.content?.length) {
+    tiptapContent = null;
+  }
   if (tiptapContent && hiddenSections.length > 0) {
     const labelToKey = Object.fromEntries(
       Object.entries(PRD_SECTION_LABELS).map(([k, v]) => [v.toLowerCase(), k]),

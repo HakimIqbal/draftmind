@@ -20,9 +20,10 @@ import type { Template } from '@/app/(app)/templates/page';
 interface TemplateCardProps {
   template: Template;
   onEdit?: () => void;
+  canManage?: boolean;
 }
 
-export function TemplateCard({ template, onEdit }: TemplateCardProps) {
+export function TemplateCard({ template, onEdit, canManage = false }: TemplateCardProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -57,7 +58,7 @@ export function TemplateCard({ template, onEdit }: TemplateCardProps) {
             <FileText className="mt-0.5 h-4 w-4 shrink-0 text-ink-tertiary" />
             <h3 className="text-sm font-medium leading-tight text-ink-primary">{template.name}</h3>
           </div>
-          {isCustom && (
+          {isCustom && canManage && (
             <div className="flex items-center gap-1">
               {onEdit && (
                 <button

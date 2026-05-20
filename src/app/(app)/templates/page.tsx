@@ -38,7 +38,10 @@ export default async function TemplatesPage() {
   return (
     <>
       <TemplatesPoller />
-      <TemplatesLibrary templates={(templates as Template[]) ?? []} />
+      <TemplatesLibrary
+        canManageTemplates={workspace.currentRole === 'admin'}
+        templates={(templates as Template[]) ?? []}
+      />
     </>
   );
 }

@@ -28,9 +28,10 @@ const FILTER_OPTIONS = [
 
 interface TemplatesLibraryProps {
   templates: Template[];
+  canManageTemplates: boolean;
 }
 
-export function TemplatesLibrary({ templates }: TemplatesLibraryProps) {
+export function TemplatesLibrary({ templates, canManageTemplates }: TemplatesLibraryProps) {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [editTemplate, setEditTemplate] = useState<Template | null>(null);
@@ -55,10 +56,12 @@ export function TemplatesLibrary({ templates }: TemplatesLibraryProps) {
           <h1 className="font-display text-xl font-bold text-ink-primary">Templates</h1>
           <p className="mt-1 text-sm text-ink-secondary">Start faster with proven structures.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus size={14} className="mr-1.5" />
-          Create template
-        </Button>
+        {canManageTemplates && (
+          <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus size={14} className="mr-1.5" />
+            Create template
+          </Button>
+        )}
       </div>
 
       {/* Filter chips */}
@@ -91,7 +94,12 @@ export function TemplatesLibrary({ templates }: TemplatesLibraryProps) {
             <TemplateCard
               key={template.id}
               template={template}
-              onEdit={!template.is_built_in ? () => setEditTemplate(template) : undefined}
+              canManage={canManageTemplates}
+              onEdit={
+                !template.is_built_in && canManageTemplates
+                  ? () => setEditTemplate(template)
+                  : undefined
+              }
             />
           ))}
         </div>

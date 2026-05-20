@@ -10,6 +10,7 @@ import { exportPRDToDOCX } from '@/lib/export/docx';
 import { exportPRDToPDF, exportPRDToPDFFromHTML } from '@/lib/export/pdf';
 import type { PRDDocument } from '@/lib/prd/schema';
 import { PRD_SECTION_LABELS } from '@/types/prd';
+import type { PRDSectionKey } from '@/types/prd';
 import { slugify } from '@/lib/utils/slug';
 
 const LABEL_TO_KEY = Object.fromEntries(
@@ -45,6 +46,45 @@ function filterTiptapSections(
   return { ...doc, content: filtered };
 }
 
+function filterPRDDocumentSections(doc: PRDDocument, includedSections: string[]): PRDDocument {
+  const allowed = new Set(includedSections);
+  const next = structuredClone(doc) as PRDDocument;
+  for (const key of Object.keys(next.sections) as PRDSectionKey[]) {
+    if (!allowed.has(key)) {
+      const value = next.sections[key];
+      if (Array.isArray(value)) {
+        (next.sections as Record<string, unknown>)[key] = [];
+      } else if (key === 'overview' || key === 'problem_statement') {
+        (next.sections as Record<string, unknown>)[key] = {
+          content: { type: 'doc', content: [] },
+          word_count: 0,
+          ai_generated: false,
+        };
+      } else if (key === 'darci') {
+        (next.sections as Record<string, unknown>)[key] = {
+          decider: { people: [], guidelines: '' },
+          accountable: { people: [], guidelines: '' },
+          responsible: { people: [], guidelines: '' },
+          consulted: { people: [], guidelines: '' },
+          informed: { people: [], guidelines: '' },
+        };
+      } else if (key === 'scope') {
+        (next.sections as Record<string, unknown>)[key] = { in_scope: [], out_of_scope: [] };
+      } else if (key === 'nfr') {
+        (next.sections as Record<string, unknown>)[key] = {
+          performance: [],
+          security: [],
+          accessibility: [],
+          scalability: [],
+          reliability: [],
+          compliance: [],
+        };
+      }
+    }
+  }
+  return next;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
@@ -55,11 +95,7 @@ export async function POST(req: NextRequest) {
     if (!workspace) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
-    const {
-      prdId,
-      format,
-      sections: _sections,
-    } = body as {
+    const { prdId, format, sections } = body as {
       prdId: string;
       format: string;
       sections?: string[];
@@ -82,9 +118,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'PRD not found' }, { status: 404 });
     }
 
-    const doc = prd.content as PRDDocument;
-    const hiddenSections: string[] =
-      ((prd as Record<string, unknown>).hidden_sections as string[]) ?? [];
+    const allSectionKeys = Object.keys(PRD_SECTION_LABELS);
+    const requestedSections =
+      Array.isArray(sections) && sections.length > 0 ? sections : allSectionKeys;
+    const selectedSections = requestedSections.filter((section) =>
+      allSectionKeys.includes(section),
+    );
+    if (selectedSections.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one valid section is required' },
+        { status: 400 },
+      );
+    }
+
+    const doc = filterPRDDocumentSections(prd.content as PRDDocument, selectedSections);
+    const hiddenSections: string[] = [
+      ...new Set([
+        ...(((prd as Record<string, unknown>).hidden_sections as string[]) ?? []),
+        ...allSectionKeys.filter((key) => !selectedSections.includes(key)),
+      ]),
+    ];
     // Filter tiptap content: remove nodes belonging to hidden sections
     const rawTiptap = prd.tiptap_content as {
       type: string;
@@ -95,19 +148,15 @@ export async function POST(req: NextRequest) {
         ? filterTiptapSections(rawTiptap, hiddenSections)
         : rawTiptap;
 
-    // Log export activity (fire-and-forget)
-    import('@/lib/logging/activity-log')
-      .then(({ logActivity }) => {
-        logActivity({
-          workspaceId: workspace.id,
-          actorId: user.id,
-          type: 'prd_exported',
-          resourceType: 'prd',
-          resourceId: prdId,
-          metadata: { format },
-        });
-      })
-      .catch(() => {});
+    const { logActivity } = await import('@/lib/logging/activity-log');
+    await logActivity({
+      workspaceId: workspace.id,
+      actorId: user.id,
+      type: 'prd_exported',
+      resourceType: 'prd',
+      resourceId: prdId,
+      metadata: { format, sections: selectedSections },
+    });
 
     switch (format) {
       case 'markdown': {
