@@ -229,7 +229,7 @@ export function Sidebar({
       {/* Bottom */}
       <div className="border-t border-[#e8e8e6] px-3 py-3">
         {/* Workspace switcher */}
-        {workspaces && (
+        {workspaces && currentWorkspaceId && (
           <div className="mb-2">
             <WorkspaceSwitcher workspaces={workspaces} currentWorkspaceId={currentWorkspaceId} />
           </div>

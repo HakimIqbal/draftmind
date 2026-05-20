@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { ChevronDown, Plus, Check, X } from 'lucide-react';
@@ -26,11 +25,10 @@ const TEAM_SIZE_OPTIONS = ['1-5', '6-20', '21-50', '51-200', '200+'];
 
 interface WorkspaceSwitcherProps {
   workspaces: WorkspaceListItem[];
-  currentWorkspaceId?: string;
+  currentWorkspaceId: string;
 }
 
 export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceSwitcherProps) {
-  const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -103,57 +101,45 @@ export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceS
         if (result.workspaceId) {
           await setCurrentWorkspace(result.workspaceId);
         }
-        router.refresh();
       }
     });
   }
 
+  if (!current) return null;
+
   return (
     <>
-      {/* Trigger — normal switcher OR no-workspace fallback */}
-      {current ? (
-        <button
-          ref={triggerRef}
-          onClick={() => setDropdownOpen((prev) => !prev)}
-          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/60"
-          disabled={isPending}
-        >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f0f0ee] text-[11px] font-bold text-[#555]">
-            {current.icon_custom_url ? (
-              <Image
-                src={current.icon_custom_url}
-                alt=""
-                width={24}
-                height={24}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              current.name[0]
-            )}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{current.name}</p>
-          </div>
-          <ChevronDown
-            size={12}
-            className={`shrink-0 text-[#bbb] transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-      ) : (
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/60"
-        >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-[#ccc]">
-            <Plus size={11} className="text-[#bbb]" />
-          </span>
-          <p className="truncate text-[12px] font-medium text-[#aaa]">No workspace</p>
-        </button>
-      )}
+      {/* Trigger */}
+      <button
+        ref={triggerRef}
+        onClick={() => setDropdownOpen((prev) => !prev)}
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/60"
+        disabled={isPending}
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f0f0ee] text-[11px] font-bold text-[#555]">
+          {current?.icon_custom_url ? (
+            <Image
+              src={current.icon_custom_url}
+              alt=""
+              width={24}
+              height={24}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            current?.name[0]
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{current.name}</p>
+        </div>
+        <ChevronDown
+          size={12}
+          className={`shrink-0 text-[#bbb] transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-      {/* Dropdown via portal — only when workspace exists */}
-      {current &&
-        dropdownOpen &&
+      {/* Dropdown via portal */}
+      {dropdownOpen &&
         createPortal(
           <div
             ref={dropdownRef}
