@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/prds', label: 'My PRDs', icon: FileText },
   { href: '/templates', label: 'Templates', icon: LayoutTemplate },
-  { href: '/ai-runs', label: 'Analytics', icon: BarChart3 },
+  { href: '/ai-runs', label: 'AI Runs', icon: BarChart3 },
 ];
 
 const WORKSPACE_NAV = [

@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { href: '/prds', label: 'My PRDs', icon: FileText },
   { href: '/templates', label: 'Templates', icon: LayoutTemplate },
   { href: '/workspace/members', label: 'Team', icon: Users },
-  { href: '/ai-runs', label: 'Analytics', icon: BarChart3 },
+  { href: '/ai-runs', label: 'AI Runs', icon: BarChart3 },
 ];
 
 interface SidebarCollapsedRailProps {
