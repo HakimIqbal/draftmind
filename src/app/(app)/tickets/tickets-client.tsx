@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { Plus, CircleDot, Clock, CheckCircle2, Ticket, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
-import { getMyTickets, type Ticket as TicketType } from './actions';
+import { type Ticket as TicketType } from './actions';
 import { createClient } from '@/lib/supabase/client';
 import { useUserStore } from '@/stores/user-store';
 
@@ -51,7 +51,7 @@ function relativeTime(iso: string) {
 
 interface NewTicketModalProps {
   onClose: () => void;
-  onSuccess: (tickets: TicketType[]) => void;
+  onSuccess: () => void;
 }
 
 function NewTicketModal({ onClose, onSuccess }: NewTicketModalProps) {
@@ -81,8 +81,7 @@ function NewTicketModal({ onClose, onSuccess }: NewTicketModalProps) {
       }
 
       toast.success('Ticket submitted!');
-      const fresh = await getMyTickets();
-      onSuccess(fresh);
+      await onSuccess();
       onClose();
     });
   }
@@ -188,6 +187,19 @@ export function TicketsPageClient({ initialTickets, userId }: TicketsPageClientP
   const [modalOpen, setModalOpen] = useState(false);
   const setStoreTicketCount = useUserStore((s) => s.setOpenTicketCount);
 
+  async function refreshTickets() {
+    const res = await fetch('/api/tickets/list', { cache: 'no-store' });
+    const data = (await res.json().catch(() => null)) as { tickets?: TicketType[] } | null;
+    if (res.ok && data?.tickets) {
+      setTickets(data.tickets);
+      setStoreTicketCount(data.tickets.filter((ticket) => ticket.status !== 'resolved').length);
+    }
+  }
+
+  useEffect(() => {
+    void refreshTickets();
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -201,12 +213,7 @@ export function TicketsPageClient({ initialTickets, userId }: TicketsPageClientP
           filter: `user_id=eq.${userId}`,
         },
         async () => {
-          try {
-            const fresh = await getMyTickets();
-            setTickets(fresh);
-          } catch {
-            // silent
-          }
+          void refreshTickets();
         },
       )
       .subscribe();
@@ -309,9 +316,8 @@ export function TicketsPageClient({ initialTickets, userId }: TicketsPageClientP
       {modalOpen && (
         <NewTicketModal
           onClose={() => setModalOpen(false)}
-          onSuccess={(fresh) => {
-            setTickets(fresh);
-            setStoreTicketCount(fresh.filter((t) => t.status !== 'resolved').length);
+          onSuccess={async () => {
+            await refreshTickets();
           }}
         />
       )}
