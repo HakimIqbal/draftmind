@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 
 export interface CurrentWorkspace {
@@ -14,17 +15,17 @@ export interface CurrentWorkspace {
 export async function getCurrentWorkspace(userId: string): Promise<CurrentWorkspace | null> {
   const cookieStore = await cookies();
   const workspaceId = cookieStore.get('current_workspace_id')?.value;
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   if (workspaceId) {
     const [{ data: member }, { data: workspace }] = await Promise.all([
-      supabase
+      admin
         .from('workspace_members')
         .select('role')
         .eq('workspace_id', workspaceId)
         .eq('user_id', userId)
         .single(),
-      supabase
+      admin
         .from('workspaces')
         .select('id, name, slug, icon_pattern, is_private, owner_id')
         .eq('id', workspaceId)
@@ -37,7 +38,7 @@ export async function getCurrentWorkspace(userId: string): Promise<CurrentWorksp
   }
 
   // Fallback: first workspace user is a member of
-  const { data: firstMember } = await supabase
+  const { data: firstMember } = await admin
     .from('workspace_members')
     .select('workspace_id, role')
     .eq('user_id', userId)
@@ -46,7 +47,7 @@ export async function getCurrentWorkspace(userId: string): Promise<CurrentWorksp
     .single();
 
   if (firstMember) {
-    const { data: workspace } = await supabase
+    const { data: workspace } = await admin
       .from('workspaces')
       .select('id, name, slug, icon_pattern, is_private, owner_id')
       .eq('id', firstMember.workspace_id)
