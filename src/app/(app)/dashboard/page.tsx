@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
   getDashboardStats,
   getContinueWorkingPRDs,
@@ -61,14 +61,14 @@ export default async function HomePage() {
   const fullName =
     (user.user_metadata as Record<string, string> | undefined)?.full_name ?? user.email ?? 'there';
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   const [stats, continueWorking, activity, attention, templatesResult] = await Promise.all([
     getDashboardStats(wsId),
     getContinueWorkingPRDs(wsId, user.id, 4),
     getActivityFeed(wsId, 6),
     getNeedsAttention(wsId, user.id),
-    supabase
+    admin
       .from('prd_templates')
       .select('id, name, description, category')
       .eq('is_built_in', true)

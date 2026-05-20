@@ -1,13 +1,13 @@
 'use server';
 
 import { requireUser } from '@/lib/auth/permissions';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function getNotifications() {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('notifications')
     .select('id, type, title, body, action_url, read_at, created_at')
     .eq('recipient_id', user.id)
@@ -27,9 +27,9 @@ export async function getNotifications() {
 
 export async function getUnreadCount() {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { count } = await supabase
+  const { count } = await admin
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('recipient_id', user.id)
@@ -40,9 +40,9 @@ export async function getUnreadCount() {
 
 export async function markNotificationRead(notificationId: string) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  await supabase
+  await admin
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('id', notificationId)
@@ -53,9 +53,9 @@ export async function markNotificationRead(notificationId: string) {
 
 export async function markAllNotificationsRead(type?: 'inbox' | 'announcements') {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  let query = supabase
+  let query = admin
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('recipient_id', user.id)
@@ -73,13 +73,9 @@ export async function markAllNotificationsRead(type?: 'inbox' | 'announcements')
 
 export async function deleteNotification(notificationId: string) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  await supabase
-    .from('notifications')
-    .delete()
-    .eq('id', notificationId)
-    .eq('recipient_id', user.id);
+  await admin.from('notifications').delete().eq('id', notificationId).eq('recipient_id', user.id);
 
   return { success: true };
 }

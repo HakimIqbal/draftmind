@@ -81,9 +81,9 @@ export async function submitTicket(input: {
 
 export async function getUnresolvedTicketCount(): Promise<number> {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { count } = await supabase
+  const { count } = await admin
     .from('tickets')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)

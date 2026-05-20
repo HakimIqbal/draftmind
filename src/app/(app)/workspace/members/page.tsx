@@ -1,6 +1,5 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { WorkspaceMembersTab } from '@/components/workspace/workspace-members-tab';
@@ -14,17 +13,17 @@ export default async function WorkspaceMembersPage() {
   const workspace = await getCurrentWorkspace(user.id);
   if (!workspace) redirect('/dashboard');
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   const [membersR, invitationsR] = await Promise.all([
-    supabase
+    admin
       .from('workspace_members')
       .select(
         'user_id, role, joined_at, last_active_at, profile:profiles(full_name, email, avatar_color_seed, avatar_url, role_self_reported)',
       )
       .eq('workspace_id', workspace.id)
       .order('joined_at', { ascending: true }),
-    supabase
+    admin
       .from('workspace_invitations')
       .select('id, email, role, created_at, expires_at, accepted_at, revoked_at')
       .eq('workspace_id', workspace.id)

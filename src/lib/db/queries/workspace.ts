@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 
@@ -103,8 +102,8 @@ export async function getUserWorkspaces(userId: string): Promise<WorkspaceListIt
 }
 
 export async function getWorkspaceMemberCount(workspaceId: string): Promise<number> {
-  const supabase = await createClient();
-  const { count } = await supabase
+  const admin = createAdminClient();
+  const { count } = await admin
     .from('workspace_members')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);

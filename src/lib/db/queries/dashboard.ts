@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export interface DashboardStats {
   activePRDs: number;
@@ -8,10 +8,10 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(workspaceId: string): Promise<DashboardStats> {
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Single query — compute all stats in JS instead of 4 separate DB round trips
-  const { data: allPRDs } = await supabase
+  const { data: allPRDs } = await admin
     .from('prds')
     .select('status, health_score, created_at, updated_at')
     .eq('workspace_id', workspaceId);
@@ -67,9 +67,9 @@ export async function getContinueWorkingPRDs(
   userId: string,
   limit: number = 4,
 ): Promise<ContinueWorkingPRD[]> {
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('prds')
     .select(
       'id, title, project_tag, status, health_score, updated_at, owner:profiles!prds_owner_id_fkey(full_name, avatar_color_seed, avatar_url)',
@@ -102,9 +102,9 @@ export async function getActivityFeed(
   workspaceId: string,
   limit: number = 6,
 ): Promise<ActivityFeedItem[]> {
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('activity_log')
     .select(
       'id, type, resource_type, resource_id, metadata, created_at, actor:profiles!activity_log_actor_id_fkey(full_name, avatar_color_seed, avatar_url, is_super_admin)',
@@ -135,9 +135,9 @@ export async function getNeedsAttention(
   workspaceId: string,
   userId: string,
 ): Promise<NeedsAttentionItem[]> {
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('notifications')
     .select('id, type, title, body, resource_type, resource_id, action_url, created_at')
     .eq('recipient_id', userId)
