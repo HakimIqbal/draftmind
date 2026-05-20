@@ -7,7 +7,7 @@ import { GenerateForm } from '@/components/generate/generate-form';
 export default async function GeneratePrdPage({
   searchParams,
 }: {
-  searchParams: Promise<{ brief?: string }>;
+  searchParams: Promise<{ brief?: string; template?: string }>;
 }) {
   const user = await requireUser();
   const workspace = await getCurrentWorkspace(user.id);
@@ -15,6 +15,7 @@ export default async function GeneratePrdPage({
 
   const params = await searchParams;
   const initialBrief = params.brief ?? '';
+  const initialTemplateId = params.template ?? null;
 
   // Fetch active providers for model selector
   const adminSupa = createAdminClient();
@@ -31,6 +32,7 @@ export default async function GeneratePrdPage({
         workspaceId={workspace.id as string}
         userName={(user.user_metadata as Record<string, string>)?.full_name ?? user.email ?? ''}
         initialBrief={initialBrief}
+        initialTemplateId={initialTemplateId}
         providers={(providersList ?? []).map((p) => ({
           id: p.id,
           display_name: p.display_name,

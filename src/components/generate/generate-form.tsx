@@ -23,6 +23,7 @@ interface GenerateFormProps {
   workspaceId: string;
   userName: string;
   initialBrief: string;
+  initialTemplateId?: string | null;
   providers?: { id: string; display_name: string; default_model: string }[];
 }
 
@@ -65,6 +66,7 @@ export function GenerateForm({
   workspaceId,
   userName,
   initialBrief,
+  initialTemplateId,
   providers,
 }: GenerateFormProps) {
   const router = useRouter();
@@ -110,10 +112,13 @@ export function GenerateForm({
     async function load() {
       const [t, m] = await Promise.all([getTemplates(), getWorkspaceMembers(workspaceId)]);
       setTemplates(t);
+      if (initialTemplateId) {
+        setSelectedTemplate(t.find((template) => template.id === initialTemplateId) ?? null);
+      }
       setMembers(m);
     }
     load();
-  }, [workspaceId]);
+  }, [workspaceId, initialTemplateId]);
 
   // Close dropdown on click outside
   useEffect(() => {

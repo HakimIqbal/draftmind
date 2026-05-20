@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { nanoid } from 'nanoid';
@@ -25,7 +26,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ prd
   if (!prd) return NextResponse.json({ error: 'PRD not found' }, { status: 404 });
 
   const token = nanoid(16);
-  const { data } = await supabase
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from('prd_shares')
     .insert({
       prd_id: prdId,
@@ -36,6 +38,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ prd
     .select('share_token')
     .single();
 
+  if (error || !data?.share_token) {
+    return NextResponse.json({ error: 'Failed to create share link' }, { status: 500 });
+  }
+
   await logActivity({
     workspaceId: workspace.id,
     actorId: user.id,
@@ -44,5 +50,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ prd
     resourceId: prdId,
   });
 
-  return NextResponse.json({ token: data?.share_token, url: `/share/${data?.share_token}` });
+  return NextResponse.json({ token: data.share_token, url: `/share/${data.share_token}` });
 }
