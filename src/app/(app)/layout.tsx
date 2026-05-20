@@ -25,7 +25,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     workspaces = await getUserWorkspaces(user.id);
 
     // Guard: user has no workspace membership and is on a workspace-specific route
-    if (workspaces && workspaces.length === 0 && pathname.startsWith('/workspace')) {
+    if (
+      workspaces &&
+      workspaces.length === 0 &&
+      (pathname === '/workspace' || pathname.startsWith('/workspace/'))
+    ) {
       redirect('/dashboard');
     }
     const ws = await getCurrentWorkspace(user.id);
