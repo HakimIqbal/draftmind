@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/queries/dashboard';
 import { HomeFeed } from '@/components/dashboard/home-feed';
 import { DashboardPoller } from './dashboard-poller';
+import { CreateWorkspaceForm } from './create-workspace-form';
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -47,12 +48,7 @@ export default async function HomePage() {
           You are not a member of any workspace yet. Create a new workspace or wait for an
           invitation from your team.
         </p>
-        <a
-          href="/workspace/settings"
-          className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-[#1a1a1a] px-6 text-[13px] font-medium text-white hover:bg-[#333]"
-        >
-          Create Workspace
-        </a>
+        <CreateWorkspaceForm />
       </div>
     );
   }
