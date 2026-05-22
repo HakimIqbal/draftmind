@@ -109,8 +109,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(isSuperAdmin ? '/admin' : '/dashboard', publicOrigin));
     }
 
-    // Admin trying to access user routes → redirect to admin
-    if (isSuperAdmin && isUserRoute) {
+    // Admin trying to access user routes → redirect to admin.
+    // Exception: /change-password must remain reachable when force_password_change is true,
+    // otherwise reset admin accounts loop between /admin and /change-password.
+    if (isSuperAdmin && isUserRoute && !isChangePasswordRoute) {
       return NextResponse.redirect(new URL('/admin', publicOrigin));
     }
 
