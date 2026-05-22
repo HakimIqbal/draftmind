@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { checkBannedStatus } from '@/app/(auth)/login/actions';
+import { checkBannedStatus, logLoginFailure } from '@/app/(auth)/login/actions';
 
 export function LoginPageClient() {
   return (
@@ -43,10 +43,12 @@ function LoginForm() {
       // Check if user is banned/disabled
       const banned = await checkBannedStatus(email);
       if (banned?.disabled) {
+        await logLoginFailure(email, 'disabled_account');
         setDisabledMessage(
           'Akun Anda telah dinonaktifkan oleh administrator. Hubungi admin untuk informasi lebih lanjut.',
         );
       } else {
+        await logLoginFailure(email, 'invalid_credentials');
         toast.error('Invalid email or password');
       }
       setLoading(false);

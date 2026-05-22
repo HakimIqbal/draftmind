@@ -188,7 +188,7 @@ export async function forceChangePassword(newPassword: string) {
       changed_by: 'self',
       forced_password_change: true,
     },
-    'password_changed',
+    'force_password_change_completed',
   );
 
   redirect('/login?password_changed=1');

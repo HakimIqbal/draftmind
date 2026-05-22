@@ -118,7 +118,7 @@ export async function toggleSuperAdmin(targetUserId: string) {
   await logAdminActivity(admin, {
     actorId: user.id,
     targetUserId,
-    type: 'super_admin_toggled',
+    type: nextIsSuperAdmin ? 'super_admin_enabled' : 'super_admin_disabled',
     resourceType: 'user',
     resourceId: targetUserId,
     metadata: {
@@ -126,12 +126,13 @@ export async function toggleSuperAdmin(targetUserId: string) {
       target_email: target.email,
       target_name: target.full_name,
       is_super_admin: nextIsSuperAdmin,
+      previous_is_super_admin: target.is_super_admin,
     },
   });
 
   logInfo(
     'admin.action',
-    `super_admin_toggled: ${targetUserId} → ${nextIsSuperAdmin}`,
+    `${nextIsSuperAdmin ? 'super_admin_enabled' : 'super_admin_disabled'}: ${targetUserId}`,
     { targetUserId },
     user.id,
   );

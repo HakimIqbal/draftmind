@@ -40,7 +40,9 @@ const VERB_MAP: Record<string, string> = {
   workspace_ownership_transferred: 'transferred workspace ownership',
   provider_added: 'added a provider',
   provider_disconnected: 'disconnected a provider',
+  provider_updated: 'updated a provider',
   provider_set_default: 'set default provider',
+  provider_tested: 'tested a provider',
   template_created: 'created a template',
   template_updated: 'updated a template',
   template_deleted: 'deleted a template',
@@ -48,19 +50,30 @@ const VERB_MAP: Record<string, string> = {
   logout: 'logged out',
   profile_updated: 'updated their profile',
   password_changed: 'changed their password',
+  force_password_change_completed: 'completed required password change',
   password_reset: 'reset a user password',
   public_share_created: 'created a share link',
   public_share_viewed: 'viewed a shared PRD',
   user_banned: 'banned a user',
   user_unbanned: 'unbanned a user',
   user_created_by_admin: 'created a user',
+  user_updated_by_admin: 'updated a user',
+  user_role_changed: 'changed a user role',
   super_admin_toggled: 'toggled super admin status',
+  super_admin_enabled: 'enabled super admin status',
+  super_admin_disabled: 'disabled super admin status',
+  login_failed: 'failed to log in',
 };
 
 type FilterKey = 'all' | 'error' | 'warn' | 'info';
 
 // Categorize by severity — Error=broken/failed, Warning=suspicious/attention, Info=normal
-const ERROR_TYPES = new Set(['review_rejected', 'provider_disconnected', 'workspace_deleted']);
+const ERROR_TYPES = new Set([
+  'review_rejected',
+  'provider_disconnected',
+  'workspace_deleted',
+  'ai_generation_failed',
+]);
 const WARN_TYPES = new Set([
   'login_failed',
   'member_invitation_revoked',

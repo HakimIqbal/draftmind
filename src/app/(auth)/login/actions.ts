@@ -60,6 +60,57 @@ export async function checkUserRole() {
   return { redirect: profile.is_super_admin ? '/admin' : '/dashboard' };
 }
 
+export async function logLoginFailure(
+  email: string,
+  reason: 'invalid_credentials' | 'disabled_account',
+) {
+  const admin = createAdminClient();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  const { data: workspace } = profile?.id
+    ? await admin
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', profile.id)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  if (workspace?.workspace_id) {
+    admin
+      .from('activity_log')
+      .insert({
+        workspace_id: workspace.workspace_id,
+        actor_id: profile?.id ?? null,
+        type: 'login_failed',
+        resource_type: 'user',
+        resource_id: profile?.id ?? null,
+        metadata: {
+          email: normalizedEmail,
+          reason,
+          timestamp: new Date().toISOString(),
+        },
+      })
+      .then(
+        () => {},
+        () => {},
+      );
+  }
+
+  logInfo(
+    'auth.login_failed',
+    `Login failed for ${normalizedEmail}: ${reason}`,
+    { email: normalizedEmail, reason },
+    profile?.id ?? null,
+  );
+}
+
 export async function checkBannedStatus(email: string): Promise<{ disabled: boolean }> {
   const admin = createAdminClient();
 

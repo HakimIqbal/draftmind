@@ -34,7 +34,12 @@ async function logProviderAdminActivity(
   admin: ReturnType<typeof createAdminClient>,
   input: {
     actorId: string;
-    type: 'provider_added' | 'provider_disconnected';
+    type:
+      | 'provider_added'
+      | 'provider_disconnected'
+      | 'provider_updated'
+      | 'provider_tested'
+      | 'provider_set_default';
     providerId?: string;
     metadata?: Record<string, unknown>;
   },
@@ -132,7 +137,8 @@ export async function testProviderConnection(data: {
   baseUrl?: string;
   model: string;
 }): Promise<{ success: boolean; message: string; latency?: number }> {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
+  const admin = createAdminClient();
 
   if (!data.apiKey || data.apiKey.length < 5) {
     return { success: false, message: 'API key is too short' };
@@ -156,10 +162,30 @@ export async function testProviderConnection(data: {
     });
 
     const latency = Date.now() - start;
+    await logProviderAdminActivity(admin, {
+      actorId: user.id,
+      type: 'provider_tested',
+      metadata: {
+        provider_type: data.type,
+        model: data.model,
+        success: true,
+        latency_ms: latency,
+      },
+    });
     return { success: true, message: `Connected to ${config.displayName}`, latency };
   } catch (err) {
     // Error details logged to system_logs, not exposed to UI
     const msg = err instanceof Error ? err.message : '';
+    await logProviderAdminActivity(admin, {
+      actorId: user.id,
+      type: 'provider_tested',
+      metadata: {
+        provider_type: data.type,
+        model: data.model,
+        success: false,
+        error_hint: msg.slice(0, 180),
+      },
+    });
     if (msg.includes('401') || msg.includes('Unauthorized') || msg.includes('invalid')) {
       return { success: false, message: 'Invalid API key. Please check and try again.' };
     }
@@ -278,6 +304,13 @@ export async function activateProvider(providerId: string) {
   const { error } = await admin.from('providers').update({ status: 'active' }).eq('id', providerId);
   if (error) return { error: error.message };
 
+  await logProviderAdminActivity(admin, {
+    actorId: user.id,
+    type: 'provider_updated',
+    providerId,
+    metadata: { field: 'status', next_status: 'active' },
+  });
+
   logInfo('admin.provider', `provider_activated: ${providerId}`, { providerId }, user.id);
 
   revalidatePath('/admin/providers');
@@ -290,6 +323,13 @@ export async function deleteProvider(providerId: string) {
 
   const { error } = await admin.from('providers').delete().eq('id', providerId);
   if (error) return { error: error.message };
+
+  await logProviderAdminActivity(admin, {
+    actorId: user.id,
+    type: 'provider_updated',
+    providerId,
+    metadata: { action: 'deleted' },
+  });
 
   logInfo('admin.provider', `provider_deleted: ${providerId}`, { providerId }, user.id);
 
@@ -306,6 +346,13 @@ export async function updateProviderPriority(providerId: string, priority: numbe
     .update({ priority, is_default: priority === 1 })
     .eq('id', providerId);
   if (error) return { error: error.message };
+
+  await logProviderAdminActivity(admin, {
+    actorId: user.id,
+    type: priority === 1 ? 'provider_set_default' : 'provider_updated',
+    providerId,
+    metadata: { field: 'priority', priority, is_default: priority === 1 },
+  });
 
   logInfo(
     'admin.provider',
@@ -324,6 +371,13 @@ export async function updateProviderUseFor(providerId: string, useFor: string) {
 
   const { error } = await admin.from('providers').update({ use_for: useFor }).eq('id', providerId);
   if (error) return { error: error.message };
+
+  await logProviderAdminActivity(admin, {
+    actorId: user.id,
+    type: 'provider_updated',
+    providerId,
+    metadata: { field: 'use_for', use_for: useFor },
+  });
 
   logInfo(
     'admin.provider',
