@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import { TweaksProvider } from '@/components/tweaks/tweaks-provider';
 import { CommandPalette } from '@/components/overlays/command-palette';
+import { ClientGlobalErrorLogger } from '@/components/observability/client-global-error-logger';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="bg-bg-canvas font-body text-ink-primary">
         <TweaksProvider>
+          <ClientGlobalErrorLogger />
           {children}
           <CommandPalette />
         </TweaksProvider>
