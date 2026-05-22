@@ -140,6 +140,9 @@ export async function createUser(data: {
         avatar_color_seed: newUser.user.id,
         role_self_reported: data.is_super_admin ? 'System Administrator' : data.role_self_reported,
         is_super_admin: data.is_super_admin,
+        // Admin-created accounts always start with a temporary password.
+        // Force the owner to set a private password on first login.
+        force_password_change: true,
         onboarding_completed_at: new Date().toISOString(),
       },
       { onConflict: 'id' },
