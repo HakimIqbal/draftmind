@@ -182,6 +182,15 @@ export async function forceChangePassword(newPassword: string) {
   const admin = createAdminClient();
   await admin.from('profiles').update({ force_password_change: false }).eq('id', user.id);
 
+  await logProfileActivity(
+    user.id,
+    {
+      changed_by: 'self',
+      forced_password_change: true,
+    },
+    'password_changed',
+  );
+
   redirect('/login?password_changed=1');
 }
 

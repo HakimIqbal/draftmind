@@ -17,6 +17,55 @@ async function requireSuperAdmin() {
   return user;
 }
 
+async function getAuditWorkspaceId(
+  admin: ReturnType<typeof createAdminClient>,
+  userId?: string | null,
+) {
+  if (userId) {
+    const { data: membership } = await admin
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+    if (membership?.workspace_id) return membership.workspace_id;
+  }
+
+  const { data: workspace } = await admin
+    .from('workspaces')
+    .select('id')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return workspace?.id ?? null;
+}
+
+async function logAdminActivity(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    actorId: string;
+    targetUserId?: string;
+    type: string;
+    resourceType?: string;
+    resourceId?: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  const workspaceId =
+    (await getAuditWorkspaceId(admin, input.targetUserId)) ??
+    (await getAuditWorkspaceId(admin, input.actorId));
+  if (!workspaceId) return;
+
+  await admin.from('activity_log').insert({
+    workspace_id: workspaceId,
+    actor_id: input.actorId,
+    type: input.type,
+    resource_type: input.resourceType ?? 'user',
+    resource_id: input.resourceId ?? input.targetUserId ?? null,
+    metadata: input.metadata ?? {},
+  });
+}
+
 export async function toggleSuperAdmin(targetUserId: string) {
   const user = await requireSuperAdmin();
   if (targetUserId === user.id) return { error: 'Cannot change your own admin status' };
@@ -24,7 +73,7 @@ export async function toggleSuperAdmin(targetUserId: string) {
   const admin = createAdminClient();
   const { data: target } = await admin
     .from('profiles')
-    .select('is_super_admin')
+    .select('is_super_admin, full_name, email')
     .eq('id', targetUserId)
     .single();
 
@@ -37,9 +86,25 @@ export async function toggleSuperAdmin(targetUserId: string) {
 
   if (error) return { error: 'Failed to update admin status. Please try again.' };
 
+  const nextIsSuperAdmin = !target.is_super_admin;
+
+  await logAdminActivity(admin, {
+    actorId: user.id,
+    targetUserId,
+    type: 'super_admin_toggled',
+    resourceType: 'user',
+    resourceId: targetUserId,
+    metadata: {
+      target_user_id: targetUserId,
+      target_email: target.email,
+      target_name: target.full_name,
+      is_super_admin: nextIsSuperAdmin,
+    },
+  });
+
   logInfo(
     'admin.action',
-    `super_admin_toggled: ${targetUserId} → ${!target.is_super_admin}`,
+    `super_admin_toggled: ${targetUserId} → ${nextIsSuperAdmin}`,
     { targetUserId },
     user.id,
   );
@@ -77,6 +142,25 @@ export async function toggleUserStatus(targetUserId: string) {
     if (error) return { error: error.message };
   }
 
+  const { data: targetProfile } = await admin
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', targetUserId)
+    .maybeSingle();
+
+  await logAdminActivity(admin, {
+    actorId: user.id,
+    targetUserId,
+    type: isBanned ? 'user_unbanned' : 'user_banned',
+    resourceType: 'user',
+    resourceId: targetUserId,
+    metadata: {
+      target_user_id: targetUserId,
+      target_email: targetProfile?.email ?? targetUser.email,
+      target_name: targetProfile?.full_name ?? targetUser.email,
+    },
+  });
+
   logInfo(
     'admin.action',
     `${isBanned ? 'user_unbanned' : 'user_banned'}: ${targetUserId}`,
@@ -95,7 +179,7 @@ export async function createUser(data: {
   role_self_reported: string;
   is_super_admin: boolean;
 }) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
 
   if (!data.full_name?.trim()) return { error: 'Full name is required' };
   if (!data.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
@@ -159,11 +243,26 @@ export async function createUser(data: {
   }
 
   if (newUser.user) {
+    await logAdminActivity(admin, {
+      actorId: user.id,
+      targetUserId: newUser.user.id,
+      type: 'user_created_by_admin',
+      resourceType: 'user',
+      resourceId: newUser.user.id,
+      metadata: {
+        target_user_id: newUser.user.id,
+        target_email: data.email,
+        target_name: data.full_name,
+        is_super_admin: data.is_super_admin,
+        force_password_change: true,
+      },
+    });
+
     logInfo(
       'admin.action',
       `user_created_by_admin: ${data.email}`,
       { email: data.email, full_name: data.full_name },
-      newUser.user.id,
+      user.id,
     );
   }
 
