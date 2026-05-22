@@ -22,6 +22,7 @@ export function LoginPageClient() {
 function LoginForm() {
   const searchParams = useSearchParams();
   const sessionExpired = searchParams.get('reason') === 'session_expired';
+  const passwordChanged = searchParams.get('password_changed') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -110,6 +111,11 @@ function LoginForm() {
           {sessionExpired && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700">
               Sesi Anda telah berakhir. Silakan login kembali.
+            </div>
+          )}
+          {passwordChanged && (
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">
+              Password berhasil diperbarui. Silakan login dengan password baru Anda.
             </div>
           )}
           {disabledMessage && (
