@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { logWarn } from '@/lib/logging/system-log';
 
 export async function requireUser() {
   const supabase = await createClient();
@@ -26,6 +27,12 @@ export async function requireWorkspaceMember(workspaceId: string) {
     .single();
 
   if (!member) {
+    logWarn(
+      'auth.workspace_access_denied',
+      'User attempted to access a workspace they do not belong to',
+      { workspaceId },
+      user.id,
+    );
     redirect('/dashboard');
   }
 
@@ -38,6 +45,12 @@ export async function requireWorkspaceRole(workspaceId: string, roles: Workspace
   const { user, role } = await requireWorkspaceMember(workspaceId);
 
   if (!roles.includes(role as WorkspaceRole)) {
+    logWarn(
+      'auth.workspace_role_denied',
+      'User attempted an action without required workspace role',
+      { workspaceId, currentRole: role, requiredRoles: roles },
+      user.id,
+    );
     redirect('/dashboard');
   }
 

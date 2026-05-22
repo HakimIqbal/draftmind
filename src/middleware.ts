@@ -2,6 +2,37 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { getPublicOrigin } from '@/lib/http/public-origin';
 
+async function logSecurityEvent(
+  source: string,
+  message: string,
+  metadata: Record<string, unknown> = {},
+  userId?: string,
+) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) return;
+
+    await fetch(`${supabaseUrl}/rest/v1/system_logs`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        level: 'warn',
+        source,
+        message,
+        metadata,
+        user_id: userId ?? null,
+        workspace_id: null,
+      }),
+    });
+  } catch {}
+}
+
 export async function middleware(request: NextRequest) {
   const { user, response } = await updateSession(request);
 
@@ -50,6 +81,11 @@ export async function middleware(request: NextRequest) {
     // If session cookies exist but user is null → stale/banned session, clear cookies
     const hasSessionCookie = request.cookies.getAll().some((c) => c.name.startsWith('sb-'));
     if (hasSessionCookie) {
+      await logSecurityEvent(
+        'auth.stale_session',
+        'Session cookies existed but user could not be resolved',
+        { pathname },
+      );
       loginUrl.searchParams.set('reason', 'session_expired');
       const redirectResponse = NextResponse.redirect(loginUrl);
       // Clear all Supabase auth cookies
@@ -118,6 +154,12 @@ export async function middleware(request: NextRequest) {
 
     // User trying to access admin routes → redirect to home
     if (!isSuperAdmin && isAdminRoute) {
+      await logSecurityEvent(
+        'security.unauthorized_admin_access',
+        'Non-admin user attempted to access admin route',
+        { pathname },
+        user.id,
+      );
       return NextResponse.redirect(new URL('/dashboard', publicOrigin));
     }
   }
