@@ -255,6 +255,24 @@ export async function updatePRDStatus(prdId: string, status: string) {
     metadata: { new_status: status },
   });
 
+  const reviewActivityType =
+    status === 'in_review'
+      ? 'review_requested'
+      : status === 'reviewed' || status === 'approved'
+        ? 'review_approved'
+        : null;
+
+  if (reviewActivityType) {
+    await logActivity({
+      workspaceId: workspace.id,
+      actorId: user.id,
+      type: reviewActivityType,
+      resourceType: 'prd',
+      resourceId: prdId,
+      metadata: { status, title: prd.title },
+    });
+  }
+
   // Notify all workspace members about status change (except changer, skip draft)
   if (status !== 'draft') {
     const statusBodyMap: Record<string, string> = {
