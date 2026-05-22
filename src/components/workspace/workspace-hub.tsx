@@ -88,6 +88,7 @@ const VERB_MAP: Record<string, string> = {
   template_created: 'created a template',
   template_updated: 'updated a template',
   template_deleted: 'deleted a template',
+  announcement_published: 'published an announcement',
   ai_generation_started: 'started generating a PRD',
   ai_generation_completed: 'generated a PRD',
   ai_generation_failed: 'failed to generate a PRD',

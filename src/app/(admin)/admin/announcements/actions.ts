@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
 import { revalidatePath } from 'next/cache';
 import { logInfo } from '@/lib/logging/system-log';
+import { logActivity } from '@/lib/logging/activity-log';
 
 async function requireSuperAdmin() {
   const user = await requireUser();
@@ -23,7 +24,7 @@ export async function publishAnnouncement(data: {
   target: 'all' | 'role' | 'user';
   targetValue?: string; // role name or user id
 }) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
   // Get target user IDs
@@ -59,10 +60,33 @@ export async function publishAnnouncement(data: {
 
   if (error) return { error: error.message };
 
+  const { data: auditWorkspace } = await admin
+    .from('workspaces')
+    .select('id')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (auditWorkspace?.id) {
+    await logActivity({
+      workspaceId: auditWorkspace.id,
+      actorId: user.id,
+      type: 'announcement_published',
+      resourceType: 'announcement',
+      metadata: {
+        title: data.title,
+        target: data.target,
+        target_value: data.targetValue ?? null,
+        recipient_count: userIds.length,
+      },
+    });
+  }
+
   logInfo(
     'admin.announcement',
     `announcement_published: "${data.title}" to ${userIds.length} users`,
     { title: data.title, target: data.target, recipient_count: userIds.length },
+    user.id,
   );
 
   revalidatePath('/admin/announcements');

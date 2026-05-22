@@ -43,6 +43,7 @@ const VERB_MAP: Record<string, string> = {
   template_created: 'created a template',
   template_updated: 'updated a template',
   template_deleted: 'deleted a template',
+  announcement_published: 'published an announcement',
   login: 'logged in',
   logout: 'logged out',
   profile_updated: 'updated their profile',
