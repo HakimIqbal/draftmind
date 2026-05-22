@@ -13,6 +13,17 @@ function sendClientLog(source: string, message: string, metadata: Record<string,
   }).catch(() => {});
 }
 
+function isApiRequest(input: RequestInfo | URL) {
+  const url = typeof input === 'string' || input instanceof URL ? String(input) : input.url;
+  try {
+    return (
+      new URL(url, window.location.origin).pathname.startsWith('/api/') && !url.includes('/api/log')
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getPromiseRejectionMessage(reason: unknown) {
   if (reason instanceof Error) return reason.message;
   if (typeof reason === 'string') return reason;
@@ -35,6 +46,44 @@ function isChunkLikeError(message: string, filename?: string) {
 
 export function ClientGlobalErrorLogger() {
   useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const [input, init] = args;
+      const startedAt = Date.now();
+      try {
+        const response = await originalFetch(...args);
+        if (isApiRequest(input) && !response.ok) {
+          sendClientLog('client.api_fetch_error', `API request failed with ${response.status}`, {
+            pathname: window.location.pathname,
+            url: typeof input === 'string' || input instanceof URL ? String(input) : input.url,
+            method:
+              init?.method ??
+              (typeof input !== 'string' && !(input instanceof URL) ? input.method : 'GET'),
+            status: response.status,
+            statusText: response.statusText,
+            durationMs: Date.now() - startedAt,
+          });
+        }
+        return response;
+      } catch (error) {
+        if (isApiRequest(input)) {
+          sendClientLog(
+            'client.api_fetch_error',
+            error instanceof Error ? error.message : 'API request failed',
+            {
+              pathname: window.location.pathname,
+              url: typeof input === 'string' || input instanceof URL ? String(input) : input.url,
+              method:
+                init?.method ??
+                (typeof input !== 'string' && !(input instanceof URL) ? input.method : 'GET'),
+              durationMs: Date.now() - startedAt,
+            },
+          );
+        }
+        throw error;
+      }
+    };
+
     const onError = (event: ErrorEvent) => {
       const message = event.message || event.error?.message || 'Unhandled client runtime error';
       const source = isChunkLikeError(message, event.filename)
@@ -62,6 +111,7 @@ export function ClientGlobalErrorLogger() {
     window.addEventListener('unhandledrejection', onUnhandledRejection);
 
     return () => {
+      window.fetch = originalFetch;
       window.removeEventListener('error', onError);
       window.removeEventListener('unhandledrejection', onUnhandledRejection);
     };

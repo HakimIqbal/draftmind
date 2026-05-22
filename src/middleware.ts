@@ -34,7 +34,12 @@ async function logSecurityEvent(
 }
 
 export async function middleware(request: NextRequest) {
-  const { user, response } = await updateSession(request);
+  const { user, error: sessionError, response } = await updateSession(request);
+  if (sessionError) {
+    await logSecurityEvent('auth.session_refresh_failed', sessionError.message, {
+      path: request.nextUrl.pathname,
+    });
+  }
 
   const { pathname, searchParams } = request.nextUrl;
   const publicOrigin = getPublicOrigin({

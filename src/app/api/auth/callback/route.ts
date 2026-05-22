@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { NextRequest } from 'next/server';
 import { getPublicOrigin } from '@/lib/http/public-origin';
+import { logError } from '@/lib/logging/system-log';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/auto';
 
   if (!code) {
+    logError('auth.callback.failed', 'Auth callback missing code', { reason: 'missing_code' });
     return NextResponse.redirect(new URL('/login?error=missing_code', publicOrigin));
   }
 
@@ -37,6 +39,7 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    logError('auth.callback.failed', error.message, { reason: 'exchange_code_failed' });
     return NextResponse.redirect(new URL('/login?error=auth_failed', publicOrigin));
   }
 
