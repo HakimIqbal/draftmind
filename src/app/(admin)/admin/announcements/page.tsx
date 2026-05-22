@@ -48,6 +48,8 @@ export default function AdminAnnouncementsPage() {
   const [roles, setRoles] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<HistoryItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const perPage = 10;
 
   useEffect(() => {
@@ -85,6 +87,22 @@ export default function AdminAnnouncementsPage() {
         setTarget('all');
         setTargetValue('');
       }
+    });
+  }
+
+  function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    startTransition(async () => {
+      const result = await deleteAnnouncement(deleteTarget.id);
+      setDeleting(false);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success('Announcement deleted');
+      setDeleteTarget(null);
+      setHistory(await getAnnouncementHistory());
     });
   }
 
@@ -216,7 +234,14 @@ export default function AdminAnnouncementsPage() {
         page={page}
         perPage={perPage}
         onPageChange={setPage}
-        onDeleted={() => startTransition(async () => setHistory(await getAnnouncementHistory()))}
+        onAskDelete={setDeleteTarget}
+      />
+      <DeleteAnnouncementModal
+        open={deleteTarget !== null}
+        title={deleteTarget?.title ?? ''}
+        busy={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
@@ -227,31 +252,14 @@ function HistorySection({
   page,
   perPage,
   onPageChange,
-  onDeleted,
+  onAskDelete,
 }: {
   history: HistoryItem[];
   page: number;
   perPage: number;
   onPageChange: (p: number) => void;
-  onDeleted: () => void;
+  onAskDelete: (item: HistoryItem) => void;
 }) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [, startDeleteTransition] = useTransition();
-
-  function handleDelete(id: string) {
-    if (!confirm('Delete this announcement and remove it from user notifications?')) return;
-    setDeletingId(id);
-    startDeleteTransition(async () => {
-      const result = await deleteAnnouncement(id);
-      setDeletingId(null);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success('Announcement deleted');
-      onDeleted();
-    });
-  }
   const totalPages = Math.ceil(history.length / perPage);
   const paged = useMemo(() => {
     const start = (page - 1) * perPage;
@@ -292,8 +300,7 @@ function HistorySection({
                         {h.recipient_count} user{h.recipient_count !== 1 ? 's' : ''}
                       </span>
                       <button
-                        onClick={() => handleDelete(h.id)}
-                        disabled={deletingId === h.id}
+                        onClick={() => onAskDelete(h)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-[#bbb] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                         title="Delete announcement"
                       >
@@ -354,6 +361,60 @@ function HistorySection({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function DeleteAnnouncementModal({
+  open,
+  title,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#ecebe7] bg-white shadow-2xl">
+        <div className="flex items-start gap-3 border-b border-[#f2f1ee] px-6 py-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <X size={18} />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-[16px] font-semibold text-[#1a1a1a]">Delete announcement?</h3>
+            <p className="mt-1 text-[13px] leading-5 text-[#777]">
+              <span className="font-medium text-[#444]">{title || 'This announcement'}</span> will
+              be removed from user notifications and announcement history.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="h-9 rounded-lg border border-[#e5e5e3] px-4 text-[13px] font-medium text-[#555] transition-colors hover:bg-[#fafafa] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-red-600 px-4 text-[13px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+          >
+            <X size={14} />
+            {busy ? 'Deleting...' : 'Delete announcement'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
