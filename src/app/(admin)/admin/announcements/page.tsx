@@ -9,6 +9,8 @@ import {
   Briefcase,
   Clock,
   X,
+  TriangleAlert,
+  Trash2,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -304,7 +306,7 @@ function HistorySection({
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-[#bbb] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                         title="Delete announcement"
                       >
-                        <X size={14} />
+                        <Trash2 size={14} className="transition-transform group-hover:scale-105" />
                       </button>
                     </div>
                   </div>
@@ -381,17 +383,19 @@ function DeleteAnnouncementModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#ecebe7] bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-[3px]">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#ecebe7] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] duration-200 animate-in fade-in zoom-in-95">
         <div className="flex items-start gap-3 border-b border-[#f2f1ee] px-6 py-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
-            <X size={18} />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-50 to-orange-50 text-red-600 ring-1 ring-red-100">
+            <TriangleAlert size={18} />
           </div>
           <div className="min-w-0">
-            <h3 className="text-[16px] font-semibold text-[#1a1a1a]">Delete announcement?</h3>
+            <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[#1a1a1a]">
+              Delete announcement?
+            </h3>
             <p className="mt-1 text-[13px] leading-5 text-[#777]">
               <span className="font-medium text-[#444]">{title || 'This announcement'}</span> will
-              be removed from user notifications and announcement history.
+              be removed from bell/inbox notifications and announcement history.
             </p>
           </div>
         </div>
@@ -400,7 +404,7 @@ function DeleteAnnouncementModal({
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="h-9 rounded-lg border border-[#e5e5e3] px-4 text-[13px] font-medium text-[#555] transition-colors hover:bg-[#fafafa] disabled:opacity-50"
+            className="h-9 rounded-lg border border-[#e5e5e3] px-4 text-[13px] font-medium text-[#555] transition-colors hover:border-[#d8d8d5] hover:bg-[#fafafa] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -408,7 +412,7 @@ function DeleteAnnouncementModal({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-red-600 px-4 text-[13px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-red-600 px-4 text-[13px] font-medium text-white shadow-sm transition-all hover:bg-red-700 hover:shadow-md disabled:opacity-50"
           >
             <X size={14} />
             {busy ? 'Deleting...' : 'Delete announcement'}
