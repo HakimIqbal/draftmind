@@ -279,8 +279,12 @@ export function AdminShell({
                 }}
                 role="menu"
               >
-                {/* Section 1 - Profile summary with chevron trigger */}
-                <div className="flex items-center gap-3 bg-[#f8f8f7] px-4 py-3">
+                {/* Section 1 - Profile row */}
+                <button
+                  type="button"
+                  onClick={openProfileModal}
+                  className="flex w-full items-center gap-3 bg-[#f8f8f7] px-4 py-3 text-left transition-colors hover:bg-[#f0f0ee] focus:outline-none"
+                >
                   <Avatar name={displayName} size="lg" avatarUrl={displayAvatar} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
@@ -294,15 +298,8 @@ export function AdminShell({
                     </div>
                     <p className="truncate text-[11px] text-[#aaa]">{userEmail}</p>
                   </div>
-                  <button
-                    type="button"
-                    aria-label="Open admin profile"
-                    onClick={openProfileModal}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[#ccc] transition-colors hover:bg-white hover:text-[#999]"
-                  >
-                    <ChevronRight size={14} className="shrink-0" />
-                  </button>
-                </div>
+                  <ChevronRight size={14} className="shrink-0 text-[#ccc]" aria-hidden="true" />
+                </button>
 
                 {/* Section 2 - Session info */}
                 <div className="border-t border-[#f0f0f0] px-4 py-2.5">

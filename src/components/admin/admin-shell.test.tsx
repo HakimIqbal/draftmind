@@ -55,7 +55,7 @@ describe('AdminShell account menu', () => {
     mocks.removeChannel.mockClear();
   });
 
-  it('opens the profile modal from the chevron inside the portal menu', async () => {
+  it('opens the profile modal from the profile row inside the portal menu', async () => {
     render(
       <AdminShell userName="admin" userEmail="admin@draftmind.com">
         <div>Admin content</div>
@@ -68,7 +68,7 @@ describe('AdminShell account menu', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('menu')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /open admin profile/i }));
+    fireEvent.click(screen.getByRole('button', { name: /admin admin admin@draftmind\.com/i }));
 
     await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('Profile modal open'));
     await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'false'));
