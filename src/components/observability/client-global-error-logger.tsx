@@ -44,6 +44,25 @@ function isChunkLikeError(message: string, filename?: string) {
   );
 }
 
+const CHUNK_RELOAD_FLAG = 'dm.chunk_reload_attempted_at';
+const CHUNK_RELOAD_COOLDOWN_MS = 60_000;
+
+function maybeReloadForStaleChunk(message: string, filename?: string) {
+  if (typeof window === 'undefined') return false;
+  if (!isChunkLikeError(message, filename)) return false;
+  try {
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_FLAG) ?? '0');
+    if (Number.isFinite(last) && Date.now() - last < CHUNK_RELOAD_COOLDOWN_MS) {
+      return false;
+    }
+    sessionStorage.setItem(CHUNK_RELOAD_FLAG, String(Date.now()));
+  } catch {
+    // ignore storage errors, still try reload
+  }
+  window.location.reload();
+  return true;
+}
+
 export function ClientGlobalErrorLogger() {
   useEffect(() => {
     const originalFetch = window.fetch.bind(window);
@@ -97,6 +116,8 @@ export function ClientGlobalErrorLogger() {
         colno: event.colno,
         stack: event.error instanceof Error ? event.error.stack?.slice(0, 1200) : undefined,
       });
+
+      maybeReloadForStaleChunk(message, event.filename);
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -105,6 +126,8 @@ export function ClientGlobalErrorLogger() {
         pathname: window.location.pathname,
         stack: event.reason instanceof Error ? event.reason.stack?.slice(0, 1200) : undefined,
       });
+
+      maybeReloadForStaleChunk(message);
     };
 
     window.addEventListener('error', onError);
