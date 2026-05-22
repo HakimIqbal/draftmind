@@ -12,9 +12,33 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { level, source, message, metadata } = await request.json();
+    let payload: unknown;
+    try {
+      payload = await request.json();
+    } catch (error) {
+      logWarn(
+        'api.log.parse_failed',
+        'Client log payload could not be parsed',
+        { error: error instanceof Error ? error.message : 'Unknown parse error' },
+        user.id,
+      );
+      return Response.json({ ok: false }, { status: 400 });
+    }
+
+    const { level, source, message, metadata } = payload as {
+      level?: string;
+      source?: string;
+      message?: string;
+      metadata?: Record<string, unknown>;
+    };
 
     if (!source || !message) {
+      logWarn(
+        'api.log.validation_failed',
+        'Client log payload missing source/message',
+        {},
+        user.id,
+      );
       return Response.json({ ok: false }, { status: 400 });
     }
 
@@ -25,7 +49,12 @@ export async function POST(request: Request) {
     }
 
     return Response.json({ ok: true });
-  } catch {
+  } catch (error) {
+    logError(
+      'api.log.failed',
+      error instanceof Error ? error.message : 'Failed to ingest client log',
+      {},
+    );
     return Response.json({ ok: false }, { status: 500 });
   }
 }

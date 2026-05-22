@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth/permissions';
 import { encryptApiKey } from '@/lib/utils/crypto';
 import { PROVIDER_REGISTRY } from '@/lib/ai/providers';
 import { revalidatePath } from 'next/cache';
-import { logInfo } from '@/lib/logging/system-log';
+import { logInfo, logWarn } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
 
 async function requireSuperAdmin() {
@@ -58,8 +58,8 @@ async function logProviderAdminActivity(
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown provider activity log error';
-    logInfo(
-      'activity-log',
+    logWarn(
+      'activity_log.insert_failed',
       `provider activity insert failed: ${message}`,
       {
         type: input.type,
@@ -176,6 +176,30 @@ export async function testProviderConnection(data: {
   } catch (err) {
     // Error details logged to system_logs, not exposed to UI
     const msg = err instanceof Error ? err.message : '';
+    const failureKind =
+      msg.includes('401') || msg.includes('Unauthorized') || msg.includes('invalid')
+        ? 'invalid_key'
+        : msg.includes('429') ||
+            msg.toLowerCase().includes('rate limit') ||
+            msg.toLowerCase().includes('quota')
+          ? 'quota_or_rate_limit'
+          : msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('timed out')
+            ? 'timeout'
+            : msg.includes('404') || msg.includes('not found')
+              ? 'endpoint_not_found'
+              : 'unknown';
+    logWarn(
+      'provider.test.failed',
+      `Provider test failed: ${failureKind}`,
+      {
+        provider_type: data.type,
+        model: data.model,
+        base_url_present: Boolean(data.baseUrl),
+        failure_kind: failureKind,
+        error_hint: msg.slice(0, 300),
+      },
+      user.id,
+    );
     await logProviderAdminActivity(admin, {
       actorId: user.id,
       type: 'provider_tested',
