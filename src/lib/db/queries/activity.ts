@@ -8,5 +8,8 @@ export async function getActivityLog(workspaceId: string, limit: number = 50, of
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
-  return { items: data ?? [], total: count ?? 0 };
+  const items = (data ?? []).filter(
+    (activity) => (activity as { metadata?: { probe?: boolean } }).metadata?.probe !== true,
+  );
+  return { items, total: count ?? 0 };
 }

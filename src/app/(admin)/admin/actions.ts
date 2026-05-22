@@ -51,19 +51,46 @@ async function logAdminActivity(
     metadata?: Record<string, unknown>;
   },
 ) {
-  const workspaceId =
-    (await getAuditWorkspaceId(admin, input.targetUserId)) ??
-    (await getAuditWorkspaceId(admin, input.actorId));
-  if (!workspaceId) return;
+  try {
+    const workspaceId =
+      (await getAuditWorkspaceId(admin, input.targetUserId)) ??
+      (await getAuditWorkspaceId(admin, input.actorId));
+    if (!workspaceId) return;
 
-  await admin.from('activity_log').insert({
-    workspace_id: workspaceId,
-    actor_id: input.actorId,
-    type: input.type,
-    resource_type: input.resourceType ?? 'user',
-    resource_id: input.resourceId ?? input.targetUserId ?? null,
-    metadata: input.metadata ?? {},
-  });
+    const { error } = await admin.from('activity_log').insert({
+      workspace_id: workspaceId,
+      actor_id: input.actorId,
+      type: input.type,
+      resource_type: input.resourceType ?? 'user',
+      resource_id: input.resourceId ?? input.targetUserId ?? null,
+      metadata: input.metadata ?? {},
+    });
+
+    if (error) {
+      logInfo(
+        'activity-log',
+        `admin activity insert failed: ${error.message}`,
+        {
+          type: input.type,
+          resource_type: input.resourceType ?? 'user',
+          resource_id: input.resourceId ?? input.targetUserId ?? null,
+        },
+        input.actorId,
+      );
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown activity log error';
+    logInfo(
+      'activity-log',
+      `admin activity insert failed: ${message}`,
+      {
+        type: input.type,
+        resource_type: input.resourceType ?? 'user',
+        resource_id: input.resourceId ?? input.targetUserId ?? null,
+      },
+      input.actorId,
+    );
+  }
 }
 
 export async function toggleSuperAdmin(targetUserId: string) {

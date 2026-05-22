@@ -18,11 +18,13 @@ export async function fetchActivityLog() {
     throw new Error('Not authorized');
   }
 
-  const { data: activities } = await admin
+  const { data: rawActivities } = await admin
     .from('activity_log')
     .select('id, type, actor_id, workspace_id, resource_type, resource_id, metadata, created_at')
     .order('created_at', { ascending: false })
     .limit(200);
+
+  const activities = (rawActivities ?? []).filter((activity) => activity.metadata?.probe !== true);
 
   const actorIds = [...new Set((activities ?? []).map((a) => a.actor_id).filter(Boolean))];
   const { data: actors } = await admin

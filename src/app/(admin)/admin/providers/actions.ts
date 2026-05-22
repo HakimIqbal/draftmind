@@ -6,6 +6,7 @@ import { encryptApiKey } from '@/lib/utils/crypto';
 import { PROVIDER_REGISTRY } from '@/lib/ai/providers';
 import { revalidatePath } from 'next/cache';
 import { logInfo } from '@/lib/logging/system-log';
+import { logActivity } from '@/lib/logging/activity-log';
 
 async function requireSuperAdmin() {
   const user = await requireUser();
@@ -17,6 +18,51 @@ async function requireSuperAdmin() {
     .single();
   if (!profile?.is_super_admin) throw new Error('Not authorized');
   return user;
+}
+
+async function getProviderAuditWorkspaceId(admin: ReturnType<typeof createAdminClient>) {
+  const { data: workspace } = await admin
+    .from('workspaces')
+    .select('id')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return workspace?.id ?? null;
+}
+
+async function logProviderAdminActivity(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    actorId: string;
+    type: 'provider_added' | 'provider_disconnected';
+    providerId?: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  try {
+    const workspaceId = await getProviderAuditWorkspaceId(admin);
+    if (!workspaceId) return;
+
+    await logActivity({
+      workspaceId,
+      actorId: input.actorId,
+      type: input.type,
+      resourceType: 'provider',
+      resourceId: input.providerId,
+      metadata: input.metadata,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown provider activity log error';
+    logInfo(
+      'activity-log',
+      `provider activity insert failed: ${message}`,
+      {
+        type: input.type,
+        provider_id: input.providerId,
+      },
+      input.actorId,
+    );
+  }
 }
 
 export async function getProviders() {
@@ -158,6 +204,28 @@ export async function addProvider(data: {
 
   if (error) return { error: error.message };
 
+  const { data: createdProvider } = await admin
+    .from('providers')
+    .select('id')
+    .eq('created_by', user.id)
+    .eq('display_name', data.displayName)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  await logProviderAdminActivity(admin, {
+    actorId: user.id,
+    type: 'provider_added',
+    providerId: createdProvider?.id,
+    metadata: {
+      display_name: data.displayName,
+      provider_type: data.type,
+      default_model: data.model,
+      use_for: data.useFor,
+      priority: data.priority,
+    },
+  });
+
   logInfo(
     'admin.provider',
     `provider_added: ${data.displayName} (${data.type})`,
@@ -173,11 +241,29 @@ export async function disconnectProvider(providerId: string) {
   const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
+  const { data: providerBefore } = await admin
+    .from('providers')
+    .select('display_name, type, status')
+    .eq('id', providerId)
+    .maybeSingle();
+
   const { error } = await admin
     .from('providers')
     .update({ status: 'disconnected' })
     .eq('id', providerId);
   if (error) return { error: error.message };
+
+  await logProviderAdminActivity(admin, {
+    actorId: user.id,
+    type: 'provider_disconnected',
+    providerId,
+    metadata: {
+      display_name: providerBefore?.display_name,
+      provider_type: providerBefore?.type,
+      previous_status: providerBefore?.status,
+      next_status: 'disconnected',
+    },
+  });
 
   logInfo('admin.provider', `provider_disconnected: ${providerId}`, { providerId }, user.id);
 
@@ -189,10 +275,7 @@ export async function activateProvider(providerId: string) {
   const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
-  const { error } = await admin
-    .from('providers')
-    .update({ status: 'active' })
-    .eq('id', providerId);
+  const { error } = await admin.from('providers').update({ status: 'active' }).eq('id', providerId);
   if (error) return { error: error.message };
 
   logInfo('admin.provider', `provider_activated: ${providerId}`, { providerId }, user.id);
