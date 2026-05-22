@@ -41,7 +41,9 @@ const VERB_MAP: Record<string, string> = {
   comment_resolved: 'resolved comment on',
   comment_edited: 'edited comment on',
   comment_deleted: 'deleted comment on',
+  ai_generation_started: 'started generation',
   ai_generation_completed: 'generated',
+  ai_generation_failed: 'generation failed',
   ai_review_completed: 'reviewed',
   ai_refinement_applied: 'refined',
   ai_copilot_used: 'used Copilot on',
@@ -76,7 +78,9 @@ const VERB_MAP: Record<string, string> = {
 };
 
 const AI_TYPES = new Set([
+  'ai_generation_started',
   'ai_generation_completed',
+  'ai_generation_failed',
   'ai_review_completed',
   'ai_refinement_applied',
 ]);

@@ -271,6 +271,19 @@ function countDocumentWords(prd: PRDDocument): number {
 
 export async function POST(request: Request) {
   const startMs = Date.now();
+  let activityContext: {
+    workspaceId: string | null;
+    userId: string | null;
+    prdId: string | null;
+    aiRunId: string | null;
+    title?: string | null;
+  } = {
+    workspaceId: null,
+    userId: null,
+    prdId: null,
+    aiRunId: null,
+    title: null,
+  };
 
   try {
     const user = await requireUser();
@@ -348,6 +361,25 @@ export async function POST(request: Request) {
       start_date?: string;
       end_date?: string;
     };
+
+    activityContext = {
+      workspaceId,
+      userId: user.id,
+      prdId,
+      aiRunId,
+      title: inputPayload.title,
+    };
+
+    await logActivity({
+      workspaceId,
+      actorId: user.id,
+      type: 'ai_generation_started',
+      resourceType: 'prd',
+      resourceId: prdId,
+      metadata: {
+        title: inputPayload.title,
+      },
+    });
 
     // Build prompt with ALL context from input payload
     const stakeholderNames = inputPayload.stakeholders
@@ -634,6 +666,19 @@ export async function POST(request: Request) {
         })
         .eq('id', aiRunId);
 
+      await logActivity({
+        workspaceId,
+        actorId: user.id,
+        type: 'ai_generation_failed',
+        resourceType: 'prd',
+        resourceId: prdId,
+        metadata: {
+          title: inputPayload.title,
+          duration_ms: durationMs,
+          error: allErrorsMsg.slice(0, 500),
+        },
+      });
+
       return NextResponse.json(
         { error: 'AI provider could not generate the PRD. Please try again.' },
         { status: 500 },
@@ -758,6 +803,19 @@ export async function POST(request: Request) {
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error';
     logError('prd.generate', errMsg, { stack: error instanceof Error ? error.stack : undefined });
+    if (activityContext.workspaceId && activityContext.userId && activityContext.prdId) {
+      await logActivity({
+        workspaceId: activityContext.workspaceId,
+        actorId: activityContext.userId,
+        type: 'ai_generation_failed',
+        resourceType: 'prd',
+        resourceId: activityContext.prdId,
+        metadata: {
+          title: activityContext.title ?? undefined,
+          error: errMsg.slice(0, 500),
+        },
+      });
+    }
     return NextResponse.json(
       { error: 'Something went wrong while generating your PRD. Please try again.' },
       { status: 500 },
