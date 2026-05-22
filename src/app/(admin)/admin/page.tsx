@@ -16,13 +16,15 @@ import {
   Eye,
   Database,
   UserCheck,
+  Wifi,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '@/components/ui/avatar';
 import { fetchLangSmithRuns, isLangSmithEnabled } from '@/lib/ai/langsmith';
+import { getOverviewHealth } from '@/lib/admin/overview-health';
 
 export const metadata = { title: 'Admin — DraftMind' };
-export const revalidate = 60; // Cache dashboard data for 60 seconds
+export const dynamic = 'force-dynamic'; // Admin activity metrics must reflect live DB state
 
 function formatTokenCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -42,6 +44,7 @@ export default async function AdminOverviewPage() {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString();
+  const onlineCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
   // LangSmith — has internal 3s timeout + 10-min cache
   const langSmithPromise = fetchLangSmithRuns(10);
@@ -49,7 +52,7 @@ export default async function AdminOverviewPage() {
   // ALL profiles for actor/owner resolution (small table, one query instead of multiple)
   const allProfilesPromise = admin
     .from('profiles')
-    .select('id, full_name, email, created_at, avatar_url');
+    .select('id, full_name, email, created_at, avatar_url, last_seen_at');
 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -69,22 +72,25 @@ export default async function AdminOverviewPage() {
       .from('system_logs')
       .select('*', { count: 'exact', head: true })
       .eq('level', 'error')
-      .gte('created_at', todayStart),
+      .is('resolved_at', null)
+      .gte('created_at', twentyFourHoursAgo),
     admin
       .from('system_logs')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', todayStart),
+      .is('resolved_at', null)
+      .gte('created_at', twentyFourHoursAgo),
     admin
       .from('system_logs')
       .select('*', { count: 'exact', head: true })
       .eq('level', 'warn')
+      .is('resolved_at', null)
       .gte('created_at', twentyFourHoursAgo),
     admin.from('ai_runs').select('total_tokens').gte('created_at', todayStart),
     admin.from('ai_runs').select('total_tokens').gte('created_at', weekStart),
     admin
       .from('providers')
       .select(
-        'id, display_name, status, total_requests, avg_latency_ms, successful_requests, failed_requests',
+        'id, display_name, status, total_requests, avg_latency_ms, successful_requests, failed_requests, last_error',
       )
       .order('priority', { ascending: true }),
     admin
@@ -97,14 +103,25 @@ export default async function AdminOverviewPage() {
       .from('system_logs')
       .select('id, source, message, created_at')
       .eq('level', 'error')
+      .is('resolved_at', null)
       .order('created_at', { ascending: false })
       .limit(3),
     admin
-      .from('workspace_members')
-      .select('user_id, last_active_at')
-      .not('last_active_at', 'is', null)
-      .gte('last_active_at', weekStart)
-      .order('last_active_at', { ascending: false }),
+      .from('activity_log')
+      .select('actor_id')
+      .not('actor_id', 'is', null)
+      .gte('created_at', todayStart),
+    admin
+      .from('activity_log')
+      .select('id, type, actor_id, created_at')
+      .not('actor_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(100),
+    admin
+      .from('profiles')
+      .select('id')
+      .not('last_seen_at', 'is', null)
+      .gte('last_seen_at', onlineCutoff),
     langSmithPromise,
   ]);
 
@@ -123,9 +140,11 @@ export default async function AdminOverviewPage() {
   const providersR = safeResult(results[11], { data: null, error: null });
   const topPrdsR = safeResult(results[12], { data: null, error: null });
   const recentErrorsR = safeResult(results[13], { data: null, error: null });
-  const activeMembersR = safeResult(results[14], { data: null, error: null });
+  const activeTodayEventsR = safeResult(results[14], { data: null, error: null });
+  const recentActorEventsR = safeResult(results[15], { data: null, error: null });
+  const onlineProfilesR = safeResult(results[16], { data: null, error: null });
   // LangSmith fallback: total_runs: 0 hides the section when call fails
-  const langSmithR = safeResult(results[15], {
+  const langSmithR = safeResult(results[17], {
     runs: [],
     summary: {
       total_runs: 0,
@@ -142,27 +161,55 @@ export default async function AdminOverviewPage() {
   const actorMap = profileMap;
   const ownerMap = profileMap;
 
-  // Active Today + Recently Active — derived from workspace_members.last_active_at
-  const activeMembers = activeMembersR.data ?? [];
-  const activeTodayUserIds = new Set(
-    activeMembers
-      .filter((m) => m.last_active_at && m.last_active_at >= todayStart)
-      .map((m) => m.user_id),
+  // Active Today — unique users seen today OR actors with activity_log events today.
+  // Recently Active — latest timestamp per user from last_seen_at and activity_log.
+  // Online Now — profiles with last_seen_at within the last 5 minutes.
+  const activeTodayUserIds = new Set<string>();
+  for (const event of activeTodayEventsR.data ?? []) {
+    if (event.actor_id) activeTodayUserIds.add(event.actor_id);
+  }
+  for (const profile of allProfiles) {
+    if (profile.last_seen_at && profile.last_seen_at >= todayStart) activeTodayUserIds.add(profile.id);
+  }
+
+  const onlineNowUserIds = new Set(
+    (onlineProfilesR.data ?? [])
+      .map((profile) => profile.id)
+      .filter((id): id is string => Boolean(id)),
   );
-  const seenUserIds = new Set<string>();
-  const recentActiveMembers: { user_id: string; last_active_at: string }[] = [];
-  for (const m of activeMembers) {
-    if (!m.last_active_at) continue;
-    if (!seenUserIds.has(m.user_id)) {
-      seenUserIds.add(m.user_id);
-      recentActiveMembers.push({ user_id: m.user_id, last_active_at: m.last_active_at });
-      if (recentActiveMembers.length >= 5) break;
+
+  const recentByUser = new Map<
+    string,
+    { last_active_at: string; last_activity_type: string; source_priority: number }
+  >();
+
+  for (const profile of allProfiles) {
+    if (!profile.last_seen_at) continue;
+    recentByUser.set(profile.id, {
+      last_active_at: profile.last_seen_at,
+      last_activity_type: onlineNowUserIds.has(profile.id) ? 'online now' : 'session active',
+      source_priority: 0,
+    });
+  }
+
+  for (const event of recentActorEventsR.data ?? []) {
+    if (!event.actor_id) continue;
+    const current = recentByUser.get(event.actor_id);
+    if (!current || event.created_at > current.last_active_at) {
+      recentByUser.set(event.actor_id, {
+        last_active_at: event.created_at,
+        last_activity_type: event.type,
+        source_priority: 1,
+      });
     }
   }
+
   const recentUsersR = {
-    data: recentActiveMembers
-      .map((m) => {
-        const profile = profileMap.get(m.user_id);
+    data: [...recentByUser.entries()]
+      .sort((a, b) => b[1].last_active_at.localeCompare(a[1].last_active_at))
+      .slice(0, 5)
+      .map(([userId, activity]) => {
+        const profile = profileMap.get(userId);
         if (!profile) return null;
         return {
           id: profile.id,
@@ -170,7 +217,8 @@ export default async function AdminOverviewPage() {
           email: profile.email,
           avatar_url: profile.avatar_url,
           created_at: profile.created_at,
-          last_active_at: m.last_active_at,
+          last_active_at: activity.last_active_at,
+          last_activity_type: activity.last_activity_type,
         };
       })
       .filter((u): u is NonNullable<typeof u> => u !== null),
@@ -184,20 +232,18 @@ export default async function AdminOverviewPage() {
   const sysErrors24h = errorsR.count ?? 0;
   const sysWarns24h = warnsR.count ?? 0;
   const sysActiveUsersToday = activeTodayUserIds.size;
+  const sysOnlineUsersNow = onlineNowUserIds.size;
 
   // Calculate system health
   const errorCount = errorsR.count ?? 0;
   const totalLogs = logsR.count ?? 0;
-  const errorRate = totalLogs > 0 ? (errorCount / totalLogs) * 100 : 0;
-  const healthStatus = errorRate < 5 ? 'healthy' : errorRate < 15 ? 'warning' : 'critical';
+  const { errorRate, healthStatus, healthLabel } = getOverviewHealth(errorCount, totalLogs);
   const healthColor =
     healthStatus === 'healthy'
       ? 'bg-emerald-500'
       : healthStatus === 'warning'
         ? 'bg-amber-500'
         : 'bg-red-500';
-  const healthLabel =
-    healthStatus === 'healthy' ? 'Healthy' : healthStatus === 'warning' ? 'Warning' : 'Critical';
 
   // Calculate AI usage
   const tokensToday = (aiTodayR.data ?? []).reduce((sum, r) => sum + (r.total_tokens ?? 0), 0);
@@ -256,7 +302,7 @@ export default async function AdminOverviewPage() {
             System Health
           </span>
         </div>
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-6 gap-4">
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${sysDbOk ? 'bg-emerald-500' : 'bg-red-500'}`} />
             <div>
@@ -282,7 +328,7 @@ export default async function AdminOverviewPage() {
               className={`h-2 w-2 rounded-full ${sysErrors24h !== null && sysErrors24h === 0 ? 'bg-emerald-500' : sysErrors24h !== null && sysErrors24h <= 5 ? 'bg-amber-500' : 'bg-red-500'}`}
             />
             <div>
-              <p className="font-mono text-[10px] text-[#999]">Errors (24h)</p>
+              <p className="font-mono text-[10px] text-[#999]">Unresolved Errors (24h)</p>
               <p className="text-[13px] font-medium text-[#1a1a1a]">
                 {sysErrors24h !== null ? sysErrors24h : 'N/A'}
               </p>
@@ -293,7 +339,7 @@ export default async function AdminOverviewPage() {
               className={`h-2 w-2 rounded-full ${sysWarns24h !== null && sysWarns24h === 0 ? 'bg-emerald-500' : 'bg-amber-500'}`}
             />
             <div>
-              <p className="font-mono text-[10px] text-[#999]">Warnings (24h)</p>
+              <p className="font-mono text-[10px] text-[#999]">Unresolved Warnings (24h)</p>
               <p className="text-[13px] font-medium text-[#1a1a1a]">
                 {sysWarns24h !== null ? sysWarns24h : 'N/A'}
               </p>
@@ -305,6 +351,15 @@ export default async function AdminOverviewPage() {
               <p className="font-mono text-[10px] text-[#999]">Active Today</p>
               <p className="text-[13px] font-medium text-[#1a1a1a]">
                 {sysActiveUsersToday !== null ? `${sysActiveUsersToday} users` : 'N/A'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Wifi size={14} className="text-[#999]" />
+            <div>
+              <p className="font-mono text-[10px] text-[#999]">Online Now</p>
+              <p className="text-[13px] font-medium text-[#1a1a1a]">
+                {sysOnlineUsersNow !== null ? `${sysOnlineUsersNow} users` : 'N/A'}
               </p>
             </div>
           </div>
@@ -347,7 +402,7 @@ export default async function AdminOverviewPage() {
               {healthLabel}
             </span>
             <span className="text-[12px] text-[#888]">
-              {errorCount} errors / {totalLogs} logs (24h)
+              {errorCount} unresolved errors / {totalLogs} unresolved logs (24h)
             </span>
           </div>
           <div className="h-2 w-full rounded-full bg-[#f0f0f0]">
@@ -446,38 +501,55 @@ export default async function AdminOverviewPage() {
             <h2 className="text-[14px] font-semibold text-[#1a1a1a]">Provider Status</h2>
           </div>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {(providersR.data ?? []).map((p) => (
-              <div key={p.id} className="rounded-xl border border-[#eee] bg-white p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="truncate text-[13px] font-medium text-[#1a1a1a]">
-                    {p.display_name}
-                  </p>
-                  <span
-                    className={`h-2 w-2 rounded-full ${p.status === 'active' ? 'bg-emerald-500' : 'bg-red-400'}`}
-                  />
+            {(providersR.data ?? []).map((p) => {
+              const hasTraffic = (p.total_requests ?? 0) > 0;
+              const isActive = p.status === 'active';
+              const providerDot = isActive ? 'bg-emerald-500' : p.last_error ? 'bg-red-400' : 'bg-amber-400';
+              const providerStatusLabel = isActive
+                ? hasTraffic
+                  ? 'Active'
+                  : 'Active · no traffic yet'
+                : p.last_error
+                  ? 'Needs attention'
+                  : p.status;
+
+              return (
+                <div key={p.id} className="rounded-xl border border-[#eee] bg-white p-4">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-[#1a1a1a]">
+                        {p.display_name}
+                      </p>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#888]">
+                        <span className={`h-1.5 w-1.5 rounded-full ${providerDot}`} />
+                        {providerStatusLabel}
+                      </p>
+                    </div>
+                    {!isActive && <AlertTriangle size={13} className="shrink-0 text-amber-500" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-[#aaa]">Requests</span>
+                      <span className="text-[#555]">{p.total_requests ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-[#aaa]">Avg Latency</span>
+                      <span className="text-[#555]">
+                        {p.avg_latency_ms ? `${Math.round(p.avg_latency_ms)}ms` : 'No runs yet'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-[#aaa]">Success</span>
+                      <span className="text-[#555]">
+                        {hasTraffic
+                          ? `${Math.round(((p.successful_requests ?? 0) / (p.total_requests ?? 1)) * 100)}%`
+                          : 'Pending first run'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-[#aaa]">Requests</span>
-                    <span className="text-[#555]">{p.total_requests ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-[#aaa]">Avg Latency</span>
-                    <span className="text-[#555]">
-                      {p.avg_latency_ms ? `${Math.round(p.avg_latency_ms)}ms` : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-[#aaa]">Success</span>
-                    <span className="text-[#555]">
-                      {p.total_requests
-                        ? `${Math.round(((p.successful_requests ?? 0) / p.total_requests) * 100)}%`
-                        : '-'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -546,6 +618,9 @@ export default async function AdminOverviewPage() {
                       {u.full_name ?? 'No name'}
                     </p>
                     <p className="text-[11px] text-[#aaa]">{u.email}</p>
+                    {'last_activity_type' in u && u.last_activity_type && (
+                      <p className="text-[10px] text-[#bbb]">{u.last_activity_type.replace(/_/g, ' ')}</p>
+                    )}
                   </div>
                 </div>
                 <span className="text-[11px] text-[#bbb]" suppressHydrationWarning>
@@ -556,7 +631,7 @@ export default async function AdminOverviewPage() {
               </div>
             ))}
             {(recentUsersR.data ?? []).length === 0 && (
-              <div className="px-5 py-8 text-center text-[13px] text-[#aaa]">No users yet</div>
+              <div className="px-5 py-8 text-center text-[13px] text-[#aaa]">No recent activity</div>
             )}
           </div>
         </div>

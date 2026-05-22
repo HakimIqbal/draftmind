@@ -60,7 +60,18 @@ function LoginForm() {
       }
 
       const redirectTo = searchParams.get('redirectTo');
-      window.location.href = redirectTo || '/dashboard';
+      if (redirectTo) {
+        window.location.href = redirectTo;
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', data.user.id)
+        .single();
+
+      window.location.href = profile?.is_super_admin ? '/admin' : '/dashboard';
     } else {
       window.location.href = '/dashboard';
     }

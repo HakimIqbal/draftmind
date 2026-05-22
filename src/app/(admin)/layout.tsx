@@ -17,10 +17,13 @@ export default async function AdminRootLayout({ children }: { children: React.Re
     redirect('/dashboard');
   }
 
-  const { count: openTicketCount } = await admin
-    .from('tickets')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'open');
+  const nowIso = new Date().toISOString();
+
+  const [{ count: openTicketCount }] = await Promise.all([
+    admin.from('tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    admin.from('workspace_members').update({ last_active_at: nowIso }).eq('user_id', user.id),
+    admin.from('profiles').update({ last_seen_at: nowIso }).eq('id', user.id),
+  ]);
 
   return (
     <AdminShell

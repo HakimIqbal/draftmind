@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth/permissions';
 import { encryptApiKey } from '@/lib/utils/crypto';
 import { PROVIDER_REGISTRY } from '@/lib/ai/providers';
 import { revalidatePath } from 'next/cache';
-import { logWarn } from '@/lib/logging/system-log';
+import { logInfo } from '@/lib/logging/system-log';
 
 async function requireSuperAdmin() {
   const user = await requireUser();
@@ -158,7 +158,7 @@ export async function addProvider(data: {
 
   if (error) return { error: error.message };
 
-  logWarn(
+  logInfo(
     'admin.provider',
     `provider_added: ${data.displayName} (${data.type})`,
     { display_name: data.displayName, type: data.type },
@@ -173,8 +173,13 @@ export async function disconnectProvider(providerId: string) {
   const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
-  await admin.from('providers').update({ status: 'disconnected' }).eq('id', providerId);
-  logWarn('admin.provider', `provider_disconnected: ${providerId}`, { providerId }, user.id);
+  const { error } = await admin
+    .from('providers')
+    .update({ status: 'disconnected' })
+    .eq('id', providerId);
+  if (error) return { error: error.message };
+
+  logInfo('admin.provider', `provider_disconnected: ${providerId}`, { providerId }, user.id);
 
   revalidatePath('/admin/providers');
   return { success: true };
@@ -184,8 +189,13 @@ export async function activateProvider(providerId: string) {
   const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
-  await admin.from('providers').update({ status: 'active' }).eq('id', providerId);
-  logWarn('admin.provider', `provider_activated: ${providerId}`, { providerId }, user.id);
+  const { error } = await admin
+    .from('providers')
+    .update({ status: 'active' })
+    .eq('id', providerId);
+  if (error) return { error: error.message };
+
+  logInfo('admin.provider', `provider_activated: ${providerId}`, { providerId }, user.id);
 
   revalidatePath('/admin/providers');
   return { success: true };
@@ -195,8 +205,10 @@ export async function deleteProvider(providerId: string) {
   const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
-  await admin.from('providers').delete().eq('id', providerId);
-  logWarn('admin.provider', `provider_deleted: ${providerId}`, { providerId }, user.id);
+  const { error } = await admin.from('providers').delete().eq('id', providerId);
+  if (error) return { error: error.message };
+
+  logInfo('admin.provider', `provider_deleted: ${providerId}`, { providerId }, user.id);
 
   revalidatePath('/admin/providers');
   return { success: true };
@@ -206,12 +218,13 @@ export async function updateProviderPriority(providerId: string, priority: numbe
   const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
-  await admin
+  const { error } = await admin
     .from('providers')
     .update({ priority, is_default: priority === 1 })
     .eq('id', providerId);
+  if (error) return { error: error.message };
 
-  logWarn(
+  logInfo(
     'admin.provider',
     `provider_priority_changed: ${providerId} → ${priority}`,
     { providerId, priority },
@@ -226,8 +239,10 @@ export async function updateProviderUseFor(providerId: string, useFor: string) {
   const user = await requireSuperAdmin();
   const admin = createAdminClient();
 
-  await admin.from('providers').update({ use_for: useFor }).eq('id', providerId);
-  logWarn(
+  const { error } = await admin.from('providers').update({ use_for: useFor }).eq('id', providerId);
+  if (error) return { error: error.message };
+
+  logInfo(
     'admin.provider',
     `provider_use_for_changed: ${providerId} → ${useFor}`,
     { providerId, use_for: useFor },

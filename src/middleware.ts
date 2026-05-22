@@ -1,14 +1,20 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { getPublicOrigin } from '@/lib/http/public-origin';
 
 export async function middleware(request: NextRequest) {
   const { user, response } = await updateSession(request);
 
   const { pathname, searchParams } = request.nextUrl;
+  const publicOrigin = getPublicOrigin({
+    nextUrlOrigin: request.nextUrl.origin,
+    headers: request.headers,
+    envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+  });
 
   // Handle auth code at root — redirect to auth callback
   if (pathname === '/' && searchParams.get('code')) {
-    const callbackUrl = new URL('/api/auth/callback', request.url);
+    const callbackUrl = new URL('/api/auth/callback', publicOrigin);
     callbackUrl.searchParams.set('code', searchParams.get('code')!);
     callbackUrl.searchParams.set('next', '/auto');
     return NextResponse.redirect(callbackUrl);
@@ -38,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
   // Unauthenticated user trying to access protected route
   if (!user && !isAuthRoute && !isPublicRoute) {
-    const loginUrl = new URL('/login', request.url);
+    const loginUrl = new URL('/login', publicOrigin);
     loginUrl.searchParams.set('redirectTo', pathname);
 
     // If session cookies exist but user is null → stale/banned session, clear cookies
@@ -90,27 +96,27 @@ export async function middleware(request: NextRequest) {
 
     // Force password change — intercept before all other routing
     if (profile?.force_password_change && !isChangePasswordRoute) {
-      return NextResponse.redirect(new URL('/change-password', request.url));
+      return NextResponse.redirect(new URL('/change-password', publicOrigin));
     }
 
     // Guard: no longer forced but trying to access /change-password → back to dashboard
     if (!profile?.force_password_change && isChangePasswordRoute) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', publicOrigin));
     }
 
     // Auth route — redirect to correct dashboard
     if (isAuthRoute) {
-      return NextResponse.redirect(new URL(isSuperAdmin ? '/admin' : '/dashboard', request.url));
+      return NextResponse.redirect(new URL(isSuperAdmin ? '/admin' : '/dashboard', publicOrigin));
     }
 
     // Admin trying to access user routes → redirect to admin
     if (isSuperAdmin && isUserRoute) {
-      return NextResponse.redirect(new URL('/admin', request.url));
+      return NextResponse.redirect(new URL('/admin', publicOrigin));
     }
 
     // User trying to access admin routes → redirect to home
     if (!isSuperAdmin && isAdminRoute) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', publicOrigin));
     }
   }
 

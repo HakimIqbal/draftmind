@@ -30,6 +30,7 @@ import { getAdminOpenTicketCount } from '@/app/(admin)/admin/tickets/actions';
 import { Avatar } from '@/components/ui/avatar';
 import { ProfileModal } from '@/components/settings/profile-modal';
 import { useUserStore } from '@/stores/user-store';
+import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
 
 const NAV_GROUPS = [
   {
@@ -151,7 +152,9 @@ export function AdminShell({
   }
 
   return (
-    <div className="flex h-screen">
+    <>
+      <PresenceHeartbeat />
+      <div className="flex h-screen">
       {/* Sidebar */}
       <aside className="flex w-[260px] shrink-0 flex-col border-r border-[#e5e5e3] bg-[#f8f8f7]">
         {/* Brand */}
@@ -289,6 +292,7 @@ export function AdminShell({
       </div>
 
       <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
-    </div>
+      </div>
+    </>
   );
 }

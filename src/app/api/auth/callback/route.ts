@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { NextRequest } from 'next/server';
+import { getPublicOrigin } from '@/lib/http/public-origin';
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const publicOrigin = getPublicOrigin({
+    nextUrlOrigin: request.nextUrl.origin,
+    headers: request.headers,
+    envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+  });
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/auto';
 
   if (!code) {
-    return NextResponse.redirect(new URL('/login?error=missing_code', origin));
+    return NextResponse.redirect(new URL('/login?error=missing_code', publicOrigin));
   }
 
   const cookiesToSet: { name: string; value: string; options?: object }[] = [];
@@ -31,7 +37,7 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(new URL('/login?error=auth_failed', origin));
+    return NextResponse.redirect(new URL('/login?error=auth_failed', publicOrigin));
   }
 
   // Auto-detect: check if user is super admin
@@ -58,7 +64,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const response = NextResponse.redirect(new URL(redirectTo, origin));
+  const response = NextResponse.redirect(new URL(redirectTo, publicOrigin));
   for (const { name, value, options } of cookiesToSet) {
     response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2]);
   }

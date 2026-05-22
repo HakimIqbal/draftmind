@@ -42,6 +42,7 @@ function relativeTime(dateStr: string): string {
 export default function SystemLogsPage() {
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [filter, setFilter] = useState<'all' | 'error' | 'warn' | 'info'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unresolved' | 'resolved'>('unresolved');
   const [stats, setStats] = useState({ unresolvedErrors: 0, unresolvedWarnings: 0, totalToday: 0 });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -56,7 +57,7 @@ export default function SystemLogsPage() {
   const loadData = useCallback(async () => {
     try {
       const [logsResult, statsResult] = await Promise.all([
-        fetchSystemLogs({ level: filter, limit: 100 }),
+        fetchSystemLogs({ level: filter, status: statusFilter, limit: 100 }),
         getLogStats(),
       ]);
       if (!logsResult.error) {
@@ -66,7 +67,7 @@ export default function SystemLogsPage() {
     } catch {
       // Silently fail on polling errors — don't crash the page
     }
-  }, [filter]);
+  }, [filter, statusFilter]);
 
   useEffect(() => {
     loadData();
@@ -159,6 +160,7 @@ export default function SystemLogsPage() {
   };
 
   const hasUnresolved = stats.unresolvedErrors > 0;
+  const totalUnresolved = stats.unresolvedErrors + stats.unresolvedWarnings;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6">
@@ -195,7 +197,7 @@ export default function SystemLogsPage() {
           <div className="w-[380px] rounded-xl border border-[#eee] bg-white p-6 shadow-xl">
             <h3 className="text-[15px] font-semibold text-[#1a1a1a]">Mark all as resolved?</h3>
             <p className="mt-2 text-[13px] text-[#666]">
-              Mark all {stats.unresolvedErrors} unresolved errors as resolved? This cannot be
+              Mark all {totalUnresolved} unresolved errors/warnings as resolved? This cannot be
               undone.
             </p>
             <div className="mt-5 flex justify-end gap-2">
@@ -243,7 +245,8 @@ export default function SystemLogsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowConfirm(true)}
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[12px] font-medium text-red-600 transition-colors hover:bg-red-100"
+              disabled={totalUnresolved === 0}
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[12px] font-medium text-red-600 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Mark All Resolved
             </button>
@@ -270,22 +273,34 @@ export default function SystemLogsPage() {
       </div>
 
       {/* Filter chips */}
-      <div className="mb-4 flex items-center gap-1 border-b border-[#eee] pb-3">
-        {(['all', 'error', 'warn', 'info'] as const).map((level) => (
-          <Chip key={level} active={filter === level} onClick={() => setFilter(level)}>
-            {level === 'all'
-              ? 'All'
-              : level === 'warn'
-                ? 'Warning'
-                : level.charAt(0).toUpperCase() + level.slice(1)}
-          </Chip>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center gap-4 border-b border-[#eee] pb-3">
+        <div className="flex items-center gap-1">
+          {(['unresolved', 'all', 'resolved'] as const).map((status) => (
+            <Chip key={status} active={statusFilter === status} onClick={() => setStatusFilter(status)}>
+              {status === 'unresolved' ? 'Unresolved' : status === 'resolved' ? 'Resolved' : 'All history'}
+            </Chip>
+          ))}
+        </div>
+        <div className="h-5 w-px bg-[#eee]" />
+        <div className="flex items-center gap-1">
+          {(['all', 'error', 'warn', 'info'] as const).map((level) => (
+            <Chip key={level} active={filter === level} onClick={() => setFilter(level)}>
+              {level === 'all'
+                ? 'All levels'
+                : level === 'warn'
+                  ? 'Warning'
+                  : level.charAt(0).toUpperCase() + level.slice(1)}
+            </Chip>
+          ))}
+        </div>
       </div>
 
       {/* Logs list */}
       {logs.length === 0 ? (
         <div className="flex h-40 items-center justify-center">
-          <p className="text-sm text-[#888]">No system logs found</p>
+          <p className="text-sm text-[#888]">
+            {statusFilter === 'unresolved' ? 'No unresolved system logs found' : 'No system logs found'}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-1">
@@ -319,6 +334,11 @@ export default function SystemLogsPage() {
                   <span className="min-w-0 flex-1 truncate text-sm text-[#1a1a1a]">
                     {log.message}
                   </span>
+                  {isResolved && (
+                    <span className="shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium uppercase text-emerald-700">
+                      Resolved
+                    </span>
+                  )}
                   <span className="shrink-0 font-mono text-[10px] text-[#999]">
                     {relativeTime(log.created_at)}
                   </span>

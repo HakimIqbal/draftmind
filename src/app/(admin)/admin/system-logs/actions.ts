@@ -13,6 +13,7 @@ async function requireSuperAdmin() {
 
 export async function fetchSystemLogs(filters?: {
   level?: string;
+  status?: 'all' | 'unresolved' | 'resolved';
   limit?: number;
   offset?: number;
 }) {
@@ -29,6 +30,12 @@ export async function fetchSystemLogs(filters?: {
     query = query.eq('level', filters.level);
   }
 
+  if (filters?.status === 'unresolved') {
+    query = query.is('resolved_at', null);
+  } else if (filters?.status === 'resolved') {
+    query = query.not('resolved_at', 'is', null);
+  }
+
   if (filters?.offset) {
     query = query.range(filters.offset, filters.offset + (filters?.limit ?? 100) - 1);
   }
@@ -42,18 +49,23 @@ export async function resolveLog(logId: string) {
   await requireSuperAdmin();
   const admin = createAdminClient();
 
-  await admin.from('system_logs').update({ resolved_at: new Date().toISOString() }).eq('id', logId);
+  const { error } = await admin
+    .from('system_logs')
+    .update({ resolved_at: new Date().toISOString() })
+    .eq('id', logId);
 
+  if (error) return { success: false, error: error.message };
   return { success: true };
 }
 
 export async function resolveAllLogs() {
   await requireSuperAdmin();
   const admin = createAdminClient();
-  await admin
+  const { error } = await admin
     .from('system_logs')
     .update({ resolved_at: new Date().toISOString() })
     .is('resolved_at', null);
+  if (error) return { success: false, error: error.message };
   return { success: true };
 }
 

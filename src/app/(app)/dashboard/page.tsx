@@ -9,9 +9,21 @@ import {
 } from '@/lib/db/queries/dashboard';
 import { HomeFeed } from '@/components/dashboard/home-feed';
 import { DashboardPoller } from './dashboard-poller';
+import { ClientRedirect } from '@/components/auth/client-redirect';
 
 export default async function HomePage() {
   const user = await requireUser();
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('is_super_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.is_super_admin) {
+    return <ClientRedirect to="/admin" />;
+  }
+
   const workspace = await getCurrentWorkspace(user.id);
 
   if (!workspace) {
@@ -60,8 +72,6 @@ export default async function HomePage() {
   const wsId = workspace.id as string;
   const fullName =
     (user.user_metadata as Record<string, string> | undefined)?.full_name ?? user.email ?? 'there';
-
-  const admin = createAdminClient();
 
   const [stats, continueWorking, activity, attention, templatesResult] = await Promise.all([
     getDashboardStats(wsId),

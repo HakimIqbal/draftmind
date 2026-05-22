@@ -10,7 +10,7 @@ export function AdminOverviewPoller() {
     const id = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
       router.refresh();
-    }, 60_000);
+    }, 15_000);
 
     return () => clearInterval(id);
   }, [router]);

@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
 import { revalidatePath } from 'next/cache';
-import { logWarn } from '@/lib/logging/system-log';
+import { logInfo } from '@/lib/logging/system-log';
 
 async function requireSuperAdmin() {
   const user = await requireUser();
@@ -59,7 +59,7 @@ export async function publishAnnouncement(data: {
 
   if (error) return { error: error.message };
 
-  logWarn(
+  logInfo(
     'admin.announcement',
     `announcement_published: "${data.title}" to ${userIds.length} users`,
     { title: data.title, target: data.target, recipient_count: userIds.length },

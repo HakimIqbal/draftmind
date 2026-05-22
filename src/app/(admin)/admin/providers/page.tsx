@@ -94,7 +94,16 @@ export default function AdminProvidersPage() {
 
   function handle(fn: () => Promise<unknown>, msg: string) {
     startTransition(async () => {
-      await fn();
+      const result = await fn();
+      if (
+        result &&
+        typeof result === 'object' &&
+        'error' in result &&
+        typeof result.error === 'string'
+      ) {
+        toast.error(result.error);
+        return;
+      }
       toast.success(msg);
     });
   }
@@ -183,7 +192,7 @@ export default function AdminProvidersPage() {
                                   'Priority updated',
                                 )
                               }
-                              className="text-[#ccc] hover:text-[#666]"
+                              className="rounded p-0.5 text-[#999] hover:bg-[#f5f5f4] hover:text-[#333]"
                             >
                               <ArrowUp size={11} />
                             </button>
@@ -196,7 +205,7 @@ export default function AdminProvidersPage() {
                                   'Priority updated',
                                 )
                               }
-                              className="text-[#ccc] hover:text-[#666]"
+                              className="rounded p-0.5 text-[#999] hover:bg-[#f5f5f4] hover:text-[#333]"
                             >
                               <ArrowDown size={11} />
                             </button>
@@ -267,28 +276,31 @@ export default function AdminProvidersPage() {
                           <button
                             onClick={() => handle(() => disconnectProvider(p.id), 'Disconnected')}
                             disabled={isPending}
-                            className="rounded-md p-1.5 text-[#bbb] hover:bg-amber-50 hover:text-amber-500"
+                            className="inline-flex items-center gap-1 rounded-md border border-transparent px-2 py-1.5 text-[11px] font-medium text-[#666] hover:border-amber-100 hover:bg-amber-50 hover:text-amber-600"
                             title="Disconnect"
                           >
-                            <WifiOff size={13} />
+                            <WifiOff size={14} />
+                            <span className="hidden xl:inline">Disconnect</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => handle(() => activateProvider(p.id), 'Activated')}
                             disabled={isPending}
-                            className="rounded-md p-1.5 text-[#bbb] hover:bg-emerald-50 hover:text-emerald-500"
+                            className="inline-flex items-center gap-1 rounded-md border border-transparent px-2 py-1.5 text-[11px] font-medium text-[#666] hover:border-emerald-100 hover:bg-emerald-50 hover:text-emerald-600"
                             title="Activate"
                           >
-                            <Wifi size={13} />
+                            <Wifi size={14} />
+                            <span className="hidden xl:inline">Activate</span>
                           </button>
                         )}
                         <button
                           onClick={() => handle(() => deleteProvider(p.id), 'Deleted')}
                           disabled={isPending}
-                          className="rounded-md p-1.5 text-[#bbb] hover:bg-red-50 hover:text-red-500"
+                          className="inline-flex items-center gap-1 rounded-md border border-transparent px-2 py-1.5 text-[11px] font-medium text-[#666] hover:border-red-100 hover:bg-red-50 hover:text-red-600"
                           title="Delete"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
+                          <span className="hidden xl:inline">Delete</span>
                         </button>
                       </div>
                     </td>

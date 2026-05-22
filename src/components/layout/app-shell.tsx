@@ -10,6 +10,7 @@ import type { WorkspaceListItem } from '@/lib/db/queries/workspace';
 import { useUserStore } from '@/stores/user-store';
 import { createClient } from '@/lib/supabase/client';
 import { getUnresolvedTicketCount } from '@/app/(app)/tickets/actions';
+import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -133,6 +134,7 @@ export function AppShell({
 
   return (
     <TooltipProvider>
+      <PresenceHeartbeat />
       <div className="flex h-screen">
         {sidebarOpen ? (
           <Sidebar

@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
 import { revalidatePath } from 'next/cache';
-import { logWarn } from '@/lib/logging/system-log';
+import { logInfo } from '@/lib/logging/system-log';
 
 async function requireSuperAdmin() {
   const user = await requireUser();
@@ -37,7 +37,7 @@ export async function toggleSuperAdmin(targetUserId: string) {
 
   if (error) return { error: 'Failed to update admin status. Please try again.' };
 
-  logWarn(
+  logInfo(
     'admin.action',
     `super_admin_toggled: ${targetUserId} → ${!target.is_super_admin}`,
     { targetUserId },
@@ -77,7 +77,7 @@ export async function toggleUserStatus(targetUserId: string) {
     if (error) return { error: error.message };
   }
 
-  logWarn(
+  logInfo(
     'admin.action',
     `${isBanned ? 'user_unbanned' : 'user_banned'}: ${targetUserId}`,
     { targetUserId },
@@ -146,7 +146,7 @@ export async function createUser(data: {
     );
 
     if (profileError) {
-      logWarn(
+      logInfo(
         'admin.action',
         `profile_upsert_failed: ${profileError.message}`,
         {},
@@ -156,7 +156,7 @@ export async function createUser(data: {
   }
 
   if (newUser.user) {
-    logWarn(
+    logInfo(
       'admin.action',
       `user_created_by_admin: ${data.email}`,
       { email: data.email, full_name: data.full_name },

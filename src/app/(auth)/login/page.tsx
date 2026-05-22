@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { LoginPageClient } from '@/components/auth/login-page-client';
+import { ClientRedirect } from '@/components/auth/client-redirect';
 
 export default async function LoginPage() {
   const supabase = await createClient();
@@ -16,7 +16,7 @@ export default async function LoginPage() {
       .eq('id', user.id)
       .single();
 
-    redirect(profile?.is_super_admin ? '/admin' : '/dashboard');
+    return <ClientRedirect to={profile?.is_super_admin ? '/admin' : '/dashboard'} />;
   }
 
   return <LoginPageClient />;

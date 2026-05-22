@@ -49,6 +49,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (profile?.avatar_url) userAvatarUrl = profile.avatar_url;
     if (profile?.full_name) userName = profile.full_name;
 
+    const nowIso = new Date().toISOString();
+    const lastSeenPromise = admin
+      .from('profiles')
+      .update({ last_seen_at: nowIso })
+      .eq('id', user.id);
+
     const ticketCountPromise = supabase
       .from('tickets')
       .select('id', { count: 'exact', head: true })
@@ -67,9 +73,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           .limit(5),
         supabase
           .from('workspace_members')
-          .update({ last_active_at: new Date().toISOString() })
+          .update({ last_active_at: nowIso })
           .eq('workspace_id', currentWorkspaceId)
           .eq('user_id', user.id),
+        lastSeenPromise,
       ]);
       openTicketCount = ticketResult.count ?? 0;
       recentPRDs = (prdsResult.data ?? []).map((p) => ({ id: p.id, title: p.title ?? 'Untitled' }));
@@ -87,11 +94,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       if (firstMembership) {
         void supabase
           .from('workspace_members')
-          .update({ last_active_at: new Date().toISOString() })
+          .update({ last_active_at: nowIso })
           .eq('workspace_id', firstMembership.workspace_id)
           .eq('user_id', user.id)
           .then();
       }
+      void lastSeenPromise;
     }
   }
 
