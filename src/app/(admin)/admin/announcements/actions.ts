@@ -48,12 +48,31 @@ export async function publishAnnouncement(data: {
     return { error: 'No users found for this target' };
   }
 
-  // Create notifications for each user
+  const { data: announcement, error: announcementError } = await admin
+    .from('announcements')
+    .insert({
+      title: data.title,
+      message: data.message,
+      target: data.target,
+      target_value: data.targetValue ?? null,
+      recipient_count: userIds.length,
+      created_by: user.id,
+    })
+    .select('id')
+    .single();
+
+  if (announcementError || !announcement) {
+    return { error: announcementError?.message ?? 'Failed to create announcement' };
+  }
+
+  // Create notifications for each user, linked to the announcement entity.
   const notifications = userIds.map((userId) => ({
     recipient_id: userId,
     type: 'integration_event' as const,
     title: data.title,
     body: data.message,
+    resource_type: 'announcement',
+    resource_id: announcement.id,
   }));
 
   const { error } = await admin.from('notifications').insert(notifications);
@@ -71,8 +90,9 @@ export async function publishAnnouncement(data: {
     await logActivity({
       workspaceId: auditWorkspace.id,
       actorId: user.id,
-      type: 'announcement_published',
+      type: 'announcement_created',
       resourceType: 'announcement',
+      resourceId: announcement.id,
       metadata: {
         title: data.title,
         target: data.target,
@@ -84,7 +104,7 @@ export async function publishAnnouncement(data: {
 
   logInfo(
     'admin.announcement',
-    `announcement_published: "${data.title}" to ${userIds.length} users`,
+    `announcement_created: "${data.title}" to ${userIds.length} users`,
     { title: data.title, target: data.target, recipient_count: userIds.length },
     user.id,
   );
@@ -97,31 +117,86 @@ export async function getAnnouncementHistory() {
   await requireSuperAdmin();
   const admin = createAdminClient();
 
-  const { data: notifs } = await admin
-    .from('notifications')
-    .select('title, body, created_at')
-    .eq('type', 'integration_event')
+  const { data } = await admin
+    .from('announcements')
+    .select('id, title, message, target, target_value, recipient_count, created_at')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(500);
 
-  if (!notifs) return [];
+  return (data ?? []) as {
+    id: string;
+    title: string;
+    message: string;
+    target: 'all' | 'role' | 'user';
+    target_value: string | null;
+    recipient_count: number;
+    created_at: string;
+  }[];
+}
 
-  // Group by title+body within 1 minute window
-  const groups: Record<
-    string,
-    { title: string; body: string | null; created_at: string; recipient_count: number }
-  > = {};
-  for (const n of notifs) {
-    const minute = n.created_at.slice(0, 16);
-    const key = `${n.title}|${minute}`;
-    if (groups[key]) {
-      groups[key].recipient_count++;
-    } else {
-      groups[key] = { title: n.title, body: n.body, created_at: n.created_at, recipient_count: 1 };
-    }
+export async function deleteAnnouncement(announcementId: string) {
+  const user = await requireSuperAdmin();
+  const admin = createAdminClient();
+
+  const { data: announcement, error: fetchError } = await admin
+    .from('announcements')
+    .select('id, title, recipient_count')
+    .eq('id', announcementId)
+    .is('deleted_at', null)
+    .single();
+
+  if (fetchError || !announcement) {
+    return { error: fetchError?.message ?? 'Announcement not found' };
   }
 
-  return Object.values(groups);
+  const deletedAt = new Date().toISOString();
+  const { error: updateError } = await admin
+    .from('announcements')
+    .update({ deleted_at: deletedAt, deleted_by: user.id })
+    .eq('id', announcementId)
+    .is('deleted_at', null);
+
+  if (updateError) return { error: updateError.message };
+
+  const { error: notificationError } = await admin
+    .from('notifications')
+    .delete()
+    .eq('resource_type', 'announcement')
+    .eq('resource_id', announcementId);
+
+  if (notificationError) return { error: notificationError.message };
+
+  const { data: auditWorkspace } = await admin
+    .from('workspaces')
+    .select('id')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (auditWorkspace?.id) {
+    await logActivity({
+      workspaceId: auditWorkspace.id,
+      actorId: user.id,
+      type: 'announcement_deleted',
+      resourceType: 'announcement',
+      resourceId: announcementId,
+      metadata: {
+        title: announcement.title,
+        recipient_count: announcement.recipient_count,
+      },
+    });
+  }
+
+  logInfo(
+    'admin.announcement',
+    `announcement_deleted: "${announcement.title}"`,
+    { announcement_id: announcementId, title: announcement.title },
+    user.id,
+  );
+
+  revalidatePath('/admin/announcements');
+  return { success: true };
 }
 
 export async function getUsers() {

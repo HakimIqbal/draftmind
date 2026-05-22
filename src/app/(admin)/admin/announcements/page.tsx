@@ -8,11 +8,17 @@ import {
   User,
   Briefcase,
   Clock,
+  X,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { publishAnnouncement, getAnnouncementHistory, getUsers } from './actions';
+import {
+  publishAnnouncement,
+  getAnnouncementHistory,
+  getUsers,
+  deleteAnnouncement,
+} from './actions';
 
 interface UserOption {
   id: string;
@@ -22,8 +28,11 @@ interface UserOption {
 }
 
 interface HistoryItem {
+  id: string;
   title: string;
-  body: string | null;
+  message: string;
+  target: 'all' | 'role' | 'user';
+  target_value: string | null;
   created_at: string;
   recipient_count: number;
 }
@@ -202,7 +211,13 @@ export default function AdminAnnouncementsPage() {
       </div>
 
       {/* History */}
-      <HistorySection history={history} page={page} perPage={perPage} onPageChange={setPage} />
+      <HistorySection
+        history={history}
+        page={page}
+        perPage={perPage}
+        onPageChange={setPage}
+        onDeleted={() => startTransition(async () => setHistory(await getAnnouncementHistory()))}
+      />
     </div>
   );
 }
@@ -212,12 +227,31 @@ function HistorySection({
   page,
   perPage,
   onPageChange,
+  onDeleted,
 }: {
   history: HistoryItem[];
   page: number;
   perPage: number;
   onPageChange: (p: number) => void;
+  onDeleted: () => void;
 }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [, startDeleteTransition] = useTransition();
+
+  function handleDelete(id: string) {
+    if (!confirm('Delete this announcement and remove it from user notifications?')) return;
+    setDeletingId(id);
+    startDeleteTransition(async () => {
+      const result = await deleteAnnouncement(id);
+      setDeletingId(null);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success('Announcement deleted');
+      onDeleted();
+    });
+  }
   const totalPages = Math.ceil(history.length / perPage);
   const paged = useMemo(() => {
     const start = (page - 1) * perPage;
@@ -246,16 +280,26 @@ function HistorySection({
         <>
           <div className="rounded-xl border border-[#eee] bg-white">
             <div className="divide-y divide-[#f5f5f5]">
-              {paged.map((h, i) => (
-                <div key={i} className="px-5 py-4">
+              {paged.map((h) => (
+                <div key={h.id} className="px-5 py-4">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-[14px] font-medium text-[#1a1a1a]">{h.title}</p>
-                      {h.body && <p className="mt-1 text-[12px] text-[#888]">{h.body}</p>}
+                      {h.message && <p className="mt-1 text-[12px] text-[#888]">{h.message}</p>}
                     </div>
-                    <span className="ml-4 shrink-0 rounded-md bg-[#f5f5f4] px-2 py-0.5 text-[11px] font-medium text-[#888]">
-                      {h.recipient_count} user{h.recipient_count !== 1 ? 's' : ''}
-                    </span>
+                    <div className="ml-4 flex shrink-0 items-center gap-2">
+                      <span className="rounded-md bg-[#f5f5f4] px-2 py-0.5 text-[11px] font-medium text-[#888]">
+                        {h.recipient_count} user{h.recipient_count !== 1 ? 's' : ''}
+                      </span>
+                      <button
+                        onClick={() => handleDelete(h.id)}
+                        disabled={deletingId === h.id}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-[#bbb] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                        title="Delete announcement"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-2 flex items-center gap-1 text-[#bbb]">
                     <Clock size={10} />
