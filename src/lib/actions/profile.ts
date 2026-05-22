@@ -50,7 +50,7 @@ export async function getProfile() {
   const [{ data: profile }, { data: membership }] = await Promise.all([
     admin
       .from('profiles')
-      .select('full_name, role_self_reported, created_at, avatar_url')
+      .select('full_name, role_self_reported, created_at, avatar_url, is_super_admin')
       .eq('id', user.id)
       .single(),
     admin.from('workspace_members').select('role').eq('user_id', user.id).limit(1).single(),
@@ -64,10 +64,18 @@ export async function getProfile() {
       ? {
           ...profile,
           full_name: profile.full_name ?? fallbackName,
+          role_self_reported:
+            profile.role_self_reported ?? (profile.is_super_admin ? 'System Administrator' : null),
         }
-      : { full_name: fallbackName, role_self_reported: null, created_at: null, avatar_url: null },
+      : {
+          full_name: fallbackName,
+          role_self_reported: null,
+          created_at: null,
+          avatar_url: null,
+          is_super_admin: false,
+        },
     email: user.email ?? '',
-    workspaceRole: membership?.role ?? null,
+    workspaceRole: membership?.role ?? (profile?.is_super_admin ? 'admin' : null),
   };
 }
 

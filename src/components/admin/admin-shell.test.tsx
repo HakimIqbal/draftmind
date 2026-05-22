@@ -71,6 +71,7 @@ describe('AdminShell account menu', () => {
     fireEvent.click(screen.getByRole('button', { name: /admin admin admin@draftmind\.com/i }));
 
     await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('Profile modal open'));
+    expect(screen.queryByLabelText(/open admin profile/i)).not.toBeInTheDocument();
     await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'false'));
   });
 

@@ -21,7 +21,6 @@ import {
   Shield,
   Clock,
   Ticket,
-  ChevronRight,
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -298,7 +297,6 @@ export function AdminShell({
                     </div>
                     <p className="truncate text-[11px] text-[#aaa]">{userEmail}</p>
                   </div>
-                  <ChevronRight size={14} className="shrink-0 text-[#ccc]" aria-hidden="true" />
                 </button>
 
                 {/* Section 2 - Session info */}
