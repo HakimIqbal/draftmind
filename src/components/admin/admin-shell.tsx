@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -86,9 +87,11 @@ export function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
   const [popupOpen, setPopupOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0, width: 240 });
   const [sessionStart] = useState(() => new Date());
   const [timeAgo, setTimeAgo] = useState('just now');
-  const popupRef = useRef<HTMLDivElement>(null);
   const [liveTicketCount, setLiveTicketCount] = useState(openTicketCount);
   const channelRef = useRef(`admin-badge-${crypto.randomUUID()}`);
 
@@ -131,17 +134,38 @@ export function AdminShell({
     };
   }, []);
 
-  // Click outside to close popup
+  const positionPopup = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    setPopupPos({ top: rect.top, left: rect.left, width: rect.width });
+  }, []);
+
+  function openProfileModal() {
+    setProfileOpen(true);
+    setPopupOpen(false);
+  }
+
+  // Keep admin account menu in a portal like the regular user profile menu.
   useEffect(() => {
     if (!popupOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        setPopupOpen(false);
-      }
+    positionPopup();
+
+    function handlePointerDown(e: PointerEvent) {
+      const target = e.target as Node;
+      if (dropdownRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
+      setPopupOpen(false);
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [popupOpen]);
+
+    window.addEventListener('resize', positionPopup);
+    window.addEventListener('scroll', positionPopup, true);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('resize', positionPopup);
+      window.removeEventListener('scroll', positionPopup, true);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [popupOpen, positionPopup]);
 
   async function handleLogout() {
     await logLogout().catch(() => {});
@@ -216,16 +240,46 @@ export function AdminShell({
             ))}
           </nav>
 
-          {/* Bottom — Avatar with popup */}
-          <div className="relative border-t border-[#e5e5e3] px-3 py-3" ref={popupRef}>
-            {/* Popup panel */}
-            {popupOpen && (
+          {/* Bottom - Avatar with portal menu */}
+          <div className="border-t border-[#e5e5e3] px-3 py-3">
+            {/* Trigger */}
+            <button
+              ref={triggerRef}
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={popupOpen}
+              onClick={() => {
+                if (!popupOpen) positionPopup();
+                setPopupOpen((open) => !open);
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white/60"
+            >
+              <Avatar name={displayName} size="sm" avatarUrl={displayAvatar} />
+              <div className="min-w-0 flex-1 text-left">
+                <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{displayName}</p>
+                <p className="truncate text-[10px] text-[#999]">{userEmail}</p>
+              </div>
+              <ChevronDown
+                size={13}
+                className={`shrink-0 text-[#bbb] transition-transform ${popupOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
+
+          {popupOpen &&
+            createPortal(
               <div
-                className="absolute bottom-full left-3 right-3 z-50 mb-2 overflow-hidden rounded-xl border border-[#eee] bg-white shadow-lg"
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={(event) => event.stopPropagation()}
+                ref={dropdownRef}
+                className="fixed z-[9999] overflow-hidden rounded-xl border border-[#eee] bg-white shadow-lg"
+                style={{
+                  top: popupPos.top - 8,
+                  left: popupPos.left,
+                  width: popupPos.width,
+                  transform: 'translateY(-100%)',
+                }}
+                role="menu"
               >
-                {/* Section 1 — Profile summary with chevron trigger */}
+                {/* Section 1 - Profile summary with chevron trigger */}
                 <div className="flex items-center gap-3 bg-[#f8f8f7] px-4 py-3">
                   <Avatar name={displayName} size="lg" avatarUrl={displayAvatar} />
                   <div className="min-w-0 flex-1">
@@ -243,23 +297,14 @@ export function AdminShell({
                   <button
                     type="button"
                     aria-label="Open admin profile"
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setProfileOpen(true);
-                      window.setTimeout(() => setPopupOpen(false), 100);
-                    }}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                    }}
+                    onClick={openProfileModal}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-[#ccc] transition-colors hover:bg-white hover:text-[#999]"
                   >
                     <ChevronRight size={14} className="shrink-0" />
                   </button>
                 </div>
 
-                {/* Section 2 — Session info */}
+                {/* Section 2 - Session info */}
                 <div className="border-t border-[#f0f0f0] px-4 py-2.5">
                   <div className="flex items-center gap-1.5 text-[11px] text-[#aaa]">
                     <Clock size={11} />
@@ -267,9 +312,10 @@ export function AdminShell({
                   </div>
                 </div>
 
-                {/* Section 3 — Log out */}
+                {/* Section 3 - Log out */}
                 <div className="border-t border-[#f0f0f0] px-3 py-2">
                   <button
+                    type="button"
                     onClick={handleLogout}
                     className="hover:bg-accent/8 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium text-accent transition-colors"
                   >
@@ -277,31 +323,9 @@ export function AdminShell({
                     Log out
                   </button>
                 </div>
-              </div>
+              </div>,
+              document.body,
             )}
-
-            {/* Trigger */}
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={popupOpen}
-              onClick={(event) => {
-                event.stopPropagation();
-                setPopupOpen((open) => !open);
-              }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white/60"
-            >
-              <Avatar name={displayName} size="sm" avatarUrl={displayAvatar} />
-              <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{displayName}</p>
-                <p className="truncate text-[10px] text-[#999]">{userEmail}</p>
-              </div>
-              <ChevronDown
-                size={13}
-                className={`shrink-0 text-[#bbb] transition-transform ${popupOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
-          </div>
         </aside>
 
         {/* Main */}
