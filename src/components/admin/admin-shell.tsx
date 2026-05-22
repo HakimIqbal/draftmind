@@ -155,143 +155,163 @@ export function AdminShell({
     <>
       <PresenceHeartbeat />
       <div className="flex h-screen">
-      {/* Sidebar */}
-      <aside className="flex w-[260px] shrink-0 flex-col border-r border-[#e5e5e3] bg-[#f8f8f7]">
-        {/* Brand */}
-        <div className="flex items-center gap-3 border-b border-[#e5e5e3] px-6 py-5">
-          <Image
-            src="/logo/logo.jpg"
-            width={28}
-            height={28}
-            alt="DraftMind"
-            className="rounded-lg"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-bold text-[#1a1a1a]">DraftMind</p>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-[#999]">Admin</p>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 pt-4">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label} className="mb-5">
-              <p className="mb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-[#aaa]">
-                {group.label}
-              </p>
-              <ul className="space-y-[2px]">
-                {group.items.map((item) => {
-                  const isActive =
-                    'exact' in item && item.exact
-                      ? pathname === item.href
-                      : pathname.startsWith(item.href);
-                  const showBadge = item.href === '/admin/tickets' && liveTicketCount > 0;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-all',
-                          isActive
-                            ? 'bg-white text-[#1a1a1a] shadow-sm'
-                            : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
-                        )}
-                      >
-                        <item.icon
-                          size={16}
-                          className={cn('shrink-0', isActive ? 'text-accent' : 'text-[#999]')}
-                        />
-                        {item.label}
-                        {showBadge && (
-                          <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#E8733A] text-[11px] font-medium text-white">
-                            {liveTicketCount}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </nav>
-
-        {/* Bottom — Avatar with popup */}
-        <div className="relative border-t border-[#e5e5e3] px-3 py-3" ref={popupRef}>
-          {/* Popup panel */}
-          {popupOpen && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-xl border border-[#eee] bg-white shadow-lg">
-              {/* Section 1 — Profile (clickable → ProfileModal) */}
-              <button
-                onClick={() => {
-                  setPopupOpen(false);
-                  setProfileOpen(true);
-                }}
-                className="flex w-full items-center gap-3 bg-[#f8f8f7] px-4 py-3 text-left transition-colors hover:bg-[#f0f0ee]"
-              >
-                <Avatar name={displayName} size="lg" avatarUrl={displayAvatar} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">
-                      {displayName}
-                    </p>
-                    <span className="bg-accent/10 flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-accent">
-                      <Shield size={9} />
-                      Admin
-                    </span>
-                  </div>
-                  <p className="truncate text-[11px] text-[#aaa]">{userEmail}</p>
-                </div>
-                <ChevronRight size={14} className="shrink-0 text-[#ccc]" />
-              </button>
-
-              {/* Section 2 — Session info */}
-              <div className="border-t border-[#f0f0f0] px-4 py-2.5">
-                <div className="flex items-center gap-1.5 text-[11px] text-[#aaa]">
-                  <Clock size={11} />
-                  Session started: {timeAgo}
-                </div>
-              </div>
-
-              {/* Section 3 — Log out */}
-              <div className="border-t border-[#f0f0f0] px-3 py-2">
-                <button
-                  onClick={handleLogout}
-                  className="hover:bg-accent/8 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium text-accent transition-colors"
-                >
-                  <LogOut size={13} />
-                  Log out
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Trigger */}
-          <button
-            onClick={() => setPopupOpen(!popupOpen)}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white/60"
-          >
-            <Avatar name={displayName} size="sm" avatarUrl={displayAvatar} />
-            <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{displayName}</p>
-              <p className="truncate text-[10px] text-[#999]">{userEmail}</p>
-            </div>
-            <ChevronDown
-              size={13}
-              className={`shrink-0 text-[#bbb] transition-transform ${popupOpen ? 'rotate-180' : ''}`}
+        {/* Sidebar */}
+        <aside className="flex w-[260px] shrink-0 flex-col border-r border-[#e5e5e3] bg-[#f8f8f7]">
+          {/* Brand */}
+          <div className="flex items-center gap-3 border-b border-[#e5e5e3] px-6 py-5">
+            <Image
+              src="/logo/logo.jpg"
+              width={28}
+              height={28}
+              alt="DraftMind"
+              className="rounded-lg"
             />
-          </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-bold text-[#1a1a1a]">DraftMind</p>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-[#999]">Admin</p>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <nav className="flex-1 overflow-y-auto px-3 pt-4">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className="mb-5">
+                <p className="mb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-[#aaa]">
+                  {group.label}
+                </p>
+                <ul className="space-y-[2px]">
+                  {group.items.map((item) => {
+                    const isActive =
+                      'exact' in item && item.exact
+                        ? pathname === item.href
+                        : pathname.startsWith(item.href);
+                    const showBadge = item.href === '/admin/tickets' && liveTicketCount > 0;
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-all',
+                            isActive
+                              ? 'bg-white text-[#1a1a1a] shadow-sm'
+                              : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
+                          )}
+                        >
+                          <item.icon
+                            size={16}
+                            className={cn('shrink-0', isActive ? 'text-accent' : 'text-[#999]')}
+                          />
+                          {item.label}
+                          {showBadge && (
+                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#E8733A] text-[11px] font-medium text-white">
+                              {liveTicketCount}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </nav>
+
+          {/* Bottom — Avatar with popup */}
+          <div className="relative border-t border-[#e5e5e3] px-3 py-3" ref={popupRef}>
+            {/* Popup panel */}
+            {popupOpen && (
+              <div
+                className="absolute bottom-full left-3 right-3 z-50 mb-2 overflow-hidden rounded-xl border border-[#eee] bg-white shadow-lg"
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
+              >
+                {/* Section 1 — Profile summary with chevron trigger */}
+                <div className="flex items-center gap-3 bg-[#f8f8f7] px-4 py-3">
+                  <Avatar name={displayName} size="lg" avatarUrl={displayAvatar} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">
+                        {displayName}
+                      </p>
+                      <span className="bg-accent/10 flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-accent">
+                        <Shield size={9} />
+                        Admin
+                      </span>
+                    </div>
+                    <p className="truncate text-[11px] text-[#aaa]">{userEmail}</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Open admin profile"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setProfileOpen(true);
+                      window.setTimeout(() => setPopupOpen(false), 100);
+                    }}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[#ccc] transition-colors hover:bg-white hover:text-[#999]"
+                  >
+                    <ChevronRight size={14} className="shrink-0" />
+                  </button>
+                </div>
+
+                {/* Section 2 — Session info */}
+                <div className="border-t border-[#f0f0f0] px-4 py-2.5">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#aaa]">
+                    <Clock size={11} />
+                    Session started: {timeAgo}
+                  </div>
+                </div>
+
+                {/* Section 3 — Log out */}
+                <div className="border-t border-[#f0f0f0] px-3 py-2">
+                  <button
+                    onClick={handleLogout}
+                    className="hover:bg-accent/8 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium text-accent transition-colors"
+                  >
+                    <LogOut size={13} />
+                    Log out
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Trigger */}
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={popupOpen}
+              onClick={(event) => {
+                event.stopPropagation();
+                setPopupOpen((open) => !open);
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white/60"
+            >
+              <Avatar name={displayName} size="sm" avatarUrl={displayAvatar} />
+              <div className="min-w-0 flex-1 text-left">
+                <p className="truncate text-[12px] font-medium text-[#1a1a1a]">{displayName}</p>
+                <p className="truncate text-[10px] text-[#999]">{userEmail}</p>
+              </div>
+              <ChevronDown
+                size={13}
+                className={`shrink-0 text-[#bbb] transition-transform ${popupOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <div className="flex min-w-0 flex-1 flex-col bg-white">
+          <main className="flex-1 overflow-auto">
+            <div className="mx-auto max-w-[1100px] px-8 py-8">{children}</div>
+          </main>
         </div>
-      </aside>
 
-      {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col bg-white">
-        <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-[1100px] px-8 py-8">{children}</div>
-        </main>
-      </div>
-
-      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
+        <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
       </div>
     </>
   );
