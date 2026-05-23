@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, setRememberMePreference } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { checkBannedStatus, logLoginFailure } from '@/app/(auth)/login/actions';
+import { checkBannedStatus, checkUserRole, logLoginFailure } from '@/app/(auth)/login/actions';
 
 export function LoginPageClient() {
   return (
@@ -29,59 +29,111 @@ function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [disabledMessage, setDisabledMessage] = useState('');
+  const [checkingSession, setCheckingSession] = useState(true);
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function bootstrapSession() {
+      try {
+        const supabase = createClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData.session?.user;
+
+        if (!active) return;
+
+        if (!user) {
+          setCheckingSession(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_super_admin')
+          .eq('id', user.id)
+          .single();
+
+        window.location.replace(profile?.is_super_admin ? '/admin' : '/dashboard');
+      } catch {
+        if (active) setCheckingSession(false);
+      }
+    }
+
+    void bootstrapSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !password) return;
+    if (submittingRef.current || loading || checkingSession) return;
 
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !password) return;
+
+    submittingRef.current = true;
     setLoading(true);
     setDisabledMessage('');
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      // Check if user is banned/disabled
-      const banned = await checkBannedStatus(email);
-      if (banned?.disabled) {
-        await logLoginFailure(email, 'disabled_account');
-        setDisabledMessage(
-          'Akun Anda telah dinonaktifkan oleh administrator. Hubungi admin untuk informasi lebih lanjut.',
-        );
-      } else {
-        await logLoginFailure(email, 'invalid_credentials');
-        toast.error('Invalid email or password');
-      }
-      setLoading(false);
-      return;
-    }
+    try {
+      // Bind cookie lifetime to Remember Me choice BEFORE the auth handshake
+      // so the first cookie write already uses the correct mode.
+      setRememberMePreference(rememberMe);
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
 
-    if (data.user) {
-      if (rememberMe) {
-        document.cookie = 'remember_me=true; path=/; max-age=2592000';
-      } else {
-        document.cookie = 'remember_me=false; path=/';
+      if (error || !data.user) {
+        // Check if user is banned/disabled. Keep this awaited so disabled accounts
+        // show the correct message instead of a generic credential error.
+        const banned = await checkBannedStatus(normalizedEmail);
+        if (banned?.disabled) {
+          await logLoginFailure(normalizedEmail, 'disabled_account');
+          setDisabledMessage(
+            'Your account has been disabled by an administrator. Please contact your workspace admin for assistance.',
+          );
+        } else {
+          await logLoginFailure(normalizedEmail, 'invalid_credentials');
+          toast.error('Invalid email or password');
+        }
+        return;
       }
 
       const redirectTo = searchParams.get('redirectTo');
       if (redirectTo) {
-        window.location.href = redirectTo;
+        window.location.replace(redirectTo);
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_super_admin')
-        .eq('id', data.user.id)
-        .single();
-
-      window.location.href = profile?.is_super_admin ? '/admin' : '/dashboard';
-    } else {
-      window.location.href = '/dashboard';
+      // Centralize post-login routing so admin users, regular users, forced
+      // password changes, and login audit logging all follow the same server path.
+      const roleResult = await checkUserRole();
+      window.location.replace(roleResult.redirect ?? '/dashboard');
+    } catch {
+      toast.error('Unable to sign in right now. Please try again.');
+    } finally {
+      // If redirect starts, this is harmless. If it fails or validation rejects,
+      // the form becomes usable again.
+      submittingRef.current = false;
+      setLoading(false);
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg-canvas px-4">
+      {checkingSession && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center">
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-4 py-2 text-xs text-ink-secondary shadow-sm backdrop-blur">
+            <Loader2 size={14} className="animate-spin" />
+            Checking session...
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-[460px]">
         {/* Back to home */}
         <div className="mb-6">
@@ -112,12 +164,12 @@ function LoginForm() {
         <div className="rounded-xl border border-subtle bg-bg-surface p-10 shadow-sm">
           {sessionExpired && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700">
-              Sesi Anda telah berakhir. Silakan login kembali.
+              Your session has expired. Please sign in again.
             </div>
           )}
           {passwordChanged && (
             <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700">
-              Password berhasil diperbarui. Silakan login dengan password baru Anda.
+              Your password has been updated. Please sign in with your new password.
             </div>
           )}
           {disabledMessage && (
@@ -139,6 +191,8 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-12 text-base"
                 required
+                disabled={loading || checkingSession}
+                autoComplete="email"
                 autoFocus
               />
             </div>
@@ -154,10 +208,14 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 pr-10 text-base"
                   required
+                  disabled={loading || checkingSession}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading || checkingSession}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-tertiary hover:text-ink-secondary"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -170,20 +228,26 @@ function LoginForm() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={loading || checkingSession}
                   className="h-3.5 w-3.5 rounded border-[#ddd] accent-accent"
                 />
                 <span className="text-sm text-ink-secondary">Remember me</span>
               </label>
-              <p className="text-[11px] text-ink-tertiary">Forgot password? Contact your admin.</p>
+              <Link
+                href="/forgot-password"
+                className="text-[12px] font-medium text-ink-secondary underline-offset-2 transition hover:text-accent hover:underline"
+              >
+                Forgot your password?
+              </Link>
             </div>
             <Button
               type="submit"
               variant="primary-fill"
               className="h-12 w-full text-base"
-              disabled={loading}
+              disabled={loading || checkingSession}
             >
               {loading && <Loader2 size={16} className="mr-2 animate-spin" />}
-              Sign in
+              {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
         </div>

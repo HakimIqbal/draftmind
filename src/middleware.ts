@@ -34,13 +34,6 @@ async function logSecurityEvent(
 }
 
 export async function middleware(request: NextRequest) {
-  const { user, error: sessionError, response } = await updateSession(request);
-  if (sessionError) {
-    await logSecurityEvent('auth.session_refresh_failed', sessionError.message, {
-      path: request.nextUrl.pathname,
-    });
-  }
-
   const { pathname, searchParams } = request.nextUrl;
   const publicOrigin = getPublicOrigin({
     nextUrlOrigin: request.nextUrl.origin,
@@ -71,19 +64,30 @@ export async function middleware(request: NextRequest) {
     pathname === '/' ||
     pathname === '/privacy' ||
     pathname === '/terms' ||
+    pathname === '/forgot-password' ||
     pathname.startsWith('/api/webhooks/') ||
     pathname.startsWith('/api/auth/');
 
-  // Remember me check: session cookie "remember_me=false" disappears when browser closes.
-  // If user is logged in but remember_me cookie is missing and was never set to "true",
-  // the Supabase session persists but we don't force logout here — Supabase handles token expiry.
+  // Public + auth routes must stay fast and must NOT block on Supabase session refresh.
+  // Login/landing pages handle their own session-driven redirect on the client.
+  if (isPublicRoute || isAuthRoute) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-pathname', pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  const { user, error: sessionError, response } = await updateSession(request);
+  if (sessionError) {
+    await logSecurityEvent('auth.session_refresh_failed', sessionError.message, {
+      path: request.nextUrl.pathname,
+    });
+  }
 
   // Unauthenticated user trying to access protected route
-  if (!user && !isAuthRoute && !isPublicRoute) {
+  if (!user) {
     const loginUrl = new URL('/login', publicOrigin);
     loginUrl.searchParams.set('redirectTo', pathname);
 
-    // If session cookies exist but user is null → stale/banned session, clear cookies
     const hasSessionCookie = request.cookies.getAll().some((c) => c.name.startsWith('sb-'));
     if (hasSessionCookie) {
       await logSecurityEvent(
@@ -93,7 +97,6 @@ export async function middleware(request: NextRequest) {
       );
       loginUrl.searchParams.set('reason', 'session_expired');
       const redirectResponse = NextResponse.redirect(loginUrl);
-      // Clear all Supabase auth cookies
       for (const cookie of request.cookies.getAll()) {
         if (cookie.name.startsWith('sb-')) {
           redirectResponse.cookies.delete(cookie.name);
@@ -105,10 +108,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated user — enforce role-based access
-  if (user && (isAdminRoute || isUserRoute || isAuthRoute)) {
-    // Use native fetch + service role key — fully compatible with Edge Runtime.
-    // @supabase/supabase-js createClient may not reliably resolve in Edge Runtime.
+  // Authenticated user — enforce role-based access for admin/user routes
+  if (isAdminRoute || isUserRoute) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -135,29 +136,18 @@ export async function middleware(request: NextRequest) {
     const isSuperAdmin = profile?.is_super_admin ?? false;
     const isChangePasswordRoute = pathname === '/change-password';
 
-    // Force password change — intercept before all other routing
     if (profile?.force_password_change && !isChangePasswordRoute) {
       return NextResponse.redirect(new URL('/change-password', publicOrigin));
     }
 
-    // Guard: no longer forced but trying to access /change-password → back to dashboard
     if (!profile?.force_password_change && isChangePasswordRoute) {
       return NextResponse.redirect(new URL('/dashboard', publicOrigin));
     }
 
-    // Auth route — redirect to correct dashboard
-    if (isAuthRoute) {
-      return NextResponse.redirect(new URL(isSuperAdmin ? '/admin' : '/dashboard', publicOrigin));
-    }
-
-    // Admin trying to access user routes → redirect to admin.
-    // Exception: /change-password must remain reachable when force_password_change is true,
-    // otherwise reset admin accounts loop between /admin and /change-password.
     if (isSuperAdmin && isUserRoute && !isChangePasswordRoute) {
       return NextResponse.redirect(new URL('/admin', publicOrigin));
     }
 
-    // User trying to access admin routes → redirect to home
     if (!isSuperAdmin && isAdminRoute) {
       await logSecurityEvent(
         'security.unauthorized_admin_access',

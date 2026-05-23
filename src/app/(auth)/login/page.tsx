@@ -1,23 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
 import { LoginPageClient } from '@/components/auth/login-page-client';
-import { ClientRedirect } from '@/components/auth/client-redirect';
 
-export default async function LoginPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const dynamic = 'force-static';
 
-  if (user) {
-    // Auto-detect: admin goes to /admin, user goes to /home
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_super_admin')
-      .eq('id', user.id)
-      .single();
-
-    return <ClientRedirect to={profile?.is_super_admin ? '/admin' : '/dashboard'} />;
-  }
-
+export default function LoginPage() {
   return <LoginPageClient />;
 }

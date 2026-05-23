@@ -1,25 +1,17 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Sparkles, PenLine, FileOutput, ChevronRight, ArrowRight } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { Sparkles, PenLine, FileOutput, ChevronRight } from 'lucide-react';
 import { PRD_SECTION_KEYS } from '@/types/prd';
 import { FeatureShowcase } from '@/components/landing/feature-showcase';
 
 const EXPORT_FORMATS = ['PDF', 'Word', 'HTML', 'Markdown', 'Slack', 'Jira'] as const;
 
-export default async function LandingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const isLoggedIn = !!user;
+export const dynamic = 'force-static';
 
-  // Real-time stats
+export default function LandingPage() {
   const sectionCount = PRD_SECTION_KEYS.length;
   const exportCount = EXPORT_FORMATS.length;
-  const { count: templateCount } = await supabase
-    .from('prd_templates')
-    .select('*', { count: 'exact', head: true });
+  const templateCount = 12;
 
   return (
     <div className="min-h-screen bg-white">
@@ -83,18 +75,14 @@ export default async function LandingPage() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
               <Link
-                href={isLoggedIn ? '/dashboard' : '/login'}
+                href="/login"
                 className="shadow-ink-primary/15 hover:shadow-ink-primary/20 group inline-flex h-12 items-center gap-2 rounded-xl bg-ink-primary px-7 text-[14px] font-medium text-white shadow-xl transition-all hover:shadow-2xl"
               >
-                {isLoggedIn ? 'Go to Dashboard' : 'Start for free'}
-                {isLoggedIn ? (
-                  <ArrowRight size={16} />
-                ) : (
-                  <ChevronRight
-                    size={16}
-                    className="transition-transform group-hover:translate-x-0.5"
-                  />
-                )}
+                Start for free
+                <ChevronRight
+                  size={16}
+                  className="transition-transform group-hover:translate-x-0.5"
+                />
               </Link>
               <a
                 href="#how-it-works"
