@@ -45,17 +45,64 @@ function isChunkLikeError(message: string, filename?: string) {
 }
 
 const CHUNK_RELOAD_FLAG = 'dm.chunk_reload_attempted_at';
+const CHUNK_RELOAD_ATTEMPTS_FLAG = 'dm.chunk_reload_attempts';
 const CHUNK_RELOAD_COOLDOWN_MS = 60_000;
+const CHUNK_RELOAD_MAX_ATTEMPTS = 1;
+const CHUNK_BANNER_ID = 'dm-chunk-stale-banner';
+
+function showStaleBuildBanner() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(CHUNK_BANNER_ID)) return;
+  const banner = document.createElement('div');
+  banner.id = CHUNK_BANNER_ID;
+  banner.style.cssText = [
+    'position:fixed',
+    'left:50%',
+    'top:16px',
+    'transform:translateX(-50%)',
+    'z-index:2147483647',
+    'background:#111827',
+    'color:#fff',
+    'padding:10px 16px',
+    'border-radius:8px',
+    'box-shadow:0 4px 12px rgba(0,0,0,0.25)',
+    'font:14px system-ui,-apple-system,sans-serif',
+    'display:flex',
+    'gap:12px',
+    'align-items:center',
+  ].join(';');
+  banner.innerHTML =
+    '<span>Versi aplikasi baru sudah dirilis. Mohon refresh halaman.</span>' +
+    '<button id="dm-chunk-refresh-btn" style="background:#2563eb;color:#fff;border:0;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit">Refresh</button>';
+  document.body.appendChild(banner);
+  const btn = document.getElementById('dm-chunk-refresh-btn');
+  btn?.addEventListener('click', () => {
+    try {
+      sessionStorage.removeItem(CHUNK_RELOAD_ATTEMPTS_FLAG);
+      sessionStorage.removeItem(CHUNK_RELOAD_FLAG);
+    } catch {
+      /* ignore */
+    }
+    window.location.reload();
+  });
+}
 
 function maybeReloadForStaleChunk(message: string, filename?: string) {
   if (typeof window === 'undefined') return false;
   if (!isChunkLikeError(message, filename)) return false;
   try {
+    const attempts = Number(sessionStorage.getItem(CHUNK_RELOAD_ATTEMPTS_FLAG) ?? '0');
+    if (Number.isFinite(attempts) && attempts >= CHUNK_RELOAD_MAX_ATTEMPTS) {
+      showStaleBuildBanner();
+      return false;
+    }
     const last = Number(sessionStorage.getItem(CHUNK_RELOAD_FLAG) ?? '0');
     if (Number.isFinite(last) && Date.now() - last < CHUNK_RELOAD_COOLDOWN_MS) {
+      showStaleBuildBanner();
       return false;
     }
     sessionStorage.setItem(CHUNK_RELOAD_FLAG, String(Date.now()));
+    sessionStorage.setItem(CHUNK_RELOAD_ATTEMPTS_FLAG, String(attempts + 1));
   } catch {
     // ignore storage errors, still try reload
   }

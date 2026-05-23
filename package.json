@@ -17,7 +17,8 @@
     "db:migrate": "supabase migration up",
     "db:seed": "tsx scripts/seed.ts",
     "db:types": "tsx scripts/generate-types.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postbuild": "node scripts/postbuild-standalone.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
