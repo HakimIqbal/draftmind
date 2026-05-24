@@ -122,7 +122,7 @@ export function WorkspacesClient({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-semibold text-[#1a1a1a]">{ws.name}</p>
-                  <p className="text-[11px] text-[#aaa]">{ws.slug}</p>
+                  <p className="text-[11px] text-[#aaa]">Workspace ID: {ws.id.slice(0, 8)}...</p>
                 </div>
               </div>
 
@@ -170,7 +170,9 @@ export function WorkspacesClient({
             <div className="flex items-center justify-between border-b border-[#f0f0ee] px-6 py-4">
               <div>
                 <h2 className="text-[16px] font-bold text-[#1a1a1a]">{selected.name}</h2>
-                <p className="text-[12px] text-[#999]">{selected.slug}</p>
+                <p className="text-[12px] text-[#999]">
+                  Workspace ID: {selected.id.slice(0, 8)}...
+                </p>
               </div>
               <button
                 onClick={() => setSelected(null)}

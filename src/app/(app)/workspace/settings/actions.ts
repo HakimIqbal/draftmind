@@ -12,6 +12,21 @@ import {
   setCurrentWorkspaceCookie,
 } from '@/lib/workspace/current-workspace-cookie';
 
+function slugifyWorkspaceName(name: string) {
+  return (
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'workspace'
+  );
+}
+
+function preserveSlugSuffix(currentSlug: string | null | undefined) {
+  const suffix = currentSlug?.split('-').pop()?.trim();
+  return suffix && suffix.length >= 4 ? suffix : Date.now().toString(36);
+}
+
 export async function getWorkspaceActivity(workspaceId: string) {
   await requireWorkspaceMember(workspaceId);
   const admin = createAdminClient();
@@ -82,7 +97,21 @@ export async function updateWorkspaceSettings(
   const admin = createAdminClient();
 
   const updates: Record<string, string> = {};
-  if (data.name?.trim()) updates.name = data.name.trim();
+  const nextName = data.name?.trim();
+
+  if (nextName) {
+    const { data: currentWorkspace } = await admin
+      .from('workspaces')
+      .select('name, slug')
+      .eq('id', workspaceId)
+      .single();
+
+    updates.name = nextName;
+
+    if (currentWorkspace && currentWorkspace.name !== nextName) {
+      updates.slug = `${slugifyWorkspaceName(nextName)}-${preserveSlugSuffix(currentWorkspace.slug)}`;
+    }
+  }
   if (data.industry !== undefined) updates.industry = data.industry;
   if (data.team_size !== undefined) updates.team_size = data.team_size;
 
