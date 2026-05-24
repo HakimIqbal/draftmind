@@ -647,8 +647,7 @@ export function GenerateForm({
                         Template contents
                       </p>
                       <p className="mt-1 text-[12px] text-ink-secondary">
-                        These are the sections the generated PRD will follow. Each block explains
-                        what the section should contain.
+                        Read the full template content section by section before using it.
                       </p>
                     </div>
                     <p className="shrink-0 font-mono text-[11px] text-ink-tertiary">
@@ -662,26 +661,23 @@ export function GenerateForm({
                       return (
                         <div
                           key={`${section.name}-${index}`}
-                          className="rounded-xl border border-subtle bg-bg-surface p-4"
+                          className="rounded-xl border border-subtle bg-white p-5 shadow-sm"
                         >
                           <div className="flex items-start gap-3">
-                            <span className="ring-subtle mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white font-mono text-[11px] font-semibold text-ink-tertiary ring-1">
-                              {index + 1}
+                            <span className="mt-0.5 w-8 shrink-0 font-mono text-[13px] font-semibold text-ink-tertiary">
+                              {String(index + 1).padStart(2, '0')}
                             </span>
                             <div className="min-w-0 flex-1">
-                              <h3 className="text-[14px] font-semibold text-ink-primary">
+                              <h3 className="text-[16px] font-semibold text-ink-primary">
                                 {section.name}
                               </h3>
-                              <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-                                What this section should include
-                              </p>
                               {guideline ? (
-                                <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-ink-secondary">
+                                <pre className="mt-4 whitespace-pre-wrap break-words border-t border-subtle pt-4 font-sans text-[13px] leading-7 text-ink-secondary">
                                   {guideline}
-                                </p>
+                                </pre>
                               ) : (
-                                <p className="mt-2 text-[13px] leading-relaxed text-ink-tertiary">
-                                  No detailed guidance was provided for this section. The PRD
+                                <p className="mt-4 border-t border-subtle pt-4 text-[13px] leading-relaxed text-ink-tertiary">
+                                  No detailed content was provided for this section. The PRD
                                   generator will still create a structured section based on the
                                   template name and brief.
                                 </p>
