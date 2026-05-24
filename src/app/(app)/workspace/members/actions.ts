@@ -1,5 +1,6 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
@@ -7,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { logError, logInfo } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
 import { sendNotification } from '@/lib/notifications/send';
+import { setCurrentWorkspaceCookie } from '@/lib/workspace/current-workspace-cookie';
 
 export async function getInvitableUsers(workspaceId: string) {
   await requireWorkspaceRole(workspaceId, ['admin']);
@@ -326,6 +328,9 @@ export async function acceptInvitation(invitationId: string) {
     resourceType: 'workspace',
     resourceId: invitation.workspace_id,
   });
+
+  const cookieStore = await cookies();
+  setCurrentWorkspaceCookie(cookieStore, invitation.workspace_id);
 
   // Notify workspace admins that a new member joined
   const { data: joinerProfile } = await admin

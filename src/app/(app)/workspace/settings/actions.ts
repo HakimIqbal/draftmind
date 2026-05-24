@@ -1,11 +1,16 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { logError } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
+import {
+  clearCurrentWorkspaceCookieIfMatches,
+  setCurrentWorkspaceCookie,
+} from '@/lib/workspace/current-workspace-cookie';
 
 export async function getWorkspaceActivity(workspaceId: string) {
   await requireUser();
@@ -156,6 +161,9 @@ export async function createWorkspace(data: {
     metadata: { name: data.name.trim() },
   });
 
+  const cookieStore = await cookies();
+  setCurrentWorkspaceCookie(cookieStore, ws.id);
+
   revalidatePath('/');
   return { success: true, workspaceId: ws.id };
 }
@@ -185,6 +193,9 @@ export async function leaveWorkspace(workspaceId: string) {
     logError('workspace.leave', error.message, { workspaceId });
     return { error: 'Failed to leave workspace' };
   }
+
+  const cookieStore = await cookies();
+  clearCurrentWorkspaceCookieIfMatches(cookieStore, workspaceId);
 
   await logActivity({
     workspaceId,
@@ -219,6 +230,9 @@ export async function deleteWorkspace(workspaceId: string) {
     logError('workspace.delete', error.message, { workspaceId });
     return { error: 'Failed to delete workspace' };
   }
+
+  const cookieStore = await cookies();
+  clearCurrentWorkspaceCookieIfMatches(cookieStore, workspaceId);
 
   await logActivity({
     workspaceId,

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { setCurrentWorkspaceCookie } from '@/lib/workspace/current-workspace-cookie';
 
 export async function setCurrentWorkspace(workspaceId: string) {
   const supabase = await createClient();
@@ -24,12 +25,7 @@ export async function setCurrentWorkspace(workspaceId: string) {
   if (!member) return;
 
   const cookieStore = await cookies();
-  cookieStore.set('current_workspace_id', workspaceId, {
-    path: '/',
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  setCurrentWorkspaceCookie(cookieStore, workspaceId);
 
   revalidatePath('/');
 }

@@ -3,6 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logError } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
+import {
+  CURRENT_WORKSPACE_COOKIE,
+  CURRENT_WORKSPACE_COOKIE_OPTIONS,
+} from '@/lib/workspace/current-workspace-cookie';
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -69,5 +73,7 @@ export async function POST(request: Request) {
     metadata: { name },
   });
 
-  return NextResponse.json({ workspaceId: ws.id });
+  const response = NextResponse.json({ workspaceId: ws.id });
+  response.cookies.set(CURRENT_WORKSPACE_COOKIE, ws.id, CURRENT_WORKSPACE_COOKIE_OPTIONS);
+  return response;
 }
