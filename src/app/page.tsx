@@ -4,15 +4,40 @@ import { Sparkles, PenLine, FileOutput, ChevronRight } from 'lucide-react';
 import { PRD_SECTION_KEYS } from '@/types/prd';
 import { FeatureShowcase } from '@/components/landing/feature-showcase';
 import { LandingStats } from '@/components/landing/landing-stats';
+import { createClient } from '@/lib/supabase/server';
 
 const EXPORT_FORMATS = ['PDF', 'Word', 'HTML', 'Markdown', 'Slack', 'Jira'] as const;
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
-export default function LandingPage() {
+export default async function LandingPage() {
   const sectionCount = PRD_SECTION_KEYS.length;
   const exportCount = EXPORT_FORMATS.length;
   const fallbackTemplateCount = 12;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let primaryCtaHref = '/login';
+  let primaryCtaLabel = '{primaryCtaLabel}';
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_super_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.is_super_admin) {
+      primaryCtaHref = '/admin';
+      primaryCtaLabel = 'Go to admin';
+    } else {
+      primaryCtaHref = '/dashboard';
+      primaryCtaLabel = 'Go to dashboard';
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -76,10 +101,10 @@ export default function LandingPage() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
               <Link
-                href="/login"
+                href={primaryCtaHref}
                 className="shadow-ink-primary/15 hover:shadow-ink-primary/20 group inline-flex h-12 items-center gap-2 rounded-xl bg-ink-primary px-7 text-[14px] font-medium text-white shadow-xl transition-all hover:shadow-2xl"
               >
-                Start for free
+                {primaryCtaLabel}
                 <ChevronRight
                   size={16}
                   className="transition-transform group-hover:translate-x-0.5"
