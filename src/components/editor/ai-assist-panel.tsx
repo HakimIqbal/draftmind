@@ -250,12 +250,16 @@ export function AIAssistPanel({
         </div>
         {showMore && (
           <div className="grid grid-cols-2 gap-2 px-4 pb-3 duration-200 animate-in fade-in slide-in-from-top-1">
-            {MORE_ACTIONS.map(({ action, label, icon: Icon, desc }) => (
+            {MORE_ACTIONS.map(({ action, label, icon: Icon, desc }, index) => (
               <button
                 key={action}
                 disabled={loading}
                 onClick={() => handleAction(action)}
                 className={`group flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                  MORE_ACTIONS.length % 2 === 1 && index === MORE_ACTIONS.length - 1
+                    ? 'col-span-2'
+                    : ''
+                } ${
                   activeAction === action
                     ? 'border-accent/30 bg-accent/5 shadow-[0_0_0_1px_rgba(232,116,60,0.1)]'
                     : 'hover:border-accent/20 hover:bg-accent/5 border-subtle bg-bg-elevated hover:shadow-sm'
@@ -386,12 +390,12 @@ export function AIAssistPanel({
           )}
 
           {!loading && suggestions.length === 0 && !activeAction && (
-            <div className="flex flex-col items-center justify-center gap-3 py-8">
+            <div className="bg-bg-elevated/50 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-subtle px-4 py-8 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-bg-elevated">
                 <Sparkles size={16} className="text-ink-quaternary" />
               </div>
               <p className="text-center text-[12px] text-ink-quaternary">
-                Select an action to generate suggestions
+                Choose an action to improve this text.
               </p>
             </div>
           )}
