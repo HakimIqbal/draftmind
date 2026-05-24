@@ -24,6 +24,7 @@ interface GenerateFormProps {
   userName: string;
   initialBrief: string;
   initialTemplateId?: string | null;
+  initialFocus?: 'template' | null;
   providers?: { id: string; display_name: string; default_model: string }[];
 }
 
@@ -67,6 +68,7 @@ export function GenerateForm({
   userName,
   initialBrief,
   initialTemplateId,
+  initialFocus,
   providers,
 }: GenerateFormProps) {
   const router = useRouter();
@@ -77,6 +79,7 @@ export function GenerateForm({
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [templateDropdownOpen, setTemplateDropdownOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [templateHighlighted, setTemplateHighlighted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Product details
@@ -119,6 +122,22 @@ export function GenerateForm({
     }
     load();
   }, [workspaceId, initialTemplateId]);
+
+  useEffect(() => {
+    if (initialFocus !== 'template') return;
+
+    const timer = window.setTimeout(() => {
+      dropdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTemplateDropdownOpen(true);
+      setTemplateHighlighted(true);
+    }, 150);
+    const clearTimer = window.setTimeout(() => setTemplateHighlighted(false), 2200);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(clearTimer);
+    };
+  }, [initialFocus]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -242,7 +261,12 @@ export function GenerateForm({
 
       <div className="mt-6 space-y-5">
         {/* Template dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        <div
+          className={`relative rounded-xl transition-all duration-300 ${
+            templateHighlighted ? 'ring-accent/40 ring-offset-bg-base ring-2 ring-offset-4' : ''
+          }`}
+          ref={dropdownRef}
+        >
           <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">Template</label>
           <button
             type="button"

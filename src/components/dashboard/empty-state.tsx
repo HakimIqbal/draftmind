@@ -53,7 +53,7 @@ export function EmptyState({ templateCount = 0 }: { templateCount?: number }) {
           </Card>
         </Link>
 
-        <Link href="/templates">
+        <Link href="/prds/new?focus=template">
           <Card className="cursor-pointer transition-colors hover:border-strong">
             <CardContent className="flex flex-col items-center gap-sm p-lg text-center">
               <LayoutTemplate size={24} className="text-ink-secondary" />

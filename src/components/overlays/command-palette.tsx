@@ -216,7 +216,7 @@ export function CommandPalette() {
               }
             >
               <Command.Item
-                value="Create new PRD"
+                value="Create new PRD Draft from brief"
                 onSelect={() => navigate('/prds/new')}
                 className="flex cursor-pointer items-center gap-sm rounded-md px-sm py-1.5 text-sm text-ink-secondary aria-selected:bg-bg-surface aria-selected:text-ink-primary data-[selected=true]:bg-bg-surface data-[selected=true]:text-ink-primary"
               >
@@ -225,6 +225,14 @@ export function CommandPalette() {
                 <kbd className="rounded border border-subtle bg-bg-surface px-1.5 py-0.5 font-mono text-[10px] text-ink-tertiary">
                   ⌘.
                 </kbd>
+              </Command.Item>
+              <Command.Item
+                value="Start from template Template PRD"
+                onSelect={() => navigate('/prds/new?focus=template')}
+                className="flex cursor-pointer items-center gap-sm rounded-md px-sm py-1.5 text-sm text-ink-secondary aria-selected:bg-bg-surface aria-selected:text-ink-primary data-[selected=true]:bg-bg-surface data-[selected=true]:text-ink-primary"
+              >
+                <FileText size={16} className="shrink-0 text-ink-tertiary" />
+                <span className="flex-1">Start from template</span>
               </Command.Item>
             </Command.Group>
           </Command.List>
