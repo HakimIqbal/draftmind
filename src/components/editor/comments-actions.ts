@@ -1,7 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireUser, requireWorkspaceMember, requireWorkspaceRole } from '@/lib/auth/permissions';
 import { logError } from '@/lib/logging/system-log';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { logActivity } from '@/lib/logging/activity-log';
@@ -16,17 +16,15 @@ export interface SelectionRange {
 // Roles allowed to interact with comments (viewer = read-only)
 const COMMENTER_ROLES = ['admin', 'editor', 'commenter'] as const;
 
-async function getWorkspaceIdFromComment(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  commentId: string,
-): Promise<string | null> {
-  const { data: comment } = await supabase
+async function getWorkspaceIdFromComment(commentId: string): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data: comment } = await admin
     .from('comments')
     .select('prd_id')
     .eq('id', commentId)
     .single();
   if (!comment) return null;
-  const { data: prd } = await supabase
+  const { data: prd } = await admin
     .from('prds')
     .select('workspace_id')
     .eq('id', comment.prd_id)
@@ -40,14 +38,14 @@ export async function addComment(
   parentId: string | null,
   selectionRange?: SelectionRange,
 ) {
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Fetch workspaceId to verify role before insert
-  const { data: prd } = await supabase.from('prds').select('workspace_id').eq('id', prdId).single();
+  const { data: prd } = await admin.from('prds').select('workspace_id').eq('id', prdId).single();
   if (!prd) return { error: 'PRD not found' };
   const { user } = await requireWorkspaceRole(prd.workspace_id, [...COMMENTER_ROLES]);
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('comments')
     .insert({
       prd_id: prdId,
@@ -75,7 +73,7 @@ export async function addComment(
     });
 
     // Get commenter name for notification
-    const { data: profile } = await supabase
+    const { data: profile } = await admin
       .from('profiles')
       .select('full_name')
       .eq('id', user.id)
@@ -83,12 +81,12 @@ export async function addComment(
     const commenterName = profile?.full_name ?? 'Someone';
 
     // Get PRD title for context
-    const { data: prd } = await supabase.from('prds').select('title').eq('id', prdId).single();
+    const { data: prd } = await admin.from('prds').select('title').eq('id', prdId).single();
     const prdTitle = prd?.title ?? 'a PRD';
 
     // Notify PRD owner about new comment (not reply, not self-comment)
     if (!parentId) {
-      const { data: prdOwner } = await supabase
+      const { data: prdOwner } = await admin
         .from('prds')
         .select('owner_id')
         .eq('id', prdId)
@@ -110,7 +108,7 @@ export async function addComment(
 
     // Notify parent comment author on reply
     if (parentId) {
-      const { data: parent } = await supabase
+      const { data: parent } = await admin
         .from('comments')
         .select('author_id')
         .eq('id', parentId)
@@ -135,7 +133,7 @@ export async function addComment(
     const mentions = [...body.matchAll(mentionRegex)].map((m) => m[1]);
     if (mentions.length > 0) {
       // Look up mentioned users by name
-      const { data: mentionedUsers } = await supabase
+      const { data: mentionedUsers } = await admin
         .from('profiles')
         .select('id, full_name')
         .in('full_name', mentions);
@@ -162,12 +160,12 @@ export async function addComment(
 }
 
 export async function resolveComment(commentId: string) {
-  const supabase = await createClient();
-  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  const admin = createAdminClient();
+  const workspaceId = await getWorkspaceIdFromComment(commentId);
   if (!workspaceId) return { error: 'Comment not found' };
   const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('comments')
     .update({ resolved_at: new Date().toISOString() })
     .eq('id', commentId);
@@ -191,15 +189,12 @@ export async function resolveComment(commentId: string) {
 }
 
 export async function unresolveComment(commentId: string) {
-  const supabase = await createClient();
-  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  const admin = createAdminClient();
+  const workspaceId = await getWorkspaceIdFromComment(commentId);
   if (!workspaceId) return { error: 'Comment not found' };
   const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
 
-  const { error } = await supabase
-    .from('comments')
-    .update({ resolved_at: null })
-    .eq('id', commentId);
+  const { error } = await admin.from('comments').update({ resolved_at: null }).eq('id', commentId);
 
   if (error) {
     logError('comments.unresolve', error.message, { commentId }, user.id);
@@ -210,13 +205,13 @@ export async function unresolveComment(commentId: string) {
 }
 
 export async function editComment(commentId: string, body: string) {
-  const supabase = await createClient();
-  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  const admin = createAdminClient();
+  const workspaceId = await getWorkspaceIdFromComment(commentId);
   if (!workspaceId) return { error: 'Comment not found' };
   const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
 
   // Verify ownership
-  const { data: comment } = await supabase
+  const { data: comment } = await admin
     .from('comments')
     .select('author_id')
     .eq('id', commentId)
@@ -226,7 +221,7 @@ export async function editComment(commentId: string, body: string) {
     return { error: 'You can only edit your own comments' };
   }
 
-  const { error } = await supabase.from('comments').update({ body }).eq('id', commentId);
+  const { error } = await admin.from('comments').update({ body }).eq('id', commentId);
 
   if (error) {
     logError('comments.edit', error.message, { commentId }, user.id);
@@ -247,13 +242,13 @@ export async function editComment(commentId: string, body: string) {
 }
 
 export async function deleteComment(commentId: string) {
-  const supabase = await createClient();
-  const workspaceId = await getWorkspaceIdFromComment(supabase, commentId);
+  const admin = createAdminClient();
+  const workspaceId = await getWorkspaceIdFromComment(commentId);
   if (!workspaceId) return { error: 'Comment not found' };
   const { user } = await requireWorkspaceRole(workspaceId, [...COMMENTER_ROLES]);
 
   // Verify ownership
-  const { data: comment } = await supabase
+  const { data: comment } = await admin
     .from('comments')
     .select('author_id')
     .eq('id', commentId)
@@ -264,8 +259,8 @@ export async function deleteComment(commentId: string) {
   }
 
   // Delete replies first, then the comment
-  await supabase.from('comments').delete().eq('parent_id', commentId);
-  const { error } = await supabase.from('comments').delete().eq('id', commentId);
+  await admin.from('comments').delete().eq('parent_id', commentId);
+  const { error } = await admin.from('comments').delete().eq('id', commentId);
 
   if (error) {
     logError('comments.delete', error.message, { commentId }, user.id);
@@ -287,9 +282,13 @@ export async function deleteComment(commentId: string) {
 
 export async function fetchComments(prdId: string, filter: 'open' | 'resolved' | 'me') {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  let query = supabase
+  const { data: prd } = await admin.from('prds').select('workspace_id').eq('id', prdId).single();
+  if (!prd) return [];
+  await requireWorkspaceMember(prd.workspace_id);
+
+  let query = admin
     .from('comments')
     .select('*, author:profiles!comments_author_id_fkey(full_name, avatar_color_seed, avatar_url)')
     .eq('prd_id', prdId)

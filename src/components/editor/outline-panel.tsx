@@ -385,10 +385,6 @@ export function OutlinePanel({
               <dd className="capitalize text-ink-primary">{prd.status.replace('_', ' ')}</dd>
             </div>
             <div>
-              <dt className="font-mono text-[10px] uppercase text-ink-tertiary">Version</dt>
-              <dd className="text-ink-primary">v{prd.current_version}</dd>
-            </div>
-            <div>
               <dt className="font-mono text-[10px] uppercase text-ink-tertiary">Word Count</dt>
               <dd className="text-ink-primary" suppressHydrationWarning>
                 {prd.word_count.toLocaleString()}
