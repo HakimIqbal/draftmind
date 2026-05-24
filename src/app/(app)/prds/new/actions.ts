@@ -2,6 +2,7 @@
 
 import { requireUser } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createEmptyPRD } from '@/lib/prd/schema';
 import { redirect } from 'next/navigation';
 import { logActivity } from '@/lib/logging/activity-log';
@@ -32,9 +33,9 @@ export async function getTemplates() {
 
 export async function getWorkspaceMembers(workspaceId: string) {
   await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('workspace_members')
     .select('user_id, role, profile:profiles(full_name, email, role_self_reported)')
     .eq('workspace_id', workspaceId);
