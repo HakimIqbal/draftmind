@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { BarChart3, Plus, Sparkles } from 'lucide-react';
+import { BarChart3, Sparkles } from 'lucide-react';
 import { Chip } from '@/components/ui/chip';
 
 interface AiRun {
@@ -108,58 +108,41 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
 
   return (
     <div className="mx-auto max-w-6xl px-lg py-lg">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-bold text-ink-primary">AI Runs</h1>
-          <p className="mt-1 text-sm text-ink-secondary">
-            Track generations, refinements, reviews, and suggestions for this workspace.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/prds/new"
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-ink-primary px-4 text-sm font-medium text-white transition hover:opacity-90"
-          >
-            <Plus size={14} className="mr-1.5" />
-            Create PRD
-          </Link>
-          <Link
-            href="/templates"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-subtle bg-white px-4 text-sm font-medium text-ink-primary transition hover:bg-bg-surface"
-          >
-            Browse templates
-          </Link>
-        </div>
+      <div>
+        <h1 className="text-[22px] font-bold text-ink-primary">AI Runs</h1>
+        <p className="mt-1 text-sm text-[#888]">
+          Track generations, refinements, reviews, and suggestions for this workspace.
+        </p>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-subtle bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Total runs</p>
+        <div className="rounded-xl border border-[#eee] bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-[#aaa]">Total runs</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">{runs.length}</p>
-          <p className="mt-1 text-xs text-ink-tertiary">All AI activity in this workspace</p>
+          <p className="mt-1 text-xs text-[#999]">All AI activity in this workspace</p>
         </div>
-        <div className="rounded-xl border border-subtle bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Successful</p>
+        <div className="rounded-xl border border-[#eee] bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-[#aaa]">Successful</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">{summary.success}</p>
-          <p className="mt-1 text-xs text-ink-tertiary">Completed without errors</p>
+          <p className="mt-1 text-xs text-[#999]">Completed without errors</p>
         </div>
-        <div className="rounded-xl border border-subtle bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Failed</p>
+        <div className="rounded-xl border border-[#eee] bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-[#aaa]">Failed</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">{summary.failed}</p>
-          <p className="mt-1 text-xs text-ink-tertiary">Runs that need attention</p>
+          <p className="mt-1 text-xs text-[#999]">Runs that need attention</p>
         </div>
-        <div className="rounded-xl border border-subtle bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Tokens used</p>
+        <div className="rounded-xl border border-[#eee] bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-[#aaa]">Tokens used</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">
             {summary.totalTokens.toLocaleString()}
           </p>
-          <p className="mt-1 text-xs text-ink-tertiary">
+          <p className="mt-1 text-xs text-[#999]">
             Avg latency: {summary.avgLatency ? `${(summary.avgLatency / 1000).toFixed(1)}s` : '—'}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 flex items-center gap-xs border-b border-subtle">
+      <div className="mt-6 flex items-center gap-xs border-b border-[#eee]">
         {FILTERS.map((f) => (
           <Chip key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>
             {f.label}
@@ -168,38 +151,23 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
       </div>
 
       {!hasRuns ? (
-        <div className="mt-8 rounded-2xl border border-subtle bg-white p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-bg-surface text-ink-secondary">
+        <div className="mt-8 rounded-2xl border border-[#eee] bg-white p-10 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f5f4] text-[#888]">
             <Sparkles size={20} />
           </div>
           <h2 className="mt-4 text-lg font-semibold text-ink-primary">No AI activity yet</h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-ink-secondary">
+          <p className="mx-auto mt-2 max-w-xl text-sm text-[#888]">
             Generate a PRD, refine a section, review content, or request a suggestion and the run
             history will appear here automatically.
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            <Link
-              href="/prds/new"
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-ink-primary px-4 text-sm font-medium text-white transition hover:opacity-90"
-            >
-              <Plus size={14} className="mr-1.5" />
-              Create PRD
-            </Link>
-            <Link
-              href="/templates"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-subtle bg-white px-4 text-sm font-medium text-ink-primary transition hover:bg-bg-surface"
-            >
-              Browse templates
-            </Link>
-          </div>
         </div>
       ) : !hasFilteredRuns ? (
-        <div className="mt-8 rounded-2xl border border-subtle bg-white p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-bg-surface text-ink-secondary">
+        <div className="mt-8 rounded-2xl border border-[#eee] bg-white p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f5f4] text-[#888]">
             <BarChart3 size={20} />
           </div>
           <h2 className="mt-4 text-lg font-semibold text-ink-primary">No runs for this filter</h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-ink-secondary">
+          <p className="mx-auto mt-2 max-w-xl text-sm text-[#888]">
             This workspace has AI activity, but none matches the selected tab yet. Try another
             filter or create a new run.
           </p>
@@ -208,7 +176,7 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-subtle font-mono text-[11px] uppercase text-ink-tertiary">
+              <tr className="border-b border-[#eee] font-mono text-[11px] uppercase text-[#999]">
                 <th className="h-8 px-sm font-normal">Time</th>
                 <th className="h-8 px-sm font-normal">Type</th>
                 <th className="h-8 px-sm font-normal">PRD</th>
@@ -232,9 +200,9 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
                 return (
                   <tr
                     key={run.id}
-                    className="border-subtle/50 h-11 border-b transition-colors hover:bg-bg-surface"
+                    className="h-11 border-b border-[#f5f5f4] transition-colors hover:bg-[#fafaf9]"
                   >
-                    <td className="px-sm font-mono text-[11px] text-ink-tertiary">
+                    <td className="px-sm font-mono text-[11px] text-[#999]">
                       {formatRelativeTime(run.created_at)}
                     </td>
                     <td className="px-sm">
@@ -252,17 +220,17 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
                           {prdTitle ?? 'View PRD'}
                         </Link>
                       ) : (
-                        <span className="text-ink-tertiary">—</span>
+                        <span className="text-[#999]">—</span>
                       )}
                     </td>
-                    <td className="px-sm font-mono text-[11px] text-ink-secondary">
+                    <td className="px-sm font-mono text-[11px] text-[#888]">
                       {run.model_used ?? '—'}
                     </td>
-                    <td className="px-sm font-mono text-[11px] text-ink-secondary">
+                    <td className="px-sm font-mono text-[11px] text-[#888]">
                       {formatDuration(run.duration_ms)}
                     </td>
                     <td
-                      className="px-sm font-mono text-[11px] text-ink-secondary"
+                      className="px-sm font-mono text-[11px] text-[#888]"
                       suppressHydrationWarning
                     >
                       {formatTokens(run.total_tokens)}
