@@ -83,6 +83,7 @@ export async function createPRDAndGenerate(data: {
   const user = await requireUser();
   const authenticatedUserId = user.id;
   const supabase = await createClient();
+  const admin = createAdminClient();
   const emptyPRD = createEmptyPRD(authenticatedUserId, data.title);
 
   // If template selected, fetch its structure for AI context
@@ -98,13 +99,13 @@ export async function createPRDAndGenerate(data: {
         template.structure as { sections?: { name: string; guidelines: string }[] }
       ).sections;
       // Increment use count
-      const { data: current } = await supabase
+      const { data: current } = await admin
         .from('prd_templates')
         .select('use_count')
         .eq('id', data.templateId)
         .single();
       if (current) {
-        await supabase
+        await admin
           .from('prd_templates')
           .update({ use_count: (current.use_count ?? 0) + 1 })
           .eq('id', data.templateId);
@@ -112,7 +113,7 @@ export async function createPRDAndGenerate(data: {
     }
   }
 
-  const { data: prd, error } = await supabase
+  const { data: prd, error } = await admin
     .from('prds')
     .insert({
       workspace_id: data.workspaceId,
@@ -141,7 +142,15 @@ export async function createPRDAndGenerate(data: {
     .select('id')
     .single();
 
-  if (error || !prd) throw new Error('Failed to create PRD');
+  if (error || !prd) {
+    logInfo(
+      'prd.create',
+      `Failed to create PRD: ${error?.message ?? 'unknown error'}`,
+      { workspaceId: data.workspaceId, title: data.title },
+      authenticatedUserId,
+    );
+    throw new Error(error?.message ?? 'Failed to create PRD');
+  }
 
   await logActivity({
     workspaceId: data.workspaceId,
@@ -158,7 +167,7 @@ export async function createPRDAndGenerate(data: {
     authenticatedUserId,
   );
 
-  const { error: aiRunError } = await supabase.from('ai_runs').insert({
+  const { error: aiRunError } = await admin.from('ai_runs').insert({
     workspace_id: data.workspaceId,
     prd_id: prd.id,
     user_id: authenticatedUserId,
@@ -190,7 +199,13 @@ export async function createPRDAndGenerate(data: {
   });
 
   if (aiRunError) {
-    throw new Error('Failed to queue PRD generation');
+    logInfo(
+      'prd.create',
+      `Failed to queue AI run: ${aiRunError.message}`,
+      { workspaceId: data.workspaceId, title: data.title },
+      authenticatedUserId,
+    );
+    throw new Error(aiRunError.message ?? 'Failed to queue PRD generation');
   }
 
   redirect(`/prds/${prd.id}?generating=true`);
