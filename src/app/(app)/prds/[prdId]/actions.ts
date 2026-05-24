@@ -4,8 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
+import { tiptapToPRD, countTiptapWords, type TiptapDoc } from '@/lib/prd/tiptap-content';
+import { computeHealthScore } from '@/lib/prd/health-score';
+import { PRDDocumentSchema } from '@/lib/prd/schema';
 import { logError } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
 import { sendNotification } from '@/lib/notifications/send';
@@ -125,31 +128,28 @@ export async function restoreVersion(prdId: string, versionId: string) {
   const workspace = await getCurrentWorkspace(user.id);
   if (!workspace) return { error: 'No workspace found' };
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  // Get the version content
-  const { data: version } = await supabase
+  const { data: version, error: versionError } = await admin
     .from('prd_versions')
     .select('content, version_number')
     .eq('id', versionId)
     .eq('prd_id', prdId)
     .single();
 
-  if (!version) return { error: 'Version not found' };
+  if (!version || versionError) return { error: 'Version not found' };
 
-  // Get current PRD
-  const { data: prd } = await supabase
+  const { data: prd, error: prdError } = await admin
     .from('prds')
     .select('current_version, content, tiptap_content')
     .eq('id', prdId)
     .single();
 
-  if (!prd) return { error: 'PRD not found' };
+  if (!prd || prdError) return { error: 'PRD not found' };
 
-  const nextVersion = prd.current_version + 1;
+  const nextVersion = (prd.current_version ?? 0) + 1;
 
-  // Save current state as a version before restoring
-  await supabase.from('prd_versions').insert({
+  const { error: snapshotError } = await admin.from('prd_versions').insert({
     prd_id: prdId,
     version_number: nextVersion,
     content: prd.tiptap_content ?? prd.content,
@@ -158,18 +158,61 @@ export async function restoreVersion(prdId: string, versionId: string) {
     created_by: user.id,
   });
 
-  // Update PRD with the restored content (version.content is tiptap format)
-  const { error } = await supabase
-    .from('prds')
-    .update({
-      tiptap_content: version.content,
-      current_version: nextVersion,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', prdId);
+  if (snapshotError) {
+    logError('prd.restore-version', snapshotError.message, { prdId, versionId }, user.id);
+    return { error: 'Failed to snapshot current version before restore' };
+  }
 
-  if (error) {
-    logError('prd.restore-version', error.message, { prdId, versionId }, user.id);
+  const restoredTiptap = version.content as unknown as TiptapDoc;
+  const parsedExisting = PRDDocumentSchema.safeParse(prd.content);
+  let structuredContent: unknown = prd.content;
+  let healthScore: number | null = null;
+  let healthBreakdown: unknown = null;
+  let wordCount: number | null = null;
+
+  if (parsedExisting.success) {
+    try {
+      const updatedDocument = tiptapToPRD(restoredTiptap, parsedExisting.data);
+      const health = computeHealthScore(updatedDocument);
+      structuredContent = updatedDocument;
+      healthScore = health.score;
+      healthBreakdown = health.breakdown;
+      wordCount = countTiptapWords(version.content as unknown as Record<string, unknown>);
+    } catch (err) {
+      logError(
+        'prd.restore-version.health',
+        err instanceof Error ? err.message : 'Failed to recompute health score on restore',
+        { prdId, versionId },
+        user.id,
+      );
+    }
+  } else {
+    logError(
+      'prd.restore-version',
+      'Stored PRD content failed schema validation',
+      { prdId },
+      user.id,
+    );
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    tiptap_content: version.content,
+    content: structuredContent,
+    current_version: nextVersion,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (healthScore !== null) updatePayload.health_score = healthScore;
+  if (healthBreakdown !== null) updatePayload.health_breakdown = healthBreakdown;
+  if (wordCount !== null) {
+    updatePayload.word_count = wordCount;
+    updatePayload.read_time_minutes = Math.max(1, Math.round(wordCount / 200));
+  }
+
+  const { error: updateError } = await admin.from('prds').update(updatePayload).eq('id', prdId);
+
+  if (updateError) {
+    logError('prd.restore-version', updateError.message, { prdId, versionId }, user.id);
     return { error: 'Failed to restore version' };
   }
 
@@ -190,9 +233,9 @@ export async function restoreVersion(prdId: string, versionId: string) {
 export async function renameVersion(prdId: string, versionId: string, name: string) {
   const user = await requireUser();
   const workspace = await getCurrentWorkspace(user.id);
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('prd_versions')
     .update({ change_summary: name })
     .eq('id', versionId)
