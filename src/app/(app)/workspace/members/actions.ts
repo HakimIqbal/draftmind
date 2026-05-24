@@ -3,7 +3,6 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logError, logInfo } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
@@ -289,10 +288,9 @@ export async function revokeInvitation(workspaceId: string, invitationId: string
 
 export async function acceptInvitation(invitationId: string) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Get invitation
-  const admin = createAdminClient();
   const { data: invitation } = await admin
     .from('workspace_invitations')
     .select('id, workspace_id, email, role, expires_at, accepted_at, revoked_at')
@@ -305,11 +303,7 @@ export async function acceptInvitation(invitationId: string) {
   if (new Date(invitation.expires_at) < new Date()) return { error: 'Invitation has expired' };
 
   // Verify the invitation is for this user
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('email')
-    .eq('id', user.id)
-    .single();
+  const { data: profile } = await admin.from('profiles').select('email').eq('id', user.id).single();
   if (!profile || profile.email.toLowerCase() !== invitation.email.toLowerCase()) {
     return { error: 'This invitation is not for you' };
   }
@@ -400,10 +394,9 @@ export async function acceptInvitation(invitationId: string) {
 
 export async function rejectInvitation(invitationId: string) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Get invitation with inviter info
-  const admin = createAdminClient();
   const { data: invitation } = await admin
     .from('workspace_invitations')
     .select('id, email, workspace_id, invited_by')
@@ -413,7 +406,7 @@ export async function rejectInvitation(invitationId: string) {
   if (!invitation) return { error: 'Invitation not found' };
 
   // Verify the invitation is for this user
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('profiles')
     .select('email, full_name')
     .eq('id', user.id)
