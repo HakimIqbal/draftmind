@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,10 +27,18 @@ export function TemplateCard({ template, onEdit, canManage = false }: TemplateCa
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isNavigating, startNavigation] = useTransition();
   const isCustom = !template.is_built_in;
 
+  useEffect(() => {
+    router.prefetch(`/prds/new?template=${template.id}&focus=template`);
+  }, [router, template.id]);
+
   function handleUse() {
-    router.push(`/prds/new?template=${template.id}`);
+    toast.info('Opening template...');
+    startNavigation(() => {
+      router.push(`/prds/new?template=${template.id}&focus=template`);
+    });
   }
 
   async function handleDelete() {
@@ -120,8 +128,8 @@ export function TemplateCard({ template, onEdit, canManage = false }: TemplateCa
         <span className="font-mono text-[11px] text-ink-tertiary">
           {template.use_count} {template.use_count === 1 ? 'use' : 'uses'}
         </span>
-        <Button variant="outline" size="sm" onClick={handleUse}>
-          Use
+        <Button variant="outline" size="sm" onClick={handleUse} disabled={isNavigating}>
+          {isNavigating ? 'Opening...' : 'Use'}
         </Button>
       </div>
     </Card>
