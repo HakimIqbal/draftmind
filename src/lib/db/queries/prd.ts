@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export interface PRDListItem {
   id: string;
@@ -34,9 +34,9 @@ export async function getPRDsByWorkspace(
   limit: number = 50,
   offset: number = 0,
 ): Promise<PRDListResult> {
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  let query = supabase
+  let query = admin
     .from('prds')
     .select(
       'id, title, project_tag, status, health_score, word_count, updated_at, created_at, owner:profiles!prds_owner_id_fkey(id, full_name, avatar_color_seed, avatar_url)',
@@ -56,7 +56,12 @@ export async function getPRDsByWorkspace(
   const ascending = false;
   query = query.order(sortField, { ascending }).range(offset, offset + limit - 1);
 
-  const { data, count } = await query;
+  const { data, count, error } = await query;
+
+  if (error) {
+    console.error('[getPRDsByWorkspace] failed', { workspaceId, filters, error });
+    return { items: [], total: 0 };
+  }
 
   const items = (data ?? []).map((row) => ({
     ...row,
@@ -67,11 +72,16 @@ export async function getPRDsByWorkspace(
 }
 
 export async function getPRDCountByWorkspace(workspaceId: string): Promise<number> {
-  const supabase = await createClient();
-  const { count } = await supabase
+  const admin = createAdminClient();
+  const { count, error } = await admin
     .from('prds')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
+
+  if (error) {
+    console.error('[getPRDCountByWorkspace] failed', { workspaceId, error });
+    return 0;
+  }
 
   return count ?? 0;
 }
