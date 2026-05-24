@@ -68,7 +68,10 @@ async function launchBrowserAndGeneratePDF(html: string): Promise<Buffer> {
       if (browser) await browser.close();
     }
   } catch (err) {
-    logError('export.pdf', err instanceof Error ? err.message : 'PDF export failed', {});
+    const detail =
+      err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+    console.error('[export.pdf] failed', detail);
+    logError('export.pdf', detail.message, detail);
     throw new Error('PDF export failed. Please try again.');
   }
 }
