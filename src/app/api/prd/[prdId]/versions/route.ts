@@ -69,7 +69,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ prd
 
   if (!prd) return NextResponse.json({ error: 'PRD not found' }, { status: 404 });
 
-  const newContent = prd.tiptap_content ?? prd.content;
+  const requestContent = body.content as Record<string, unknown> | undefined;
+  const newContent = requestContent ?? prd.tiptap_content ?? prd.content;
 
   // Skip if content is identical to latest version (no actual changes)
   const admin = createAdminClient();

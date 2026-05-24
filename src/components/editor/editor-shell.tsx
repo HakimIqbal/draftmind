@@ -187,10 +187,6 @@ export function EditorShell({
     [prd.id],
   );
 
-  const toggleHistory = useCallback(() => {
-    setHistoryMode((prev) => !prev);
-  }, []);
-
   const handleEditorReady = useCallback((editor: Editor | null) => {
     setEditorInstance(editor);
   }, []);
@@ -246,25 +242,34 @@ export function EditorShell({
   contentUpdatedByRef.current = contentUpdatedBy;
 
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle' | 'error'>('idle');
+  const initialEditorContent = prd.tiptap_content ?? prd.content;
+  const [currentEditorContent, setCurrentEditorContent] =
+    useState<Record<string, unknown>>(initialEditorContent);
+  const currentEditorContentRef = useRef<Record<string, unknown>>(initialEditorContent);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasUnsavedEditsRef = useRef(false);
   const isSavingRef = useRef(false);
   const pendingContentRef = useRef<Record<string, unknown> | null>(null);
 
-  // Create a version snapshot (fire-and-forget)
-  const createVersionSnapshot = useCallback(async () => {
-    try {
-      await fetch(`/api/prd/${prd.id}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: 'Auto-saved', source: 'auto_save' }),
-      });
-      hasUnsavedEditsRef.current = false;
-    } catch {
-      /* ignore */
-    }
-  }, [prd.id]);
+  // Create a version snapshot from the latest editor state.
+  // Do not rely on DB timing here: the last autosave can still be in-flight.
+  const createVersionSnapshot = useCallback(
+    async (contentOverride?: Record<string, unknown>) => {
+      try {
+        const content = contentOverride ?? currentEditorContentRef.current;
+        const res = await fetch(`/api/prd/${prd.id}/versions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ summary: 'Auto-saved', source: 'auto_save', content }),
+        });
+        if (res.ok) hasUnsavedEditsRef.current = false;
+      } catch {
+        /* ignore */
+      }
+    },
+    [prd.id],
+  );
 
   // Schedule version on idle (10s after last edit)
   const scheduleIdleVersion = useCallback(() => {
@@ -291,12 +296,17 @@ export function EditorShell({
 
   const handleUpdate = useCallback(
     (content: Record<string, unknown>) => {
+      currentEditorContentRef.current = content;
+      setCurrentEditorContent(content);
+
       if (isSavingRef.current) {
         pendingContentRef.current = content;
         return;
       }
 
       function doSave(contentToSave: Record<string, unknown>) {
+        currentEditorContentRef.current = contentToSave;
+        setCurrentEditorContent(contentToSave);
         isSavingRef.current = true;
         setSaveStatus('saving');
         savePRDContent(prd.id, contentToSave)
@@ -361,13 +371,15 @@ export function EditorShell({
 
         // Force immediate save + version snapshot
         const content = editorInstance.getJSON() as Record<string, unknown>;
+        currentEditorContentRef.current = content;
+        setCurrentEditorContent(content);
         setSaveStatus('saving');
         savePRDContent(prd.id, content)
           .then((result) => {
             if (result.ok) {
               setSaveStatus('saved');
               setTimeout(() => setSaveStatus('idle'), 2000);
-              createVersionSnapshot();
+              createVersionSnapshot(content);
               broadcastContentSaved();
               setLocalUpdatedAt(new Date().toISOString());
               setLocalLastEditor({
@@ -596,7 +608,7 @@ export function EditorShell({
     }
   }, [contentUpdatedBy, router, clearContentUpdate]);
 
-  const editorContent = prd.tiptap_content ?? prd.content;
+  const editorContent = currentEditorContent;
 
   const [savedAgo, setSavedAgo] = useState(() => formatRelativeTime(localUpdatedAt));
   useEffect(() => {
@@ -607,12 +619,29 @@ export function EditorShell({
     return () => clearInterval(interval);
   }, [localUpdatedAt]);
 
+  const enterHistory = useCallback(async () => {
+    if (editorInstance && !editorInstance.isDestroyed) {
+      const latest = editorInstance.getJSON() as Record<string, unknown>;
+      currentEditorContentRef.current = latest;
+      setCurrentEditorContent(latest);
+      setSaveStatus('saving');
+      const result = await savePRDContent(prd.id, latest);
+      if (result.ok) {
+        setSaveStatus('saved');
+        await createVersionSnapshot(latest);
+      } else {
+        setSaveStatus('error');
+      }
+    }
+    setHistoryMode(true);
+  }, [editorInstance, prd.id, createVersionSnapshot]);
+
   // Full-page history mode — replaces entire editor
   if (historyMode) {
     return (
       <HistoryView
         prdId={prd.id}
-        currentContent={prd.tiptap_content}
+        currentContent={currentEditorContent}
         onClose={() => setHistoryMode(false)}
         onRestore={() => {
           setHistoryMode(false);
@@ -657,7 +686,7 @@ export function EditorShell({
               prd={{ ...prd, status: localStatus }}
               userName={userName}
               canChangeStatus={canChangeStatus}
-              onToggleHistory={toggleHistory}
+              onToggleHistory={enterHistory}
               lastEditorName={localLastEditor.name}
               lastEditorEmail={localLastEditor.email}
               lastEditorAvatar={localLastEditor.avatar}
