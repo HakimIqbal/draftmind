@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { ChevronDown, Plus, Check, X } from 'lucide-react';
@@ -29,6 +30,7 @@ interface WorkspaceSwitcherProps {
 }
 
 export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceSwitcherProps) {
+  const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -77,6 +79,7 @@ export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceS
     startTransition(async () => {
       await setCurrentWorkspace(wsId);
       setDropdownOpen(false);
+      router.refresh();
     });
   }
 
@@ -100,6 +103,7 @@ export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceS
         setNewTeamSize('');
         if (result.workspaceId) {
           await setCurrentWorkspace(result.workspaceId);
+          router.refresh();
         }
       }
     });
