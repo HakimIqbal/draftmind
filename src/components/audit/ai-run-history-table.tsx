@@ -110,39 +110,39 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
     <div className="mx-auto max-w-6xl px-lg py-lg">
       <div>
         <h1 className="text-[22px] font-bold text-ink-primary">AI Runs</h1>
-        <p className="mt-1 text-sm text-[#888]">
+        <p className="mt-1 text-sm text-ink-secondary">
           Track generations, refinements, reviews, and suggestions for this workspace.
         </p>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-[#eee] bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-[#aaa]">Total runs</p>
+        <div className="rounded-xl border border-subtle bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Total runs</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">{runs.length}</p>
-          <p className="mt-1 text-xs text-[#999]">All AI activity in this workspace</p>
+          <p className="mt-1 text-xs text-ink-tertiary">All AI activity in this workspace</p>
         </div>
-        <div className="rounded-xl border border-[#eee] bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-[#aaa]">Successful</p>
+        <div className="rounded-xl border border-subtle bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Successful</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">{summary.success}</p>
-          <p className="mt-1 text-xs text-[#999]">Completed without errors</p>
+          <p className="mt-1 text-xs text-ink-tertiary">Completed without errors</p>
         </div>
-        <div className="rounded-xl border border-[#eee] bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-[#aaa]">Failed</p>
+        <div className="rounded-xl border border-subtle bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Failed</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">{summary.failed}</p>
-          <p className="mt-1 text-xs text-[#999]">Runs that need attention</p>
+          <p className="mt-1 text-xs text-ink-tertiary">Runs that need attention</p>
         </div>
-        <div className="rounded-xl border border-[#eee] bg-white p-4">
-          <p className="text-[11px] font-medium uppercase text-[#aaa]">Tokens used</p>
+        <div className="rounded-xl border border-subtle bg-white p-4">
+          <p className="text-[11px] font-medium uppercase text-ink-quaternary">Tokens used</p>
           <p className="mt-1 text-[28px] font-bold text-ink-primary">
             {summary.totalTokens.toLocaleString()}
           </p>
-          <p className="mt-1 text-xs text-[#999]">
+          <p className="mt-1 text-xs text-ink-tertiary">
             Avg latency: {summary.avgLatency ? `${(summary.avgLatency / 1000).toFixed(1)}s` : '—'}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 flex items-center gap-xs border-b border-[#eee]">
+      <div className="mt-6 flex items-center gap-xs border-b border-subtle">
         {FILTERS.map((f) => (
           <Chip key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>
             {f.label}
@@ -151,23 +151,23 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
       </div>
 
       {!hasRuns ? (
-        <div className="mt-8 rounded-2xl border border-[#eee] bg-white p-10 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f5f4] text-[#888]">
+        <div className="mt-8 rounded-2xl border border-subtle bg-white p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-bg-surface text-ink-secondary">
             <Sparkles size={20} />
           </div>
           <h2 className="mt-4 text-lg font-semibold text-ink-primary">No AI activity yet</h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-[#888]">
+          <p className="mx-auto mt-2 max-w-xl text-sm text-ink-secondary">
             Generate a PRD, refine a section, review content, or request a suggestion and the run
             history will appear here automatically.
           </p>
         </div>
       ) : !hasFilteredRuns ? (
-        <div className="mt-8 rounded-2xl border border-[#eee] bg-white p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f5f4] text-[#888]">
+        <div className="mt-8 rounded-2xl border border-subtle bg-white p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-bg-surface text-ink-secondary">
             <BarChart3 size={20} />
           </div>
           <h2 className="mt-4 text-lg font-semibold text-ink-primary">No runs for this filter</h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-[#888]">
+          <p className="mx-auto mt-2 max-w-xl text-sm text-ink-secondary">
             This workspace has AI activity, but none matches the selected tab yet. Try another
             filter or create a new run.
           </p>
@@ -176,7 +176,7 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-[#eee] font-mono text-[11px] uppercase text-[#999]">
+              <tr className="border-b border-subtle font-mono text-[11px] uppercase text-ink-tertiary">
                 <th className="h-8 px-sm font-normal">Time</th>
                 <th className="h-8 px-sm font-normal">Type</th>
                 <th className="h-8 px-sm font-normal">PRD</th>
@@ -200,9 +200,9 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
                 return (
                   <tr
                     key={run.id}
-                    className="h-11 border-b border-[#f5f5f4] transition-colors hover:bg-[#fafaf9]"
+                    className="h-11 border-b border-subtle transition-colors hover:bg-bg-surface"
                   >
-                    <td className="px-sm font-mono text-[11px] text-[#999]">
+                    <td className="px-sm font-mono text-[11px] text-ink-tertiary">
                       {formatRelativeTime(run.created_at)}
                     </td>
                     <td className="px-sm">
@@ -220,17 +220,17 @@ export function AiRunHistoryTable({ runs }: { runs: AiRun[] }) {
                           {prdTitle ?? 'View PRD'}
                         </Link>
                       ) : (
-                        <span className="text-[#999]">—</span>
+                        <span className="text-ink-tertiary">—</span>
                       )}
                     </td>
-                    <td className="px-sm font-mono text-[11px] text-[#888]">
+                    <td className="px-sm font-mono text-[11px] text-ink-secondary">
                       {run.model_used ?? '—'}
                     </td>
-                    <td className="px-sm font-mono text-[11px] text-[#888]">
+                    <td className="px-sm font-mono text-[11px] text-ink-secondary">
                       {formatDuration(run.duration_ms)}
                     </td>
                     <td
-                      className="px-sm font-mono text-[11px] text-[#888]"
+                      className="px-sm font-mono text-[11px] text-ink-secondary"
                       suppressHydrationWarning
                     >
                       {formatTokens(run.total_tokens)}
