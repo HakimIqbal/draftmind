@@ -12,11 +12,7 @@ import {
   FolderOpen,
   Eye,
 } from 'lucide-react';
-import {
-  createPRDAndGenerate,
-  getTemplates,
-  getWorkspaceMembers,
-} from '@/app/(app)/prds/new/actions';
+import { createPRDAndGenerate, getTemplates } from '@/app/(app)/prds/new/actions';
 
 interface GenerateFormProps {
   userId: string;
@@ -26,6 +22,7 @@ interface GenerateFormProps {
   initialTemplateId?: string | null;
   initialFocus?: 'template' | null;
   providers?: { id: string; display_name: string; default_model: string }[];
+  initialMembers?: WorkspaceMember[];
 }
 
 interface Template {
@@ -70,6 +67,7 @@ export function GenerateForm({
   initialTemplateId,
   initialFocus,
   providers,
+  initialMembers = [],
 }: GenerateFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -106,22 +104,21 @@ export function GenerateForm({
   const [brief, setBrief] = useState(initialBrief);
 
   const [error, setError] = useState('');
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [members] = useState<WorkspaceMember[]>(initialMembers);
   const [selectedProviderId, setSelectedProviderId] = useState(providers?.[0]?.id ?? '');
 
   const wordCount = brief.trim().split(/\s+/).filter(Boolean).length;
 
   useEffect(() => {
     async function load() {
-      const [t, m] = await Promise.all([getTemplates(), getWorkspaceMembers(workspaceId)]);
+      const t = await getTemplates();
       setTemplates(t);
       if (initialTemplateId) {
         setSelectedTemplate(t.find((template) => template.id === initialTemplateId) ?? null);
       }
-      setMembers(m);
     }
     load();
-  }, [workspaceId, initialTemplateId]);
+  }, [initialTemplateId]);
 
   useEffect(() => {
     if (initialFocus !== 'template') return;
@@ -800,12 +797,15 @@ function MemberPicker({
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = members.filter(
-    (m) =>
-      !selected.some((s) => s.id === m.id) &&
-      (m.name.toLowerCase().includes(query.toLowerCase()) ||
-        m.email.toLowerCase().includes(query.toLowerCase())),
-  );
+  const normalizedQuery = query.replace(/^@+/, '').trim().toLowerCase();
+  const filtered = members.filter((m) => {
+    if (selected.some((s) => s.id === m.id)) return false;
+    if (!normalizedQuery) return true;
+
+    return [m.name, m.email, m.role]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(normalizedQuery));
+  });
 
   function handleSelect(member: WorkspaceMember) {
     onChange([...selected, member]);
@@ -819,8 +819,8 @@ function MemberPicker({
   }
 
   function handleInputChange(value: string) {
-    setQuery(value.replace('@', ''));
-    setShowDropdown(value.length > 0 || value.includes('@'));
+    setQuery(value.replace(/^@+/, ''));
+    setShowDropdown(true);
   }
 
   return (
@@ -870,9 +870,11 @@ function MemberPicker({
         </div>
       )}
 
-      {showDropdown && filtered.length === 0 && query.length > 0 && (
+      {showDropdown && filtered.length === 0 && (
         <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl border border-[#eee] bg-white p-3 text-center shadow-lg">
-          <p className="text-[12px] text-[#999]">No members found</p>
+          <p className="text-[12px] text-[#999]">
+            {members.length === 0 ? 'No workspace members available' : 'No matching members found'}
+          </p>
         </div>
       )}
     </div>

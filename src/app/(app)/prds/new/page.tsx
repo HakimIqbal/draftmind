@@ -3,6 +3,7 @@ import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { GenerateForm } from '@/components/generate/generate-form';
+import { getWorkspaceMembers } from './actions';
 
 export default async function GeneratePrdPage({
   searchParams,
@@ -18,13 +19,17 @@ export default async function GeneratePrdPage({
   const initialTemplateId = params.template ?? null;
   const initialFocus = params.focus === 'template' ? 'template' : null;
 
-  // Fetch active providers for model selector
+  // Fetch active providers + workspace members before hydration so the Developer picker
+  // is populated immediately and does not depend on a client-side server action round trip.
   const adminSupa = createAdminClient();
-  const { data: providersList } = await adminSupa
-    .from('providers')
-    .select('id, display_name, default_model')
-    .eq('status', 'active')
-    .order('priority', { ascending: true });
+  const [{ data: providersList }, initialMembers] = await Promise.all([
+    adminSupa
+      .from('providers')
+      .select('id, display_name, default_model')
+      .eq('status', 'active')
+      .order('priority', { ascending: true }),
+    getWorkspaceMembers(workspace.id as string),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl p-lg">
@@ -40,6 +45,7 @@ export default async function GeneratePrdPage({
           display_name: p.display_name,
           default_model: p.default_model,
         }))}
+        initialMembers={initialMembers}
       />
     </div>
   );
