@@ -33,7 +33,7 @@ export async function createTemplate(data: TemplateFormData) {
     workspace_id: workspace.id,
     name: data.name,
     description: data.description || null,
-    category: data.category,
+    category: 'custom',
     structure,
     is_built_in: false,
   });
@@ -76,7 +76,8 @@ export async function updateTemplate(templateId: string, data: Partial<TemplateF
   const updates: Record<string, unknown> = {};
   if (data.name !== undefined) updates.name = data.name;
   if (data.description !== undefined) updates.description = data.description || null;
-  if (data.category !== undefined) updates.category = data.category;
+  // Custom workspace templates always stay in the Custom bucket.
+  if (data.category !== undefined) updates.category = 'custom';
   if (data.sections !== undefined) {
     const gl = data.guidelines ?? {};
     updates.structure = {

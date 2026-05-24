@@ -53,14 +53,14 @@ export async function inviteMember(
   role: 'admin' | 'editor' | 'commenter' | 'viewer',
 ) {
   const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Generate a unique invitation token
   const token = crypto.randomUUID();
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7-day expiry
 
-  const { error } = await supabase.from('workspace_invitations').insert({
+  const { error } = await admin.from('workspace_invitations').insert({
     workspace_id: workspaceId,
     email: email.toLowerCase().trim(),
     role,
@@ -75,7 +75,7 @@ export async function inviteMember(
   }
 
   // Get invitation ID for the action URL
-  const { data: invitation } = await supabase
+  const { data: invitation } = await admin
     .from('workspace_invitations')
     .select('id')
     .eq('workspace_id', workspaceId)
@@ -85,8 +85,8 @@ export async function inviteMember(
 
   // Fetch workspace name + inviter name in parallel
   const [{ data: workspace }, { data: profile }] = await Promise.all([
-    supabase.from('workspaces').select('name').eq('id', workspaceId).single(),
-    supabase.from('profiles').select('full_name').eq('id', user.id).single(),
+    admin.from('workspaces').select('name').eq('id', workspaceId).single(),
+    admin.from('profiles').select('full_name').eq('id', user.id).single(),
   ]);
 
   const inviterName = profile?.full_name ?? 'A team member';
@@ -94,7 +94,6 @@ export async function inviteMember(
 
   // Send notification — use admin client to find invited user
   // (user-scoped client can't see profiles of non-workspace-members due to RLS)
-  const admin = createAdminClient();
   const { data: invitedUser } = await admin
     .from('profiles')
     .select('id')
@@ -137,9 +136,19 @@ export async function changeRole(
   newRole: 'admin' | 'editor' | 'commenter' | 'viewer',
 ) {
   const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { error } = await supabase
+  const { data: ws } = await admin
+    .from('workspaces')
+    .select('owner_id')
+    .eq('id', workspaceId)
+    .single();
+
+  if (ws?.owner_id === userId && newRole !== 'admin') {
+    return { success: false, error: 'Workspace owner must remain an admin.' };
+  }
+
+  const { error } = await admin
     .from('workspace_members')
     .update({ role: newRole })
     .eq('workspace_id', workspaceId)
@@ -165,9 +174,19 @@ export async function changeRole(
 
 export async function removeMember(workspaceId: string, userId: string) {
   const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { error } = await supabase
+  const { data: ws } = await admin
+    .from('workspaces')
+    .select('owner_id')
+    .eq('id', workspaceId)
+    .single();
+
+  if (ws?.owner_id === userId) {
+    return { success: false, error: 'Workspace owner cannot be removed.' };
+  }
+
+  const { error } = await admin
     .from('workspace_members')
     .delete()
     .eq('workspace_id', workspaceId)
@@ -188,7 +207,6 @@ export async function removeMember(workspaceId: string, userId: string) {
 
   // Notify removed member (skip if self-remove)
   if (userId !== user.id) {
-    const admin = createAdminClient();
     const { data: wsInfo } = await admin
       .from('workspaces')
       .select('name')
@@ -212,13 +230,13 @@ export async function removeMember(workspaceId: string, userId: string) {
 
 export async function resendInvitation(workspaceId: string, invitationId: string) {
   const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Extend expiry by 7 days
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('workspace_invitations')
     .update({ expires_at: expiresAt.toISOString() })
     .eq('id', invitationId)
@@ -244,9 +262,9 @@ export async function resendInvitation(workspaceId: string, invitationId: string
 
 export async function revokeInvitation(workspaceId: string, invitationId: string) {
   const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('workspace_invitations')
     .update({ revoked_at: new Date().toISOString() })
     .eq('id', invitationId)

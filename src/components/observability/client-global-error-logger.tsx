@@ -72,7 +72,7 @@ function showStaleBuildBanner() {
     'align-items:center',
   ].join(';');
   banner.innerHTML =
-    '<span>Versi aplikasi baru sudah dirilis. Mohon refresh halaman.</span>' +
+    '<span>A new version of DraftMind is available. Please refresh this page.</span>' +
     '<button id="dm-chunk-refresh-btn" style="background:#2563eb;color:#fff;border:0;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit">Refresh</button>';
   document.body.appendChild(banner);
   const btn = document.getElementById('dm-chunk-refresh-btn');

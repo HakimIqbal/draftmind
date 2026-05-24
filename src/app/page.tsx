@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Sparkles, PenLine, FileOutput, ChevronRight } from 'lucide-react';
 import { PRD_SECTION_KEYS } from '@/types/prd';
 import { FeatureShowcase } from '@/components/landing/feature-showcase';
+import { LandingStats } from '@/components/landing/landing-stats';
 
 const EXPORT_FORMATS = ['PDF', 'Word', 'HTML', 'Markdown', 'Slack', 'Jira'] as const;
 
@@ -11,7 +12,7 @@ export const dynamic = 'force-static';
 export default function LandingPage() {
   const sectionCount = PRD_SECTION_KEYS.length;
   const exportCount = EXPORT_FORMATS.length;
-  const templateCount = 12;
+  const fallbackTemplateCount = 12;
 
   return (
     <div className="min-h-screen bg-white">
@@ -92,27 +93,12 @@ export default function LandingPage() {
               </a>
             </div>
 
-            {/* Stats - real-time */}
-            <div className="mx-auto mt-14 flex max-w-md items-center justify-center gap-8 border-t border-black/[0.06] pt-8">
-              <div className="text-center">
-                <p className="font-display text-[24px] font-bold text-ink-primary">
-                  {sectionCount}
-                </p>
-                <p className="text-[11px] text-ink-tertiary">PRD Sections</p>
-              </div>
-              <div className="h-8 w-px bg-black/[0.06]" />
-              <div className="text-center">
-                <p className="font-display text-[24px] font-bold text-ink-primary">
-                  {templateCount ?? 0}+
-                </p>
-                <p className="text-[11px] text-ink-tertiary">Templates</p>
-              </div>
-              <div className="h-8 w-px bg-black/[0.06]" />
-              <div className="text-center">
-                <p className="font-display text-[24px] font-bold text-ink-primary">{exportCount}</p>
-                <p className="text-[11px] text-ink-tertiary">Export Formats</p>
-              </div>
-            </div>
+            {/* Stats */}
+            <LandingStats
+              sectionCount={sectionCount}
+              exportCount={exportCount}
+              fallbackTemplateCount={fallbackTemplateCount}
+            />
           </div>
         </div>
       </section>

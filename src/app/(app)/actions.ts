@@ -6,28 +6,37 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { setCurrentWorkspaceCookie } from '@/lib/workspace/current-workspace-cookie';
 
-export async function setCurrentWorkspace(workspaceId: string) {
+export async function setCurrentWorkspace(
+  workspaceId: string,
+): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return;
+  if (!user) return { success: false, error: 'Not authenticated' };
 
-  // Verify membership
-  const { data: member } = await supabase
+  const admin = createAdminClient();
+
+  // Verify membership with the service-role client. The authenticated user is already
+  // verified above, but workspace_members RLS can otherwise make valid memberships
+  // look missing and cause the switcher to close without actually changing state.
+  const { data: member, error } = await admin
     .from('workspace_members')
     .select('role')
     .eq('workspace_id', workspaceId)
     .eq('user_id', user.id)
     .single();
 
-  if (!member) return;
+  if (error || !member) {
+    return { success: false, error: 'You do not have access to this workspace.' };
+  }
 
   const cookieStore = await cookies();
   setCurrentWorkspaceCookie(cookieStore, workspaceId);
 
   revalidatePath('/');
+  return { success: true };
 }
 
 export async function logLogout() {

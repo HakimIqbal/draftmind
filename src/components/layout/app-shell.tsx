@@ -44,6 +44,7 @@ export function AppShell({
   const pathnameRef = useRef(pathname);
   const wsChannelId = useRef(`app-shell-workspace-${crypto.randomUUID()}`);
   const prdChannelId = useRef(`app-shell-prds-${crypto.randomUUID()}`);
+  const hasWorkspace = Boolean(currentWorkspaceId);
 
   useEffect(() => {
     pathnameRef.current = pathname;
@@ -148,6 +149,7 @@ export function AppShell({
             userAvatarUrl={userAvatarUrl}
             recentPRDs={recentPRDs}
             openTicketCount={openTicketCount}
+            hasWorkspace={hasWorkspace}
           />
         ) : (
           <SidebarCollapsedRail
@@ -155,10 +157,11 @@ export function AppShell({
             userName={userName}
             userEmail={userEmail}
             userAvatarUrl={userAvatarUrl}
+            hasWorkspace={hasWorkspace}
           />
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar />
+          <Topbar hasWorkspace={hasWorkspace} />
           <main className="flex-1 overflow-auto">{children}</main>
         </div>
       </div>

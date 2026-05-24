@@ -1,30 +1,20 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import {
-  Plus,
-  FileText,
-  FlaskConical,
-  FileCode2,
-  FileBarChart,
-  Search,
-  Palette,
-} from 'lucide-react';
+import { Plus, FileText, Palette } from 'lucide-react';
 import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
 import { TemplateCard } from '@/components/templates/template-card';
 import { TemplateFormModal } from '@/components/templates/template-form-modal';
 import type { Template } from '@/app/(app)/templates/page';
 
-const FILTER_OPTIONS = [
-  { label: 'All', value: 'all', icon: null },
-  { label: 'Feature', value: 'feature', icon: FileText },
-  { label: 'Experiment', value: 'experiment', icon: FlaskConical },
-  { label: 'Technical Proposal', value: 'rfc', icon: FileCode2 },
-  { label: 'One-pager', value: 'one-pager', icon: FileBarChart },
-  { label: 'Research', value: 'research', icon: Search },
-  { label: 'Custom', value: 'custom', icon: Palette },
-] as const;
+function formatCategoryLabel(value: string) {
+  return value
+    .split(/[-_\s]+/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
 
 interface TemplatesLibraryProps {
   templates: Template[];
@@ -37,13 +27,43 @@ export function TemplatesLibrary({ templates, canManageTemplates }: TemplatesLib
   const [editTemplate, setEditTemplate] = useState<Template | null>(null);
 
   const filtered =
-    activeFilter === 'all' ? templates : templates.filter((t) => t.category === activeFilter);
+    activeFilter === 'all'
+      ? templates
+      : activeFilter === 'custom'
+        ? templates.filter((t) => !t.is_built_in)
+        : templates.filter((t) => t.category === activeFilter);
 
-  // Count templates per category
+  // Build filter chips from the real template categories in DB so labels/counts stay accurate.
+  const filterOptions = useMemo(() => {
+    const categories = Array.from(
+      new Set(
+        templates
+          .filter((t) => t.is_built_in)
+          .map((t) => t.category)
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => formatCategoryLabel(a).localeCompare(formatCategoryLabel(b)));
+
+    return [
+      { label: 'All', value: 'all', icon: null },
+      ...categories.map((category) => ({
+        label: formatCategoryLabel(category),
+        value: category,
+        icon: FileText,
+      })),
+      { label: 'Custom', value: 'custom', icon: Palette },
+    ];
+  }, [templates]);
+
+  // Count templates per filter
   const counts = useMemo(() => {
-    const map: Record<string, number> = { all: templates.length };
+    const map: Record<string, number> = { all: templates.length, custom: 0 };
     for (const t of templates) {
-      map[t.category] = (map[t.category] ?? 0) + 1;
+      if (t.is_built_in) {
+        map[t.category] = (map[t.category] ?? 0) + 1;
+      } else {
+        map.custom = (map.custom ?? 0) + 1;
+      }
     }
     return map;
   }, [templates]);
@@ -66,7 +86,7 @@ export function TemplatesLibrary({ templates, canManageTemplates }: TemplatesLib
 
       {/* Filter chips */}
       <div className="flex items-center gap-1.5 border-b border-subtle pb-0">
-        {FILTER_OPTIONS.map((opt) => {
+        {filterOptions.map((opt) => {
           const count = counts[opt.value] ?? 0;
           const Icon = opt.icon;
           return (

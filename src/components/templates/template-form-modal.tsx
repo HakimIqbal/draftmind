@@ -15,13 +15,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { PRD_SECTION_KEYS, PRD_SECTION_LABELS, PRD_SECTION_DESCRIPTIONS } from '@/types/prd';
 import type { PRDSectionKey } from '@/types/prd';
 import {
@@ -30,15 +23,6 @@ import {
   type TemplateFormData,
 } from '@/app/(app)/templates/actions';
 import type { Template } from '@/app/(app)/templates/page';
-
-const CATEGORY_OPTIONS = [
-  { value: 'feature', label: 'Feature' },
-  { value: 'experiment', label: 'Experiment' },
-  { value: 'rfc', label: 'Technical Proposal' },
-  { value: 'one-pager', label: 'One-pager' },
-  { value: 'research', label: 'Research' },
-  { value: 'custom', label: 'Custom' },
-];
 
 interface TemplateFormModalProps {
   open: boolean;
@@ -82,7 +66,6 @@ export function TemplateFormModal({ open, onOpenChange, template }: TemplateForm
 
   const [name, setName] = useState(template?.name ?? '');
   const [description, setDescription] = useState(template?.description ?? '');
-  const [category, setCategory] = useState(template?.category ?? 'custom');
   const [selectedSections, setSelectedSections] = useState<string[]>(parsed.sections);
   const [guidelines, setGuidelines] = useState<Record<string, string>>(parsed.guidelines);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -92,7 +75,6 @@ export function TemplateFormModal({ open, onOpenChange, template }: TemplateForm
     if (!open) return;
     setName(template?.name ?? '');
     setDescription(template?.description ?? '');
-    setCategory(template?.category ?? 'custom');
     setSelectedSections(parsed.sections);
     setGuidelines(parsed.guidelines);
     setExpandedSection(null);
@@ -101,7 +83,6 @@ export function TemplateFormModal({ open, onOpenChange, template }: TemplateForm
   const reset = useCallback(() => {
     setName('');
     setDescription('');
-    setCategory('custom');
     setSelectedSections([...PRD_SECTION_KEYS]);
     setGuidelines({});
     setExpandedSection(null);
@@ -136,7 +117,7 @@ export function TemplateFormModal({ open, onOpenChange, template }: TemplateForm
     const data: TemplateFormData = {
       name: name.trim(),
       description: description.trim(),
-      category,
+      category: 'custom',
       sections: selectedSections,
       guidelines,
     };
@@ -194,25 +175,6 @@ export function TemplateFormModal({ open, onOpenChange, template }: TemplateForm
               placeholder="When to use this template"
               rows={2}
             />
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="mb-xs block font-mono text-[11px] uppercase tracking-wider text-ink-tertiary">
-              Category
-            </label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <Separator />

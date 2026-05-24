@@ -51,6 +51,7 @@ interface SidebarProps {
   userAvatarUrl?: string;
   recentPRDs?: { id: string; title: string }[];
   openTicketCount?: number;
+  hasWorkspace?: boolean;
 }
 
 export function Sidebar({
@@ -64,11 +65,18 @@ export function Sidebar({
   userAvatarUrl,
   recentPRDs,
   openTicketCount = 0,
+  hasWorkspace = false,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const storeTicketCount = useUserStore((s) => s.openTicketCount);
   const badgeCount = storeTicketCount !== null ? storeTicketCount : openTicketCount;
+
+  const workspaceRequiredMessage = 'This feature requires a workspace. Create or join one first.';
+
+  function handleWorkspaceRequired() {
+    router.replace('/dashboard');
+  }
 
   if (collapsed) return null;
 
@@ -107,23 +115,39 @@ export function Sidebar({
         <ul className="space-y-[2px]">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const requiresWorkspace = item.href !== '/dashboard';
+            const isUnavailable = requiresWorkspace && !hasWorkspace;
+            const itemClasses = cn(
+              'flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13px] font-medium transition-all',
+              isActive
+                ? 'bg-white text-[#1a1a1a] shadow-sm'
+                : isUnavailable
+                  ? 'text-[#a8a8a2] hover:bg-white/35 hover:text-[#888]'
+                  : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
+            );
+            const iconClasses = cn(
+              'shrink-0',
+              isActive ? 'text-accent' : isUnavailable ? 'text-[#c6c6c0]' : 'text-[#999]',
+            );
+
             return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-all',
-                    isActive
-                      ? 'bg-white text-[#1a1a1a] shadow-sm'
-                      : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
-                  )}
-                >
-                  <item.icon
-                    size={16}
-                    className={cn('shrink-0', isActive ? 'text-accent' : 'text-[#999]')}
-                  />
-                  {item.label}
-                </Link>
+                {isUnavailable ? (
+                  <button
+                    type="button"
+                    onClick={handleWorkspaceRequired}
+                    className={itemClasses}
+                    title={workspaceRequiredMessage}
+                  >
+                    <item.icon size={16} className={iconClasses} />
+                    {item.label}
+                  </button>
+                ) : (
+                  <Link href={item.href} className={itemClasses}>
+                    <item.icon size={16} className={iconClasses} />
+                    {item.label}
+                  </Link>
+                )}
               </li>
             );
           })}
@@ -139,23 +163,38 @@ export function Sidebar({
               (item) => !('adminOnly' in item && item.adminOnly) || currentUserRole === 'admin',
             ).map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const isUnavailable = !hasWorkspace;
+              const itemClasses = cn(
+                'flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13px] font-medium transition-all',
+                isActive
+                  ? 'bg-white text-[#1a1a1a] shadow-sm'
+                  : isUnavailable
+                    ? 'text-[#a8a8a2] hover:bg-white/35 hover:text-[#888]'
+                    : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
+              );
+              const iconClasses = cn(
+                'shrink-0',
+                isActive ? 'text-accent' : isUnavailable ? 'text-[#c6c6c0]' : 'text-[#999]',
+              );
+
               return (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-all',
-                      isActive
-                        ? 'bg-white text-[#1a1a1a] shadow-sm'
-                        : 'text-[#666] hover:bg-white/60 hover:text-[#1a1a1a]',
-                    )}
-                  >
-                    <item.icon
-                      size={16}
-                      className={cn('shrink-0', isActive ? 'text-accent' : 'text-[#999]')}
-                    />
-                    {item.label}
-                  </Link>
+                  {isUnavailable ? (
+                    <button
+                      type="button"
+                      onClick={handleWorkspaceRequired}
+                      className={itemClasses}
+                      title={workspaceRequiredMessage}
+                    >
+                      <item.icon size={16} className={iconClasses} />
+                      {item.label}
+                    </button>
+                  ) : (
+                    <Link href={item.href} className={itemClasses}>
+                      <item.icon size={16} className={iconClasses} />
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               );
             })}

@@ -65,6 +65,15 @@ export default async function HomePage() {
         >
           Create Workspace
         </a>
+        <p className="mt-4 text-[13px] text-[#888]">
+          Having trouble?{' '}
+          <a
+            href="/tickets"
+            className="text-[#555] underline underline-offset-2 hover:text-[#1a1a1a]"
+          >
+            Go to My Tickets
+          </a>
+        </p>
       </div>
     );
   }

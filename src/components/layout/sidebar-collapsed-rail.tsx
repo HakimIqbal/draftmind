@@ -35,6 +35,7 @@ interface SidebarCollapsedRailProps {
   userName?: string;
   userEmail?: string;
   userAvatarUrl?: string;
+  hasWorkspace?: boolean;
 }
 
 export function SidebarCollapsedRail({
@@ -42,6 +43,7 @@ export function SidebarCollapsedRail({
   userName,
   userEmail,
   userAvatarUrl,
+  hasWorkspace = false,
 }: SidebarCollapsedRailProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -90,22 +92,37 @@ export function SidebarCollapsedRail({
       <nav className="flex flex-1 flex-col items-center gap-0.5 pt-1">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const requiresWorkspace = item.href !== '/dashboard';
+          const isUnavailable = requiresWorkspace && !hasWorkspace;
+          const itemClasses = cn(
+            'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
+            isActive
+              ? 'bg-bg-surface text-ink-primary'
+              : isUnavailable
+                ? 'text-ink-tertiary/45 hover:bg-bg-surface/50 hover:text-ink-tertiary'
+                : 'text-ink-tertiary hover:bg-bg-surface hover:text-ink-primary',
+          );
           return (
             <Tooltip key={item.href}>
               <TooltipTrigger asChild>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-                    isActive
-                      ? 'bg-bg-surface text-ink-primary'
-                      : 'text-ink-tertiary hover:bg-bg-surface hover:text-ink-primary',
-                  )}
-                >
-                  <item.icon size={18} />
-                </Link>
+                {isUnavailable ? (
+                  <button
+                    type="button"
+                    onClick={() => router.replace('/dashboard')}
+                    className={itemClasses}
+                    aria-label={item.label}
+                  >
+                    <item.icon size={18} />
+                  </button>
+                ) : (
+                  <Link href={item.href} className={itemClasses}>
+                    <item.icon size={18} />
+                  </Link>
+                )}
               </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right">
+                {isUnavailable ? `${item.label} requires a workspace` : item.label}
+              </TooltipContent>
             </Tooltip>
           );
         })}

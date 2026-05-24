@@ -77,7 +77,11 @@ export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceS
       return;
     }
     startTransition(async () => {
-      await setCurrentWorkspace(wsId);
+      const result = await setCurrentWorkspace(wsId);
+      if (!result.success) {
+        toast.error(result.error ?? 'Failed to switch workspace');
+        return;
+      }
       setDropdownOpen(false);
       router.refresh();
     });
@@ -102,7 +106,11 @@ export function WorkspaceSwitcher({ workspaces, currentWorkspaceId }: WorkspaceS
         setCustomIndustry('');
         setNewTeamSize('');
         if (result.workspaceId) {
-          await setCurrentWorkspace(result.workspaceId);
+          const switchResult = await setCurrentWorkspace(result.workspaceId);
+          if (!switchResult.success) {
+            toast.error(switchResult.error ?? 'Workspace created, but failed to switch to it');
+            return;
+          }
           router.refresh();
         }
       }

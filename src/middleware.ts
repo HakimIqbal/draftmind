@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/' ||
     pathname === '/privacy' ||
     pathname === '/terms' ||
-    pathname === '/forgot-password' ||
+    pathname === '/api/public/stats' ||
     pathname.startsWith('/api/webhooks/') ||
     pathname.startsWith('/api/auth/');
 

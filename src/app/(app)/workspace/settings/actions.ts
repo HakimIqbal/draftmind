@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { requireUser, requireWorkspaceRole } from '@/lib/auth/permissions';
+import { requireUser, requireWorkspaceMember, requireWorkspaceRole } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
@@ -13,7 +13,7 @@ import {
 } from '@/lib/workspace/current-workspace-cookie';
 
 export async function getWorkspaceActivity(workspaceId: string) {
-  await requireUser();
+  await requireWorkspaceMember(workspaceId);
   const admin = createAdminClient();
 
   const { data: activities } = await admin
@@ -79,7 +79,7 @@ export async function updateWorkspaceSettings(
   data: { name?: string; industry?: string; team_size?: string },
 ) {
   const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   const updates: Record<string, string> = {};
   if (data.name?.trim()) updates.name = data.name.trim();
@@ -88,7 +88,7 @@ export async function updateWorkspaceSettings(
 
   if (Object.keys(updates).length === 0) return { error: 'Nothing to update' };
 
-  const { error } = await supabase.from('workspaces').update(updates).eq('id', workspaceId);
+  const { error } = await admin.from('workspaces').update(updates).eq('id', workspaceId);
 
   if (error) {
     logError('workspace.settings', error.message, { workspaceId });
@@ -169,11 +169,11 @@ export async function createWorkspace(data: {
 }
 
 export async function leaveWorkspace(workspaceId: string) {
-  const user = await requireUser();
-  const supabase = await createClient();
+  const { user } = await requireWorkspaceMember(workspaceId);
+  const admin = createAdminClient();
 
   // Check user is not the owner
-  const { data: ws } = await supabase
+  const { data: ws } = await admin
     .from('workspaces')
     .select('owner_id')
     .eq('id', workspaceId)
@@ -183,7 +183,7 @@ export async function leaveWorkspace(workspaceId: string) {
     return { error: 'Owner cannot leave workspace. Transfer ownership first.' };
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('workspace_members')
     .delete()
     .eq('workspace_id', workspaceId)
@@ -211,10 +211,10 @@ export async function leaveWorkspace(workspaceId: string) {
 
 export async function deleteWorkspace(workspaceId: string) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Only owner can delete
-  const { data: ws } = await supabase
+  const { data: ws } = await admin
     .from('workspaces')
     .select('owner_id')
     .eq('id', workspaceId)
@@ -224,7 +224,7 @@ export async function deleteWorkspace(workspaceId: string) {
     return { error: 'Only the workspace owner can delete it' };
   }
 
-  const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
+  const { error } = await admin.from('workspaces').delete().eq('id', workspaceId);
 
   if (error) {
     logError('workspace.delete', error.message, { workspaceId });
@@ -248,10 +248,10 @@ export async function deleteWorkspace(workspaceId: string) {
 
 export async function transferOwnership(workspaceId: string, newOwnerId: string) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
   // Only current owner can transfer
-  const { data: ws } = await supabase
+  const { data: ws } = await admin
     .from('workspaces')
     .select('owner_id')
     .eq('id', workspaceId)
@@ -262,7 +262,7 @@ export async function transferOwnership(workspaceId: string, newOwnerId: string)
   }
 
   // Verify new owner is a member
-  const { data: member } = await supabase
+  const { data: member } = await admin
     .from('workspace_members')
     .select('user_id')
     .eq('workspace_id', workspaceId)
@@ -274,7 +274,7 @@ export async function transferOwnership(workspaceId: string, newOwnerId: string)
   }
 
   // Transfer
-  const { error } = await supabase
+  const { error } = await admin
     .from('workspaces')
     .update({ owner_id: newOwnerId })
     .eq('id', workspaceId);
@@ -285,7 +285,7 @@ export async function transferOwnership(workspaceId: string, newOwnerId: string)
   }
 
   // Make new owner admin
-  await supabase
+  await admin
     .from('workspace_members')
     .update({ role: 'admin' })
     .eq('workspace_id', workspaceId)

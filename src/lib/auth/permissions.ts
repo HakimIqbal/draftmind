@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { logWarn } from '@/lib/logging/system-log';
 
 export async function requireUser() {
@@ -17,9 +18,12 @@ export async function requireUser() {
 
 export async function requireWorkspaceMember(workspaceId: string) {
   const user = await requireUser();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data: member } = await supabase
+  // Use the service-role client after authenticating the user. Workspace membership
+  // checks are authorization-critical and must not fail open/closed because of RLS
+  // visibility differences in server actions.
+  const { data: member } = await admin
     .from('workspace_members')
     .select('role')
     .eq('workspace_id', workspaceId)

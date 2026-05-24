@@ -26,14 +26,29 @@ export default async function TemplatesPage() {
   }
 
   const supabase = await createClient();
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const admin = createAdminClient();
 
-  // Fetch built-in templates (workspace_id IS NULL) + workspace custom templates
-  const { data: templates } = await supabase
-    .from('prd_templates')
-    .select('*')
-    .or(`workspace_id.is.null,workspace_id.eq.${workspace.id}`)
-    .order('is_built_in', { ascending: false })
-    .order('use_count', { ascending: false });
+  // Fetch built-in templates using admin client (RLS blocks user client from seeing global templates)
+  // and custom workspace templates using user client
+  const [{ data: builtInTemplates }, { data: customTemplates }] = await Promise.all([
+    admin
+      .from('prd_templates')
+      .select('*')
+      .eq('is_built_in', true)
+      .order('use_count', { ascending: false }),
+    supabase
+      .from('prd_templates')
+      .select('*')
+      .eq('workspace_id', workspace.id)
+      .eq('is_built_in', false)
+      .order('use_count', { ascending: false }),
+  ]);
+
+  const templates = [
+    ...((builtInTemplates ?? []) as Template[]),
+    ...((customTemplates ?? []) as Template[]),
+  ];
 
   return (
     <>

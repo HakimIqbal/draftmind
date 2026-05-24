@@ -2,15 +2,24 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { Bell, Plus, Search } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { NotificationsInbox } from '@/components/overlays/notifications-inbox';
 import { getUnreadCount } from '@/app/(app)/notifications/actions';
 import { createClient } from '@/lib/supabase/client';
 
-export function Topbar() {
+export function Topbar({ hasWorkspace = false }: { hasWorkspace?: boolean }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  const isTicketsPage = pathname === '/tickets' || pathname.startsWith('/tickets/');
+  const searchLabel = isTicketsPage
+    ? 'Search tickets...'
+    : hasWorkspace
+      ? 'Search PRDs...'
+      : 'Search...';
 
   const fetchUnread = useCallback(async () => {
     try {
@@ -68,7 +77,7 @@ export function Topbar() {
 
       <div className="flex h-9 w-[360px] items-center gap-2.5 rounded-lg border border-[#eee] bg-[#fafafa] px-4 text-[12px] text-[#aaa]">
         <Search size={14} className="shrink-0 text-[#bbb]" />
-        <span className="flex-1 text-left">Search PRDs...</span>
+        <span className="flex-1 text-left">{searchLabel}</span>
         <kbd className="flex items-center gap-1 rounded-md border border-[#ddd] bg-white px-2 py-1 font-mono text-[11px] font-medium text-[#999] shadow-sm">
           <span className="text-[13px]">⌘</span>K
         </kbd>
@@ -101,13 +110,25 @@ export function Topbar() {
           </PopoverContent>
         </Popover>
 
-        <Link
-          href="/prds/new"
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-3.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
-        >
-          <Plus size={14} />
-          New PRD
-        </Link>
+        {hasWorkspace ? (
+          <Link
+            href="/prds/new"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-3.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+          >
+            <Plus size={14} />
+            New PRD
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => router.replace('/dashboard')}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-3.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+            title="Create or join a workspace before creating a PRD."
+          >
+            <Plus size={14} />
+            New PRD
+          </button>
+        )}
       </div>
     </header>
   );
