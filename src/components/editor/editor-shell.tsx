@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { marked } from 'marked';
 import type { Editor } from '@tiptap/react';
 import { useEditorStore } from '@/stores/editor-store';
 import { useUserStore } from '@/stores/user-store';
@@ -13,7 +12,6 @@ import { AICopilotPanel } from '@/components/editor/ai-copilot-panel';
 import { AIAssistPanel } from '@/components/editor/ai-assist-panel';
 import { PanelCollapsedRail } from '@/components/editor/panel-collapsed-rail';
 import { HistoryView } from '@/components/editor/history-panel';
-import { MarkdownView } from '@/components/editor/markdown-view';
 import { BubbleToolbar } from '@/components/editor/bubble-toolbar';
 import { InlineCommentPopover } from '@/components/editor/inline-comment-popover';
 import { createClient } from '@/lib/supabase/client';
@@ -88,12 +86,10 @@ export function EditorShell({
   const {
     outlineCollapsed,
     copilotCollapsed,
-    markdownMode,
     aiAssistMode,
     aiAssistSelectedText,
     expandOutline,
     expandCopilot,
-    setMarkdownMode,
     openAIAssist,
     closeAIAssist,
     collapseAllPanels,
@@ -407,16 +403,6 @@ export function EditorShell({
     ],
   );
 
-  const handleMarkdownChange = useCallback(
-    (text: string) => {
-      if (!editorInstance) return;
-      const html = marked.parse(text, { async: false }) as string;
-      editorInstance.commands.setContent(html);
-      handleUpdate(editorInstance.getJSON() as Record<string, unknown>);
-    },
-    [editorInstance, handleUpdate],
-  );
-
   const handleCommentClick = useCallback(
     (_commentId: string, range: { from: number; to: number }) => {
       if (!editorInstance) return;
@@ -692,45 +678,41 @@ export function EditorShell({
               lastEditorAvatar={localLastEditor.avatar}
               updatedAt={localUpdatedAt}
             />
-            {markdownMode ? (
-              <MarkdownView content={editorContent} onChange={handleMarkdownChange} />
-            ) : (
-              <div className="relative">
-                <TiptapEditor
-                  content={editorContent}
-                  onUpdate={handleUpdate}
-                  editable
-                  hiddenSections={hiddenSections}
-                  sectionLabelToKey={LABEL_TO_KEY}
-                  onEditorReady={handleEditorReady}
-                />
-                {editorInstance && (
-                  <>
-                    <BubbleToolbar
-                      editor={editorInstance}
-                      onAIAssist={handleBubbleAIAssist}
-                      onComment={handleBubbleComment}
-                    />
-                    <InlineCommentPopover
-                      editor={editorInstance}
-                      prdId={prd.id}
-                      commentTrigger={commentTrigger}
-                      onCommentAdded={handleCommentAdded}
-                    />
-                    {userId && (
-                      <>
-                        <CursorOverlay users={onlineUsers} currentUserId={userId} />
-                        <SectionBadgeOverlay
-                          editor={editorInstance}
-                          users={onlineUsers}
-                          currentUserId={userId}
-                        />
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+            <div className="relative">
+              <TiptapEditor
+                content={editorContent}
+                onUpdate={handleUpdate}
+                editable
+                hiddenSections={hiddenSections}
+                sectionLabelToKey={LABEL_TO_KEY}
+                onEditorReady={handleEditorReady}
+              />
+              {editorInstance && (
+                <>
+                  <BubbleToolbar
+                    editor={editorInstance}
+                    onAIAssist={handleBubbleAIAssist}
+                    onComment={handleBubbleComment}
+                  />
+                  <InlineCommentPopover
+                    editor={editorInstance}
+                    prdId={prd.id}
+                    commentTrigger={commentTrigger}
+                    onCommentAdded={handleCommentAdded}
+                  />
+                  {userId && (
+                    <>
+                      <CursorOverlay users={onlineUsers} currentUserId={userId} />
+                      <SectionBadgeOverlay
+                        editor={editorInstance}
+                        users={onlineUsers}
+                        currentUserId={userId}
+                      />
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -761,13 +743,6 @@ export function EditorShell({
           </span>
           <div className="ml-auto flex items-center gap-3">
             {userId && <PresenceAvatars users={onlineUsers} currentUserId={userId} />}
-            <button
-              type="button"
-              className="rounded px-2 py-0.5 text-ink-tertiary transition-colors hover:bg-bg-elevated hover:text-ink-primary"
-              onClick={() => setMarkdownMode(!markdownMode)}
-            >
-              {markdownMode ? 'Rich Editor' : 'Markdown'}
-            </button>
           </div>
         </div>
       </div>

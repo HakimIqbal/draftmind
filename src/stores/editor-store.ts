@@ -4,7 +4,6 @@ interface EditorState {
   outlineCollapsed: boolean;
   copilotCollapsed: boolean;
   activeOutlineTab: 'outline' | 'comments' | 'info';
-  markdownMode: boolean;
   aiAssistMode: boolean;
   aiAssistSelectedText: string;
   aiAssistSelectionRange: { from: number; to: number } | null;
@@ -12,7 +11,6 @@ interface EditorState {
   toggleOutline: () => void;
   toggleCopilot: () => void;
   setOutlineTab: (tab: 'outline' | 'comments' | 'info') => void;
-  setMarkdownMode: (v: boolean) => void;
   expandOutline: (tab?: 'outline' | 'comments' | 'info') => void;
   expandCopilot: () => void;
   openAIAssist: (selectedText: string, range?: { from: number; to: number }) => void;
@@ -26,7 +24,6 @@ export const useEditorStore = create<EditorState>((set) => ({
   outlineCollapsed: false,
   copilotCollapsed: false,
   activeOutlineTab: 'outline',
-  markdownMode: false,
   aiAssistMode: false,
   aiAssistSelectedText: '',
   aiAssistSelectionRange: null,
@@ -34,7 +31,6 @@ export const useEditorStore = create<EditorState>((set) => ({
   toggleOutline: () => set((s) => ({ outlineCollapsed: !s.outlineCollapsed })),
   toggleCopilot: () => set((s) => ({ copilotCollapsed: !s.copilotCollapsed })),
   setOutlineTab: (tab) => set({ activeOutlineTab: tab }),
-  setMarkdownMode: (v) => set({ markdownMode: v }),
   expandOutline: (tab) => set({ outlineCollapsed: false, activeOutlineTab: tab ?? 'outline' }),
   expandCopilot: () => set({ copilotCollapsed: false }),
   openAIAssist: (selectedText, range) =>
