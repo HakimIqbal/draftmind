@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { requireWorkspaceRole } from '@/lib/auth/permissions';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logError } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
@@ -40,8 +39,7 @@ export async function POST(request: Request) {
   const { data: urlData } = admin.storage.from('avatars').getPublicUrl(path);
   const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-  const supabase = await createClient();
-  const { error: updateError } = await supabase
+  const { error: updateError } = await admin
     .from('workspaces')
     .update({ icon_custom_url: avatarUrl })
     .eq('id', workspaceId);

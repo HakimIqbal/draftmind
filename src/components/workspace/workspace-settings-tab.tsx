@@ -241,7 +241,7 @@ export function WorkspaceSettingsTab({ workspace, isOwner, isAdmin }: Props) {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-[#bbb]">Slug: {workspace.slug}</p>
+              <p />
               <button
                 onClick={handleSave}
                 disabled={isPending}

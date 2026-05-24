@@ -224,13 +224,6 @@ export async function deleteWorkspace(workspaceId: string) {
     return { error: 'Only the workspace owner can delete it' };
   }
 
-  const { error } = await admin.from('workspaces').delete().eq('id', workspaceId);
-
-  if (error) {
-    logError('workspace.delete', error.message, { workspaceId });
-    return { error: 'Failed to delete workspace' };
-  }
-
   const cookieStore = await cookies();
   clearCurrentWorkspaceCookieIfMatches(cookieStore, workspaceId);
 
@@ -241,6 +234,13 @@ export async function deleteWorkspace(workspaceId: string) {
     resourceType: 'workspace',
     resourceId: workspaceId,
   });
+
+  const { error } = await admin.from('workspaces').delete().eq('id', workspaceId);
+
+  if (error) {
+    logError('workspace.delete', error.message, { workspaceId });
+    return { error: 'Failed to delete workspace' };
+  }
 
   revalidatePath('/');
   return { success: true };

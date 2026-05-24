@@ -274,6 +274,8 @@ export async function revokeInvitation(workspaceId: string, invitationId: string
     return { success: false, error: 'Operation failed. Please try again.' };
   }
 
+  await admin.from('notifications').delete().eq('action_url', `/invite/${invitationId}`);
+
   await logActivity({
     workspaceId,
     actorId: user.id,
@@ -332,6 +334,8 @@ export async function acceptInvitation(invitationId: string) {
       .update({ accepted_at: new Date().toISOString() })
       .eq('id', invitationId),
   ]);
+
+  await admin.from('notifications').delete().eq('action_url', `/invite/${invitationId}`);
 
   await logActivity({
     workspaceId: invitation.workspace_id,

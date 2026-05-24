@@ -623,7 +623,7 @@ function SettingsTab({
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <p className="text-[11px] text-[#bbb]">Slug: {workspace.slug}</p>
+            {null}
             <button
               onClick={handleSave}
               disabled={isPending}
