@@ -14,6 +14,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'email and workspaceId are required' }, { status: 400 });
   }
 
+  const normalizedEmail = String(email).toLowerCase().trim();
+
   // Check if user is a member of the workspace
   const { data: member } = await supabase
     .from('workspace_members')
@@ -26,13 +28,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Only admins can invite members' }, { status: 403 });
   }
 
+  const { data: existingInvitation } = await supabase
+    .from('workspace_invitations')
+    .select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('email', normalizedEmail)
+    .is('accepted_at', null)
+    .is('revoked_at', null)
+    .maybeSingle();
+
+  if (existingInvitation) {
+    return NextResponse.json(
+      { error: 'Invitation already pending for this email in this workspace. Use Resend instead.' },
+      { status: 409 },
+    );
+  }
+
+  const token = crypto.randomUUID();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
   const { data, error } = await supabase
     .from('workspace_invitations')
     .insert({
       workspace_id: workspaceId,
-      email,
+      email: normalizedEmail,
       role: role ?? 'editor',
       invited_by: user.id,
+      token,
+      expires_at: expiresAt.toISOString(),
     })
     .select()
     .single();

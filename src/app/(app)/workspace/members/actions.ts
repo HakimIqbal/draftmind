@@ -53,6 +53,23 @@ export async function inviteMember(
 ) {
   const { user } = await requireWorkspaceRole(workspaceId, ['admin']);
   const admin = createAdminClient();
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const { data: existingInvitation } = await admin
+    .from('workspace_invitations')
+    .select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('email', normalizedEmail)
+    .is('accepted_at', null)
+    .is('revoked_at', null)
+    .maybeSingle();
+
+  if (existingInvitation) {
+    return {
+      success: false,
+      error: 'Invitation already pending for this email in this workspace. Use Resend instead.',
+    };
+  }
 
   // Generate a unique invitation token
   const token = crypto.randomUUID();
@@ -61,7 +78,7 @@ export async function inviteMember(
 
   const { error } = await admin.from('workspace_invitations').insert({
     workspace_id: workspaceId,
-    email: email.toLowerCase().trim(),
+    email: normalizedEmail,
     role,
     invited_by: user.id,
     token,
@@ -78,7 +95,7 @@ export async function inviteMember(
     .from('workspace_invitations')
     .select('id')
     .eq('workspace_id', workspaceId)
-    .eq('email', email.toLowerCase().trim())
+    .eq('email', normalizedEmail)
     .eq('token', token)
     .single();
 
@@ -96,7 +113,7 @@ export async function inviteMember(
   const { data: invitedUser } = await admin
     .from('profiles')
     .select('id')
-    .eq('email', email.toLowerCase().trim())
+    .eq('email', normalizedEmail)
     .single();
 
   if (invitedUser) {
@@ -116,11 +133,11 @@ export async function inviteMember(
     type: 'member_invited',
     resourceType: 'workspace',
     resourceId: workspaceId,
-    metadata: { email: email.toLowerCase().trim(), role },
+    metadata: { email: normalizedEmail, role },
   });
   logInfo(
     'workspace.members',
-    `Invitation sent to: ${email.toLowerCase().trim()}`,
+    `Invitation sent to: ${normalizedEmail}`,
     { workspaceId, role },
     user.id,
   );
