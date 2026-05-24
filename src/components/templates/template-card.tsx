@@ -35,7 +35,6 @@ export function TemplateCard({ template, onEdit, canManage = false }: TemplateCa
   }, [router, template.id]);
 
   function handleUse() {
-    toast.info('Opening template...');
     startNavigation(() => {
       router.push(`/prds/new?template=${template.id}&focus=template`);
     });
