@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/permissions';
 import { prdToMarkdown, tiptapToPlainText } from '@/lib/prd/markdown';
 import type { TiptapContent } from '@/lib/prd/schema';
@@ -105,8 +105,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'prdId and format are required' }, { status: 400 });
     }
 
-    // Fetch the PRD — verify workspace ownership
-    const supabase = await createClient();
+    // Fetch the PRD with admin client after user/workspace authorization.
+    // The normal cookie client can be blocked by table grants/RLS in production;
+    // workspace_id below remains the authorization boundary.
+    const supabase = createAdminClient();
     const { data: prd, error } = await supabase
       .from('prds')
       .select('content, tiptap_content, title, hidden_sections')
@@ -115,6 +117,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error || !prd) {
+      console.error('[export] PRD fetch failed', { prdId, workspaceId: workspace.id, error });
       return NextResponse.json({ error: 'PRD not found' }, { status: 404 });
     }
 
@@ -245,6 +248,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Export failed';
+    console.error('[export] failed', err);
     const { logError } = await import('@/lib/logging/system-log');
     logError('export', message);
     return NextResponse.json({ error: 'Export failed. Please try again.' }, { status: 500 });

@@ -16,27 +16,27 @@ async function launchBrowserAndGeneratePDF(html: string): Promise<Buffer> {
     let executablePath: string;
     let args: string[] = [];
 
-    if (process.env.DEPLOYMENT_TARGET === 'vps') {
-      executablePath = '/usr/bin/chromium-browser';
-      args = ['--no-sandbox', '--disable-setuid-sandbox'];
-    } else if (process.env.DEPLOYMENT_TARGET === 'local') {
-      const { existsSync } = await import('fs');
-      const localPaths = [
-        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-        '/usr/bin/google-chrome',
-        '/usr/bin/chromium-browser',
-      ];
-      executablePath = localPaths.find((p) => existsSync(p)) ?? '';
-      if (!executablePath) {
-        throw new Error(
-          'No local Chrome/Chromium found. Install Google Chrome or set DEPLOYMENT_TARGET=vps.',
-        );
-      }
-      args = ['--no-sandbox', '--disable-setuid-sandbox'];
+    const { existsSync } = await import('fs');
+    const localPaths = [
+      process.env.CHROME_EXECUTABLE_PATH,
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    ].filter(Boolean) as string[];
+
+    executablePath = localPaths.find((path) => existsSync(path)) ?? '';
+    if (executablePath) {
+      args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
     } else {
       const chromium = await import('@sparticuz/chromium');
       executablePath = await chromium.default.executablePath();
       args = chromium.default.args;
+    }
+
+    if (!executablePath) {
+      throw new Error('No Chrome/Chromium executable found for PDF export.');
     }
 
     let browser;
