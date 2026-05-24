@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/auth/permissions';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { redirect } from 'next/navigation';
+import { ClientRedirect } from '@/components/auth/client-redirect';
 import { WorkspaceNewClient } from './workspace-new-client';
 
 export default async function WorkspaceNewPage() {
@@ -15,7 +15,7 @@ export default async function WorkspaceNewPage() {
     .single();
 
   if (membership?.workspace_id) {
-    redirect('/dashboard');
+    return <ClientRedirect to="/dashboard" />;
   }
 
   return <WorkspaceNewClient />;
