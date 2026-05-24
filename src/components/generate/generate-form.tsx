@@ -583,99 +583,171 @@ export function GenerateForm({
 
       {/* Template Preview Modal */}
       {previewTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setPreviewTemplate(null)} />
-          <div className="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
+          <div className="relative max-h-[86vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-subtle bg-white shadow-2xl">
             <button
+              type="button"
               onClick={() => setPreviewTemplate(null)}
-              className="absolute right-4 top-4 text-[#bbb] hover:text-[#666]"
+              className="absolute right-4 top-4 rounded-md p-1 text-ink-tertiary transition-colors hover:bg-bg-surface hover:text-ink-primary"
+              aria-label="Close template preview"
             >
               <X size={18} />
             </button>
 
-            {/* Header */}
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
-              Template Preview
-            </p>
-            <h2 className="mt-1 text-[20px] font-bold text-[#1a1a1a]">{previewTemplate.name}</h2>
-            {previewTemplate.description && (
-              <p className="mt-2 text-[13px] leading-relaxed text-[#888]">
-                {previewTemplate.description}
+            <div className="border-b border-subtle px-8 py-6">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
+                Template Preview
               </p>
-            )}
-
-            {/* Instructions */}
-            {previewTemplate.structure.instructions && (
-              <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/50 px-4 py-3">
-                <p className="text-[11px] font-semibold text-amber-700">Instructions for AI</p>
-                <p className="mt-1 text-[12px] leading-relaxed text-amber-800/80">
-                  {previewTemplate.structure.instructions}
+              <h2 className="mt-1 pr-8 text-[22px] font-bold text-ink-primary">
+                {previewTemplate.name}
+              </h2>
+              {previewTemplate.description && (
+                <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-secondary">
+                  {previewTemplate.description}
                 </p>
-              </div>
-            )}
-
-            {/* Sections */}
-            {previewTemplate.structure.sections && previewTemplate.structure.sections.length > 0 ? (
-              <div className="mt-6">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
-                    Sections
-                  </p>
-                  <p className="text-[11px] text-[#bbb]">
-                    {previewTemplate.structure.sections.length} sections
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  {previewTemplate.structure.sections.map((s, i) => (
-                    <div key={i} className="rounded-lg border border-[#eee] bg-[#fafaf9] p-4">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-5 w-5 items-center justify-center rounded bg-[#eee] text-[10px] font-bold text-[#999]">
-                          {i + 1}
-                        </span>
-                        <h3 className="text-[14px] font-semibold text-[#1a1a1a]">{s.name}</h3>
-                      </div>
-                      {s.guidelines && (
-                        <p className="mt-2 whitespace-pre-line text-[12px] leading-relaxed text-[#666]">
-                          {s.guidelines}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : previewTemplate.structure.sections_enabled &&
-              previewTemplate.structure.sections_enabled.length > 0 ? (
-              <div className="mt-6">
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[#aaa]">
-                  Sections ({previewTemplate.structure.sections_enabled.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {previewTemplate.structure.sections_enabled.map((s, i) => (
-                    <span
-                      key={i}
-                      className="rounded-lg border border-[#eee] bg-[#fafaf9] px-3 py-1.5 text-[12px] font-medium text-[#555]"
-                    >
-                      {s.replace(/_/g, ' ')}
+              )}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-subtle bg-bg-surface px-3 py-1 font-mono text-[11px] text-ink-tertiary">
+                  {previewTemplate.category}
+                </span>
+                {previewTemplate.structure.sections &&
+                  previewTemplate.structure.sections.length > 0 && (
+                    <span className="rounded-full border border-subtle bg-bg-surface px-3 py-1 font-mono text-[11px] text-ink-tertiary">
+                      {previewTemplate.structure.sections.length} sections
                     </span>
-                  ))}
-                </div>
+                  )}
+                {previewTemplate.structure.sections_enabled &&
+                  previewTemplate.structure.sections_enabled.length > 0 && (
+                    <span className="rounded-full border border-subtle bg-bg-surface px-3 py-1 font-mono text-[11px] text-ink-tertiary">
+                      {previewTemplate.structure.sections_enabled.length} enabled sections
+                    </span>
+                  )}
               </div>
-            ) : null}
+            </div>
 
-            {/* Use template button */}
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="space-y-5 px-8 py-6">
+              {previewTemplate.structure.instructions && (
+                <div className="border-accent/20 bg-accent/5 rounded-xl border px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
+                    How this template should be used
+                  </p>
+                  <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-ink-primary">
+                    {previewTemplate.structure.instructions}
+                  </p>
+                </div>
+              )}
+
+              {previewTemplate.structure.sections &&
+              previewTemplate.structure.sections.length > 0 ? (
+                <div>
+                  <div className="mb-3 flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary">
+                        Template contents
+                      </p>
+                      <p className="mt-1 text-[12px] text-ink-secondary">
+                        These are the sections the generated PRD will follow. Each block explains
+                        what the section should contain.
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-mono text-[11px] text-ink-tertiary">
+                      {previewTemplate.structure.sections.length} total
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {previewTemplate.structure.sections.map((section, index) => {
+                      const guideline = section.guidelines?.trim();
+                      return (
+                        <div
+                          key={`${section.name}-${index}`}
+                          className="rounded-xl border border-subtle bg-bg-surface p-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="ring-subtle mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white font-mono text-[11px] font-semibold text-ink-tertiary ring-1">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-[14px] font-semibold text-ink-primary">
+                                {section.name}
+                              </h3>
+                              <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+                                What this section should include
+                              </p>
+                              {guideline ? (
+                                <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-ink-secondary">
+                                  {guideline}
+                                </p>
+                              ) : (
+                                <p className="mt-2 text-[13px] leading-relaxed text-ink-tertiary">
+                                  No detailed guidance was provided for this section. The PRD
+                                  generator will still create a structured section based on the
+                                  template name and brief.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : previewTemplate.structure.sections_enabled &&
+                previewTemplate.structure.sections_enabled.length > 0 ? (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary">
+                    Enabled sections
+                  </p>
+                  <p className="mt-1 text-[12px] text-ink-secondary">
+                    This template defines the section names only. The generator will fill each
+                    enabled section from the brief.
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {previewTemplate.structure.sections_enabled.map((section, index) => (
+                      <div
+                        key={`${section}-${index}`}
+                        className="rounded-xl border border-subtle bg-bg-surface px-4 py-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="ring-subtle flex h-5 w-5 items-center justify-center rounded-full bg-white font-mono text-[10px] font-semibold text-ink-tertiary ring-1">
+                            {index + 1}
+                          </span>
+                          <p className="text-[13px] font-medium capitalize text-ink-primary">
+                            {section.replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-subtle bg-bg-surface px-4 py-8 text-center">
+                  <p className="text-sm font-medium text-ink-primary">
+                    No section details available
+                  </p>
+                  <p className="mt-1 text-[12px] text-ink-secondary">
+                    This template does not include detailed section metadata yet.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-subtle bg-white/95 px-8 py-4 backdrop-blur">
               <button
+                type="button"
                 onClick={() => setPreviewTemplate(null)}
-                className="h-9 rounded-lg border border-[#e5e5e3] bg-white px-4 text-[13px] font-medium text-[#666] hover:border-[#ddd]"
+                className="h-9 rounded-lg border border-subtle bg-white px-4 text-[13px] font-medium text-ink-secondary transition-colors hover:border-strong hover:text-ink-primary"
               >
                 Close
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setSelectedTemplate(previewTemplate);
                   setPreviewTemplate(null);
                 }}
-                className="h-9 rounded-lg bg-accent px-5 text-[13px] font-medium text-white hover:opacity-90"
+                className="h-9 rounded-lg bg-accent px-5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
               >
                 Use this template
               </button>
