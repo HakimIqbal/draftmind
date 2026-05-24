@@ -264,6 +264,20 @@ export async function deleteWorkspace(workspaceId: string) {
     resourceId: workspaceId,
   });
 
+  // activity_log is intentionally immutable. However, workspace deletion needs
+  // audit rows to survive after the workspace row is removed, so detach them
+  // from this workspace before deleting. The DB trigger only permits this
+  // narrow workspace_id -> null update and still blocks all other mutations.
+  const { error: activityDetachError } = await admin
+    .from('activity_log')
+    .update({ workspace_id: null })
+    .eq('workspace_id', workspaceId);
+
+  if (activityDetachError) {
+    logError('workspace.delete', activityDetachError.message, { workspaceId });
+    return { error: 'Failed to delete workspace' };
+  }
+
   const { error } = await admin.from('workspaces').delete().eq('id', workspaceId);
 
   if (error) {
