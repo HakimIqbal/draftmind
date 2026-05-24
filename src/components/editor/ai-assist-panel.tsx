@@ -19,7 +19,6 @@ import {
   BookOpen,
   Table2,
   List,
-  Send,
   ChevronDown,
   Sparkles,
   ArrowRight,
@@ -77,7 +76,6 @@ export function AIAssistPanel({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [selectedProviderId, setSelectedProviderId] = useState(providers?.[0]?.id ?? '');
-  const [customInstruction, setCustomInstruction] = useState('');
   const [showMore, setShowMore] = useState(false);
   const [showOriginal, setShowOriginal] = useState<number | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
@@ -101,7 +99,6 @@ export function AIAssistPanel({
           selectedText,
           sectionKey: currentSection,
           providerId: selectedProviderId || undefined,
-          customInstruction: action === 'custom' ? customInstruction : undefined,
         }),
       });
       if (!res.ok) throw new Error('Request failed');
@@ -284,38 +281,6 @@ export function AIAssistPanel({
           </div>
         )}
 
-        {/* Custom instruction */}
-        <div className="border-t border-subtle px-4 py-3">
-          <div className="mb-2 flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-accent" />
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-tertiary">
-              Custom Instruction
-            </p>
-          </div>
-          <div className="focus-within:border-accent/40 flex items-center gap-2 rounded-xl border border-subtle bg-bg-elevated px-3 transition-all focus-within:shadow-[0_0_0_3px_rgba(232,116,60,0.06)]">
-            <input
-              type="text"
-              value={customInstruction}
-              onChange={(e) => setCustomInstruction(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && customInstruction.trim()) handleAction('custom');
-              }}
-              placeholder="e.g. Convert to Given/When/Then..."
-              className="h-10 flex-1 bg-transparent text-[12px] text-ink-primary placeholder:text-ink-quaternary focus:outline-none"
-              disabled={loading}
-            />
-            <button
-              onClick={() => {
-                if (customInstruction.trim()) handleAction('custom');
-              }}
-              disabled={!customInstruction.trim() || loading}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-all hover:bg-accent-deep disabled:bg-bg-surface disabled:text-ink-quaternary"
-            >
-              <Send size={12} />
-            </button>
-          </div>
-        </div>
-
         {/* Results */}
         <div className="border-t border-subtle px-4 pb-6 pt-3">
           {loading && (
@@ -426,7 +391,7 @@ export function AIAssistPanel({
                 <Sparkles size={16} className="text-ink-quaternary" />
               </div>
               <p className="text-center text-[12px] text-ink-quaternary">
-                Select an action or type a custom instruction
+                Select an action to generate suggestions
               </p>
             </div>
           )}

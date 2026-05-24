@@ -11,15 +11,13 @@ export type InlineAction =
   | 'add_metrics'
   | 'simplify_jargon'
   | 'to_table'
-  | 'to_list'
-  | 'custom';
+  | 'to_list';
 
 export interface InlineSuggestInput {
   action: InlineAction;
   selectedText: string;
   sectionKey: string;
   surroundingContext: string;
-  customInstruction?: string;
 }
 
 const ACTION_INSTRUCTIONS: Record<string, string> = {
@@ -148,12 +146,9 @@ STRICT RULES:
 };
 
 export function buildInlineSuggestPrompt(input: InlineSuggestInput): string {
-  const { action, selectedText, sectionKey, surroundingContext, customInstruction } = input;
+  const { action, selectedText, sectionKey, surroundingContext } = input;
 
-  const instruction =
-    action === 'custom' && customInstruction
-      ? customInstruction
-      : (ACTION_INSTRUCTIONS[action] ?? 'Improve this text.');
+  const instruction = ACTION_INSTRUCTIONS[action] ?? 'Improve this text.';
 
   return `You are editing a PRD section ("${sectionKey}"). The user selected specific text and wants you to: **${action}**.
 

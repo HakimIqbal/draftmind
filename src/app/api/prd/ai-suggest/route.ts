@@ -262,16 +262,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const {
-    action,
-    selectedText,
-    prdId,
-    sectionKey,
-    instruction,
-    chatHistory,
-    providerId,
-    customInstruction,
-  } = body;
+  const { action, selectedText, prdId, sectionKey, instruction, chatHistory, providerId } = body;
 
   if (!action || (!selectedText && !instruction)) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -287,13 +278,6 @@ export async function POST(request: Request) {
   if (selectedText && selectedText.length > 10000) {
     return Response.json(
       { error: 'Selected text too long. Maximum 10000 characters.' },
-      { status: 400 },
-    );
-  }
-
-  if (customInstruction && customInstruction.length > 5000) {
-    return Response.json(
-      { error: 'Custom instruction too long. Maximum 5000 characters.' },
       { status: 400 },
     );
   }
@@ -358,7 +342,6 @@ export async function POST(request: Request) {
       selectedText: selectedText ?? '',
       sectionKey: sectionKey ?? 'unknown',
       surroundingContext: '',
-      customInstruction: customInstruction as string | undefined,
     });
   }
 
