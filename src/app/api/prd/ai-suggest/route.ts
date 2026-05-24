@@ -103,6 +103,156 @@ function languageInstruction(language: 'English' | 'Bahasa Indonesia' | 'Mixed')
   return 'The PRD document language is English. Respond in English unless the user explicitly asks for another language.';
 }
 
+function outOfScopeMessage(language: 'English' | 'Bahasa Indonesia' | 'Mixed') {
+  if (language === 'Bahasa Indonesia') {
+    return 'Saya hanya bisa membantu terkait PRD ini. Tanyakan tentang konten, struktur, requirement, risiko, metrics, timeline, atau kualitas dokumen ini.';
+  }
+  return 'I can only help with this PRD. Ask about the document content, structure, requirements, risks, metrics, timeline, or document quality.';
+}
+
+function isPRDRelatedQuestion(question: string) {
+  const q = question.toLowerCase();
+  const normalized = q.replace(/[^a-z0-9\s@#_\-]/gi, ' ');
+
+  const prdKeywords = [
+    // English product/document terms
+    'prd',
+    'product requirements',
+    'requirement',
+    'requirements',
+    'document',
+    'section',
+    'overview',
+    'problem statement',
+    'objective',
+    'objectives',
+    'scope',
+    'in scope',
+    'out of scope',
+    'user story',
+    'user stories',
+    'functional',
+    'non functional',
+    'metric',
+    'metrics',
+    'success metric',
+    'timeline',
+    'milestone',
+    'risk',
+    'risks',
+    'mitigation',
+    'darci',
+    'stakeholder',
+    'developer',
+    'review',
+    'missing',
+    'improve',
+    'rewrite',
+    'summarize',
+    'summarise',
+    'clarify',
+    'feedback',
+    'acceptance criteria',
+    'nfr',
+    'glossary',
+    'changelog',
+    'feature',
+    'user',
+    'product',
+    'project',
+    'draft',
+    // Bahasa Indonesia product/document terms
+    'dokumen',
+    'bagian',
+    'ringkasan',
+    'tujuan',
+    'kebutuhan',
+    'persyaratan',
+    'fitur',
+    'produk',
+    'proyek',
+    'pengguna',
+    'cerita pengguna',
+    'risiko',
+    'mitigasi',
+    'metrik',
+    'jadwal',
+    'linimasa',
+    'cakupan',
+    'masalah',
+    'stakeholder',
+    'pemangku kepentingan',
+    'nilai',
+    'evaluasi',
+    'review',
+    'ulas',
+    'perbaiki',
+    'kurang',
+    'kekurangan',
+    'lengkap',
+    'jelaskan',
+    'revisi',
+  ];
+
+  const explicitOutOfScope = [
+    'weather',
+    'cuaca',
+    'stock price',
+    'harga saham',
+    'crypto price',
+    'harga crypto',
+    'bitcoin',
+    'ethereum',
+    'president',
+    'presiden',
+    'news',
+    'berita',
+    'recipe',
+    'resep',
+    'movie',
+    'film',
+    'music',
+    'lagu',
+    'game cheat',
+    'joke',
+    'cerita lucu',
+    'coding help',
+    'debug code',
+    'write code',
+    'buat kode',
+    'programming',
+    'javascript',
+    'python',
+    'sql query',
+  ];
+
+  const hasPRDSignal = prdKeywords.some((keyword) => normalized.includes(keyword));
+  if (hasPRDSignal) return true;
+
+  // Allow common concise copilot follow-ups when they are likely referring to the current PRD.
+  const contextualFollowUps = [
+    'what else',
+    'anything else',
+    'make it better',
+    'make this better',
+    'is this enough',
+    'is it complete',
+    'apa lagi',
+    'ada lagi',
+    'sudah cukup',
+    'apakah sudah lengkap',
+    'buat lebih bagus',
+    'lebih detail',
+  ];
+  if (contextualFollowUps.some((phrase) => normalized.includes(phrase))) return true;
+
+  const outOfScopeSignal = explicitOutOfScope.some((keyword) => normalized.includes(keyword));
+  if (outOfScopeSignal) return false;
+
+  // Default-deny for ambiguous one-off questions so Copilot does not become a general chatbot.
+  return false;
+}
+
 export async function POST(request: Request) {
   const user = await requireUser();
 
@@ -173,6 +323,12 @@ export async function POST(request: Request) {
     }
   }
 
+  const isCopilot = action === 'copilot';
+
+  if (isCopilot && instruction && !isPRDRelatedQuestion(instruction)) {
+    return Response.json({ text: outOfScopeMessage(documentLanguage) });
+  }
+
   // Get AI client — use specific provider if requested
   let aiClient;
   try {
@@ -189,7 +345,6 @@ export async function POST(request: Request) {
   // Build prompt
   let prompt: string;
   let system: string | undefined;
-  const isCopilot = action === 'copilot';
 
   if (isCopilot && instruction) {
     system = `${COPILOT_SYSTEM}\n\nLANGUAGE CONTROL:\n${languageInstruction(documentLanguage)}`;
