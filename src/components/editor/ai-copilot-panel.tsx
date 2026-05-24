@@ -35,19 +35,22 @@ interface ProviderOption {
 const SUGGESTED_PROMPTS = [
   {
     label: 'Review this PRD',
-    instruction: 'Review kualitas PRD ini dan berikan feedback yang actionable.',
+    instruction: "Review this PRD and provide actionable feedback. Answer in the PRD's language.",
   },
   {
     label: "What's missing?",
-    instruction: 'Identifikasi bagian yang masih lemah atau kurang detail dari PRD ini.',
+    instruction:
+      "Identify weak, missing, or underdeveloped parts of this PRD. Answer in the PRD's language.",
   },
   {
     label: 'Improve overview',
-    instruction: 'Improve bagian Overview supaya lebih compelling dan jelas.',
+    instruction:
+      "Improve the Overview section so it is clearer and more compelling. Answer in the PRD's language.",
   },
   {
     label: 'Suggest new risks',
-    instruction: 'Suggest 2-3 risks baru yang spesifik untuk project ini beserta mitigasinya.',
+    instruction:
+      "Suggest 2-3 specific new risks for this project with mitigations. Answer in the PRD's language.",
   },
 ];
 

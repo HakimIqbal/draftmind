@@ -15,12 +15,93 @@ import type { TiptapContent } from '@/lib/prd/schema';
 const COPILOT_SYSTEM = `You are a PRD Copilot — an expert product manager assistant embedded in a PRD editor.
 
 RULES:
-1. You ONLY answer questions related to the PRD content provided. If the user asks about anything unrelated (weather, coding help, personal questions, general knowledge), politely decline: "Saya hanya bisa membantu terkait PRD ini. Coba tanyakan tentang konten, struktur, atau kualitas dokumen kamu." (or in English if they write in English).
-2. Match the user's language. If they write in Bahasa Indonesia, respond in Bahasa Indonesia. If English, respond in English.
+1. You ONLY answer questions related to the PRD content provided. If the user asks about anything unrelated (weather, coding help, personal questions, general knowledge), politely decline in the response language: "I can only help with this PRD. Ask about the document content, structure, or quality." / "Saya hanya bisa membantu terkait PRD ini. Tanyakan tentang konten, struktur, atau kualitas dokumen ini."
+2. Response language priority:
+   - Default to the PRD document language provided below.
+   - If the user explicitly asks for a different language, follow that explicit language request.
+   - Do not switch languages just because a suggested prompt or system instruction is written in another language.
 3. Be direct, specific, and actionable. No filler phrases like "Great question!" or "I'd be happy to help".
-4. When suggesting improvements, quote the specific part and show the revised version.
+4. When suggesting improvements, quote the specific part and show the revised version in the response language.
 5. Keep responses concise but thorough. Use bullet points for lists.
 6. Reference specific PRD sections by name when relevant.`;
+
+function detectDocumentLanguage(text: string): 'English' | 'Bahasa Indonesia' | 'Mixed' {
+  const sample = text.toLowerCase().slice(0, 8000);
+  if (!sample.trim()) return 'English';
+
+  const idWords = [
+    'yang',
+    'dan',
+    'dengan',
+    'untuk',
+    'dari',
+    'pada',
+    'adalah',
+    'pengguna',
+    'produk',
+    'fitur',
+    'tujuan',
+    'risiko',
+    'kebutuhan',
+    'dalam',
+    'sebagai',
+    'akan',
+    'harus',
+    'dapat',
+    'atau',
+    'ini',
+  ];
+  const enWords = [
+    'the',
+    'and',
+    'with',
+    'for',
+    'from',
+    'users',
+    'user',
+    'product',
+    'feature',
+    'goal',
+    'objective',
+    'risk',
+    'requirements',
+    'scope',
+    'will',
+    'should',
+    'must',
+    'this',
+    'that',
+    'parking',
+  ];
+
+  const count = (words: string[]) =>
+    words.reduce(
+      (total, word) => total + (sample.match(new RegExp(`\b${word}\b`, 'g'))?.length ?? 0),
+      0,
+    );
+
+  const idScore = count(idWords);
+  const enScore = count(enWords);
+
+  if (
+    idScore >= 5 &&
+    enScore >= 5 &&
+    Math.min(idScore, enScore) / Math.max(idScore, enScore) > 0.35
+  ) {
+    return 'Mixed';
+  }
+  return idScore > enScore ? 'Bahasa Indonesia' : 'English';
+}
+
+function languageInstruction(language: 'English' | 'Bahasa Indonesia' | 'Mixed') {
+  if (language === 'Bahasa Indonesia') {
+    return 'The PRD document language is Bahasa Indonesia. Respond in Bahasa Indonesia unless the user explicitly asks for another language.';
+  }
+  if (language === 'Mixed') {
+    return "The PRD document uses mixed English and Bahasa Indonesia. Respond in the dominant language of the PRD content; if unclear, use the language of the user's latest question.";
+  }
+  return 'The PRD document language is English. Respond in English unless the user explicitly asks for another language.';
+}
 
 export async function POST(request: Request) {
   const user = await requireUser();
@@ -71,6 +152,7 @@ export async function POST(request: Request) {
 
   // For copilot mode: fetch PRD content as context
   let prdContext = '';
+  let documentLanguage: 'English' | 'Bahasa Indonesia' | 'Mixed' = 'English';
   if (action === 'copilot' && prdId) {
     if (workspace) {
       const supabase = await createClient();
@@ -86,6 +168,7 @@ export async function POST(request: Request) {
           0,
           6000,
         );
+        documentLanguage = detectDocumentLanguage(prdContext);
       }
     }
   }
@@ -109,7 +192,7 @@ export async function POST(request: Request) {
   const isCopilot = action === 'copilot';
 
   if (isCopilot && instruction) {
-    system = COPILOT_SYSTEM;
+    system = `${COPILOT_SYSTEM}\n\nLANGUAGE CONTROL:\n${languageInstruction(documentLanguage)}`;
     const parts: string[] = [`## PRD Content\n${prdContext}`];
     if (chatHistory) parts.push(`\n## Conversation History\n${chatHistory}`);
     parts.push(`\n## Current Question\n${instruction}`);
@@ -151,6 +234,7 @@ export async function POST(request: Request) {
       metadata: {
         provider: aiClient.provider.display_name,
         model: aiClient.modelId,
+        documentLanguage: isCopilot ? documentLanguage : undefined,
         latencyMs,
         userId: user.id,
       },
@@ -174,7 +258,11 @@ export async function POST(request: Request) {
           completion_tokens: result.usage?.completionTokens ?? 0,
           total_tokens: result.usage?.totalTokens ?? 0,
           duration_ms: latencyMs,
-          input_payload: { action, sectionKey },
+          input_payload: {
+            action,
+            sectionKey,
+            documentLanguage: isCopilot ? documentLanguage : undefined,
+          },
           completed_at: new Date().toISOString(),
         })
         .then(
@@ -254,6 +342,7 @@ export async function POST(request: Request) {
       metadata: {
         provider: aiClient.provider.display_name,
         model: aiClient.modelId,
+        documentLanguage: isCopilot ? documentLanguage : undefined,
         userId: user.id,
       },
     }).catch(() => {});
