@@ -35,5 +35,17 @@ export async function logActivity({
       actorId,
       resourceId,
     });
+    await admin.from('system_logs').insert({
+      level: 'error',
+      source: 'activity_log.insert_failed',
+      message: error.message,
+      metadata: {
+        activity_type: type,
+        resource_type: resourceType ?? null,
+        resource_id: resourceId ?? null,
+      },
+      user_id: actorId,
+      workspace_id: workspaceId,
+    });
   }
 }

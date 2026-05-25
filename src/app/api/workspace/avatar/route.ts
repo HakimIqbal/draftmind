@@ -32,7 +32,12 @@ export async function POST(request: Request) {
     .upload(path, file, { upsert: true, contentType: file.type });
 
   if (uploadError) {
-    logError('workspace.avatar', uploadError.message, { workspaceId }, user.id);
+    logError(
+      'storage.upload_failed',
+      uploadError.message,
+      { bucket: 'workspace-icons', workspaceId },
+      user.id,
+    );
     return NextResponse.json({ error: 'Failed to upload' }, { status: 500 });
   }
 

@@ -242,7 +242,7 @@ export async function POST(request: Request) {
     const latencyMs = Date.now() - startMs;
     const msg = err instanceof Error ? err.message : 'AI review failed';
     updateProviderStats(aiClient.provider.id, false, latencyMs, msg).catch(() => {});
-    logError('prd.review', msg, { latencyMs, prdId }, user.id);
+    logError('ai.request_failed', msg, { feature: 'prd_review', latencyMs, prdId }, user.id);
 
     logToLangSmith({
       name: 'prd.ai-review',

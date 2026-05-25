@@ -1,6 +1,7 @@
 import 'server-only';
 import { Client } from 'langsmith';
 import { RunTree } from 'langsmith';
+import { logError } from '@/lib/logging/system-log';
 
 // LangSmith client — only initialized if API key is set
 const apiKey = process.env.LANGCHAIN_API_KEY;
@@ -67,8 +68,17 @@ export async function tracedAICall<T>({
 
     return result;
   } catch (error) {
-    await run.end({ error: error instanceof Error ? error.message : String(error) });
-    await run.patchRun();
+    const message = error instanceof Error ? error.message : String(error);
+    try {
+      await run.end({ error: message });
+      await run.patchRun();
+    } catch (traceError) {
+      logError(
+        'langsmith.trace_failure',
+        traceError instanceof Error ? traceError.message : String(traceError),
+        { operation: name },
+      );
+    }
     throw error;
   }
 }
@@ -128,7 +138,10 @@ export async function logToLangSmith({
     }
 
     await run.patchRun();
-  } catch {
+  } catch (error) {
+    logError('langsmith.trace_failure', error instanceof Error ? error.message : String(error), {
+      operation: name,
+    });
     // Never block main flow if LangSmith fails
   }
 }
@@ -259,7 +272,10 @@ export async function fetchLangSmithRuns(limit: number = 20): Promise<LangSmithR
 
     _lsCache = { data: result, ts: Date.now() };
     return result;
-  } catch {
+  } catch (error) {
+    logError('langsmith.trace_failure', error instanceof Error ? error.message : String(error), {
+      operation: 'fetch_runs',
+    });
     return EMPTY_RESULT;
   }
 }

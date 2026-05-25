@@ -437,7 +437,12 @@ export async function POST(request: Request) {
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
-      logError('ai.suggest', 'AI returned invalid JSON', { rawLength: rawText.length }, user.id);
+      logError(
+        'provider.response_malformed',
+        'AI returned invalid JSON',
+        { rawLength: rawText.length },
+        user.id,
+      );
       return Response.json({ error: 'AI suggestion failed. Please try again.' }, { status: 500 });
     }
 
@@ -446,7 +451,12 @@ export async function POST(request: Request) {
     const latencyMs = Date.now() - startMs;
     const msg = err instanceof Error ? err.message : 'Suggestion failed';
     updateProviderStats(aiClient.provider.id, false, latencyMs, msg).catch(() => {});
-    logError('ai.suggest', msg, { latencyMs, provider: aiClient.provider.id }, user.id);
+    logError(
+      'ai.request_failed',
+      msg,
+      { feature: 'ai_suggest', latencyMs, provider: aiClient.provider.id },
+      user.id,
+    );
 
     // Log failed run
     if (workspace) {

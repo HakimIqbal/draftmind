@@ -186,6 +186,17 @@ export async function deleteAnnouncement(announcementId: string) {
         recipient_count: announcement.recipient_count,
       },
     });
+    await logActivity({
+      workspaceId: auditWorkspace.id,
+      actorId: user.id,
+      type: 'announcement_unpublished',
+      resourceType: 'announcement',
+      resourceId: announcementId,
+      metadata: {
+        title: announcement.title,
+        recipient_count: announcement.recipient_count,
+      },
+    });
   }
 
   logInfo(

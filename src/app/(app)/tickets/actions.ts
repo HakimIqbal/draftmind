@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth/permissions';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logError } from '@/lib/logging/system-log';
+import { logActivity } from '@/lib/logging/activity-log';
 
 export type Ticket = {
   id: string;
@@ -63,6 +64,24 @@ export async function submitTicket(input: {
 
   try {
     const adminClient = createAdminClient();
+    const { data: membership } = await adminClient
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (membership?.workspace_id) {
+      await logActivity({
+        workspaceId: membership.workspace_id as string,
+        actorId: user.id,
+        type: 'ticket_created',
+        resourceType: 'ticket',
+        resourceId: newTicket.id,
+        metadata: { category: input.category, subject: input.subject.trim() },
+      });
+    }
+
     await adminClient.from('notifications').insert({
       recipient_id: user.id,
       type: 'ticket_submitted',

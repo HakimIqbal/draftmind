@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logError } from '@/lib/logging/system-log';
+import { logActivity } from '@/lib/logging/activity-log';
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -45,6 +46,28 @@ export async function POST(request: Request) {
       { error: 'Failed to submit ticket. Please try again.' },
       { status: 400 },
     );
+  }
+
+  try {
+    const { data: membership } = await admin
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (membership?.workspace_id) {
+      await logActivity({
+        workspaceId: membership.workspace_id as string,
+        actorId: user.id,
+        type: 'ticket_created',
+        resourceType: 'ticket',
+        resourceId: newTicket.id,
+        metadata: { category, subject },
+      });
+    }
+  } catch {
+    // Activity log failure must not block ticket creation
   }
 
   // best-effort notification

@@ -181,6 +181,17 @@ export async function updateTicketStatus(
     if (notifError) {
       console.error('[TICKET NOTIF ERROR]', notifError.message);
     }
+
+    if (membership?.workspace_id) {
+      await logActivity({
+        workspaceId: membership.workspace_id as string,
+        actorId: user.id,
+        type: 'ticket_commented',
+        resourceType: 'ticket',
+        resourceId: ticketId,
+        metadata: { subject, status, comment_type: 'status_update' },
+      });
+    }
   }
 
   return { success: true };

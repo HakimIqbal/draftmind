@@ -14,7 +14,7 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:migrate": "supabase migration up",
+    "db:migrate": "tsx scripts/migrate-with-logging.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:types": "tsx scripts/generate-types.ts",
     "prepare": "husky",

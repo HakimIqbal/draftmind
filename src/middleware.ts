@@ -110,8 +110,21 @@ export async function middleware(request: NextRequest) {
 
   // Authenticated user — enforce role-based access for admin/user routes
   if (isAdminRoute || isUserRoute) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      await logSecurityEvent(
+        'env.config_missing',
+        'Required Supabase environment config is missing',
+        {
+          has_supabase_url: !!supabaseUrl,
+          has_service_role_key: !!serviceRoleKey,
+          pathname,
+        },
+        user.id,
+      );
+      return NextResponse.redirect(new URL('/login', publicOrigin));
+    }
 
     const profileRes = await fetch(
       `${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=is_super_admin,force_password_change&limit=1`,
@@ -124,27 +137,71 @@ export async function middleware(request: NextRequest) {
       },
     );
 
+    if (!profileRes.ok) {
+      await logSecurityEvent(
+        'supabase_admin_api_failure',
+        'Failed to fetch profile via Supabase admin REST API',
+        {
+          status: profileRes.status,
+          pathname,
+        },
+        user.id,
+      );
+    }
+
     const responseText = await profileRes.text();
     let profiles: { is_super_admin: boolean; force_password_change: boolean }[] = [];
     try {
       profiles = JSON.parse(responseText);
     } catch {
+      await logSecurityEvent(
+        'supabase_admin_api_failure',
+        'Malformed Supabase admin API profile response',
+        { pathname },
+        user.id,
+      );
       // malformed response — profile stays empty, isSuperAdmin defaults to false
     }
     const profile = profiles?.[0] ?? null;
+    if (!profile) {
+      await logSecurityEvent(
+        'auth.unexpected_role_mismatch',
+        'Authenticated user has no profile row for role guard',
+        { pathname },
+        user.id,
+      );
+    }
 
     const isSuperAdmin = profile?.is_super_admin ?? false;
     const isChangePasswordRoute = pathname === '/change-password';
 
     if (profile?.force_password_change && !isChangePasswordRoute) {
+      await logSecurityEvent(
+        'middleware.redirect_loop_detected',
+        'Redirect issued to /change-password',
+        { pathname },
+        user.id,
+      );
       return NextResponse.redirect(new URL('/change-password', publicOrigin));
     }
 
     if (!profile?.force_password_change && isChangePasswordRoute) {
+      await logSecurityEvent(
+        'middleware.redirect_loop_detected',
+        'Redirect issued to /dashboard',
+        { pathname },
+        user.id,
+      );
       return NextResponse.redirect(new URL('/dashboard', publicOrigin));
     }
 
     if (isSuperAdmin && isUserRoute && !isChangePasswordRoute) {
+      await logSecurityEvent(
+        'auth.role_redirect_loop',
+        'Redirect issued to /admin from user route',
+        { pathname },
+        user.id,
+      );
       return NextResponse.redirect(new URL('/admin', publicOrigin));
     }
 

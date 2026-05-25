@@ -3,6 +3,7 @@ import type { LanguageModelV1 } from 'ai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { decryptApiKey } from '@/lib/utils/crypto';
 import { PROVIDER_REGISTRY } from './providers';
+import { logError, logWarn, logInfo } from '@/lib/logging/system-log';
 
 export interface AIClientResult {
   provider: {
@@ -26,6 +27,7 @@ export async function createAIClient(providerId: string): Promise<AIClientResult
     .single();
 
   if (error || !provider) {
+    logError('supabase_admin_api_failure', error?.message ?? 'Provider not found', { providerId });
     throw new Error('Provider not found');
   }
 
@@ -132,7 +134,10 @@ export async function updateProviderStats(
     .eq('id', providerId)
     .single();
 
-  if (!provider) return;
+  if (!provider) {
+    logError('supabase_admin_api_failure', 'Provider stats row not found', { providerId });
+    return;
+  }
 
   const totalRequests = (provider.total_requests ?? 0) + 1;
   const successfulRequests = (provider.successful_requests ?? 0) + (success ? 1 : 0);
@@ -141,6 +146,10 @@ export async function updateProviderStats(
   // Rolling average latency
   const prevAvg = provider.avg_latency_ms ?? 0;
   const avgLatency = Math.round((prevAvg * (totalRequests - 1) + latencyMs) / totalRequests);
+
+  const previousFailures = provider.failed_requests ?? 0;
+  const nextFailures = failedRequests;
+  const wasDegraded = previousFailures >= 3;
 
   await admin
     .from('providers')
@@ -153,4 +162,18 @@ export async function updateProviderStats(
       ...(errorMsg ? { last_error: errorMsg } : {}),
     })
     .eq('id', providerId);
+
+  if (!wasDegraded && !success && nextFailures >= 3) {
+    logWarn('provider.health_degraded', 'Provider health degraded after repeated failures', {
+      providerId,
+      failedRequests: nextFailures,
+    });
+  }
+
+  if (wasDegraded && success) {
+    logInfo('provider.health_recovered', 'Provider recovered after previous failures', {
+      providerId,
+      failedRequests: nextFailures,
+    });
+  }
 }

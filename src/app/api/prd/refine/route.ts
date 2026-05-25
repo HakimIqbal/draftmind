@@ -203,7 +203,12 @@ ${instruction}
       const latencyMs = Date.now() - startMs;
       const msg = err instanceof Error ? err.message : 'Template refine failed';
       updateProviderStats(aiClient.provider.id, false, latencyMs, msg).catch(() => {});
-      logError('prd.refine.template', msg, { latencyMs, sectionKey }, user.id);
+      logError(
+        'ai.request_failed',
+        msg,
+        { feature: 'prd_refine_template', latencyMs, sectionKey },
+        user.id,
+      );
       return Response.json(
         { error: 'Failed to refine section. Please try again.' },
         { status: 500 },
@@ -376,7 +381,7 @@ ${instruction}
     const latencyMs = Date.now() - startMs;
     const msg = err instanceof Error ? err.message : 'Refine failed';
     updateProviderStats(aiClient.provider.id, false, latencyMs, msg).catch(() => {});
-    logError('prd.refine', msg, { latencyMs, sectionKey }, user.id);
+    logError('ai.request_failed', msg, { feature: 'prd_refine', latencyMs, sectionKey }, user.id);
 
     const admin = createAdminClient();
     admin

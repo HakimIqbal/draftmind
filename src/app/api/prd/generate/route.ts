@@ -670,7 +670,7 @@ export async function POST(request: Request) {
               parsed = JSON.parse(jsonText);
             } catch (repairErr) {
               logError(
-                'prd.generate',
+                'provider.response_malformed',
                 'JSON repair also failed',
                 { error: repairErr instanceof Error ? repairErr.message : String(repairErr) },
                 user.id,
@@ -685,7 +685,7 @@ export async function POST(request: Request) {
               templateAIOutput = validation.data;
             } else {
               logError(
-                'prd.generate',
+                'provider.response_malformed',
                 'Template AI output validation failed',
                 { issues: validation.error.issues.slice(0, 5) },
                 user.id,
@@ -700,7 +700,7 @@ export async function POST(request: Request) {
               aiSections = parsed as AIGeneratedSections;
             } else {
               logError(
-                'prd.generate',
+                'provider.response_malformed',
                 'AI output validation failed',
                 { issues: validation.error.issues.slice(0, 5) },
                 user.id,
@@ -747,7 +747,7 @@ export async function POST(request: Request) {
         const msg = err instanceof Error ? err.message : String(err);
         providerErrors.push(`${provider.display_name}: ${msg}`);
         logError(
-          'prd.generate',
+          'ai.request_failed',
           `Provider ${provider.display_name} failed`,
           { error: msg, provider: provider.display_name },
           user.id,
@@ -759,7 +759,12 @@ export async function POST(request: Request) {
 
     if (!generationSucceeded) {
       const allErrorsMsg = `All providers failed: ${providerErrors.join(' | ')}`;
-      logError('prd.generate', 'All providers failed', { errors: providerErrors, prdId }, user.id);
+      logError(
+        'ai.request_failed',
+        'All providers failed',
+        { errors: providerErrors, prdId },
+        user.id,
+      );
 
       // Log failure to LangSmith
       logToLangSmith({

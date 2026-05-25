@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logError } from '@/lib/logging/system-log';
 import { requireUser } from '@/lib/auth/permissions';
 
 export async function fetchActivityLog() {
@@ -15,6 +16,7 @@ export async function fetchActivityLog() {
     .single();
 
   if (!profile?.is_super_admin) {
+    logError('audit_log.permission_denied', 'Not authorized', {}, user.id);
     throw new Error('Not authorized');
   }
 

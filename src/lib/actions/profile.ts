@@ -133,7 +133,7 @@ export async function uploadAvatar(formData: FormData) {
 
   if (uploadError) {
     console.error('[uploadAvatar] storage upload error:', uploadError);
-    logError('profile.avatar', uploadError.message, {}, user.id);
+    logError('storage.upload_failed', uploadError.message, { bucket: 'avatars' }, user.id);
     return { error: 'Failed to upload avatar' };
   }
 
@@ -152,12 +152,16 @@ export async function uploadAvatar(formData: FormData) {
     return { error: 'Failed to save avatar' };
   }
 
-  await logProfileActivity(user.id, {
-    action: 'profile_updated',
-    changed_by: 'self',
-    fields_changed: ['avatar'],
-    changes: { avatar: { old: null, new: 'uploaded' } },
-  });
+  await logProfileActivity(
+    user.id,
+    {
+      action: 'avatar_updated',
+      changed_by: 'self',
+      fields_changed: ['avatar'],
+      changes: { avatar: { old: null, new: 'uploaded' } },
+    },
+    'avatar_updated',
+  );
 
   revalidatePath('/', 'layout');
 
