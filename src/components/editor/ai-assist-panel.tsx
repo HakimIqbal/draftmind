@@ -41,27 +41,32 @@ interface Suggestion {
 }
 
 const QUICK_ACTIONS = [
-  { action: 'rewrite', label: 'Rewrite', icon: RefreshCw, desc: 'Clearer & more direct' },
-  { action: 'expand', label: 'Expand', icon: Maximize2, desc: 'Add detail & context' },
-  { action: 'summarize', label: 'Summarize', icon: AlignLeft, desc: 'Condense to key points' },
+  { action: 'rewrite', label: 'Rewrite', icon: RefreshCw, desc: 'Clearer, same facts' },
+  { action: 'expand', label: 'Expand', icon: Maximize2, desc: 'Add useful detail' },
+  { action: 'summarize', label: 'Summarize', icon: AlignLeft, desc: 'Key points only' },
   { action: 'shorter', label: 'Shorter', icon: Minimize2, desc: 'Cut 40-60%' },
-  { action: 'formal', label: 'More formal', icon: GraduationCap, desc: 'Professional tone' },
-  { action: 'grammar', label: 'Fix grammar', icon: CheckCheck, desc: 'Fix spelling & syntax' },
+  { action: 'formal', label: 'More Formal', icon: GraduationCap, desc: 'Executive tone' },
+  { action: 'grammar', label: 'Fix Grammar', icon: CheckCheck, desc: 'Errors only' },
 ] as const;
 
 const MORE_ACTIONS = [
-  { action: 'translate', label: 'Translate', icon: Languages, desc: 'Auto-detect ID↔EN' },
-  { action: 'add_examples', label: 'Add examples', icon: Lightbulb, desc: 'Concrete examples' },
+  {
+    action: 'translate',
+    label: 'Translate Auto-detect ID↔EN',
+    icon: Languages,
+    desc: 'Translate only',
+  },
+  { action: 'add_examples', label: 'Add Examples', icon: Lightbulb, desc: 'Concrete cases' },
   {
     action: 'make_actionable',
-    label: 'Make actionable',
+    label: 'Make Actionable',
     icon: Target,
-    desc: 'Convert to action items',
+    desc: 'Clear next steps',
   },
-  { action: 'add_metrics', label: 'Add metrics', icon: BarChart3, desc: 'Add KPIs & targets' },
+  { action: 'add_metrics', label: 'Add Metrics', icon: BarChart3, desc: 'KPIs & targets' },
   { action: 'simplify_jargon', label: 'Simplify jargon', icon: BookOpen, desc: 'Plain language' },
-  { action: 'to_table', label: 'To table', icon: Table2, desc: 'Table format' },
-  { action: 'to_list', label: 'To list', icon: List, desc: 'Bullet list format' },
+  { action: 'to_table', label: 'To Table', icon: Table2, desc: 'Structured table' },
+  { action: 'to_list', label: 'To List', icon: List, desc: 'Flat bullets' },
 ] as const;
 
 export function AIAssistPanel({
