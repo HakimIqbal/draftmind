@@ -87,6 +87,7 @@ STRICT RULES:
   grammar: `Fix grammar, spelling, punctuation, and obvious syntax issues only.
 
 STRICT RULES:
+- This feature only fixes language errors. It must not rewrite, translate, expand, summarize, shorten, formalize, add examples, add metrics, simplify jargon, or change format.
 - Only correct errors: typos, grammar, spelling, punctuation, agreement, and awkward syntax.
 - Do not rewrite correct sentences for style.
 - Do not change tone, structure, order, meaning, or level of detail.
@@ -96,6 +97,7 @@ STRICT RULES:
   translate: `Translate Auto-detect ID↔EN.
 
 STRICT RULES:
+- This feature only translates text. It must not rewrite, polish, summarize, expand, shorten, formalize, fix grammar beyond what translation requires, add examples, add metrics, simplify jargon, or change format.
 - Auto-detect the input language.
 - If input is Bahasa Indonesia -> translate to English.
 - If input is English -> translate to Bahasa Indonesia.
@@ -172,6 +174,9 @@ export function buildInlineSuggestPrompt(input: InlineSuggestInput): string {
 
   return `You are editing a PRD section ("${sectionKey}"). The user selected specific text and chose: **${actionLabel}**.
 
+## Action Boundary
+Only perform the selected feature: ${actionLabel}. Do not combine it with any other AI Assist feature. Do not also rewrite, expand, summarize, shorten, formalize, fix grammar, translate, add examples, add metrics, simplify jargon, convert to table, or convert to list unless that is the selected feature name.
+
 ## Instruction
 ${instruction}
 
@@ -194,6 +199,7 @@ Return ONLY a valid JSON object — no markdown fences, no explanation:
 
 ## Global Rules
 - Provide exactly 3 variations, from most conservative to most creative.
+- Each suggestion must perform only ${actionLabel}; no bundled or bonus edits.
 - Each suggestion must be a direct drop-in replacement for the selected text.
 - Preserve the selected text language unless the selected action is Translate Auto-detect ID↔EN.
 - Do not invent facts, names, dates, numbers, metrics, owners, or scope.
