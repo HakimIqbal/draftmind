@@ -210,11 +210,6 @@ export function HomeFeed({
           value={stats.cycleTimeDays > 0 ? `${stats.cycleTimeDays}d` : 'N/A'}
           bg="bg-violet-50"
           color="text-violet-600"
-          hint={
-            stats.cycleTimeDays > 0
-              ? 'Average delivery time to shipped'
-              : 'Appears after first completed PRD'
-          }
         />
       </div>
 
@@ -270,14 +265,12 @@ function Stat({
   value,
   bg,
   color,
-  hint,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   bg: string;
   color: string;
-  hint?: string;
 }) {
   return (
     <div className="rounded-xl border border-[#eee] bg-white px-5 py-4">
@@ -288,7 +281,6 @@ function Stat({
         <div>
           <p className="text-[20px] font-bold leading-none text-[#1a1a1a]">{value}</p>
           <p className="mt-1 text-[11px] text-[#999]">{label}</p>
-          {hint && <p className="mt-1 text-[10px] text-[#aaa]">{hint}</p>}
         </div>
       </div>
     </div>
