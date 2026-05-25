@@ -114,9 +114,33 @@ export async function getActivityFeed(
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  return (data ?? []).map((row) => ({
+  const items = (data ?? []).map((row) => ({
     ...row,
     actor: Array.isArray(row.actor) ? (row.actor[0] ?? null) : row.actor,
+  })) as ActivityFeedItem[];
+
+  const prdIds = Array.from(
+    new Set(
+      items
+        .filter((item) => item.resource_type === 'prd' && item.resource_id)
+        .map((item) => item.resource_id as string),
+    ),
+  );
+
+  if (prdIds.length === 0) return items;
+
+  const { data: prds } = await admin.from('prds').select('id, title').in('id', prdIds);
+  const titleMap = new Map((prds ?? []).map((prd) => [prd.id, prd.title]));
+
+  return items.map((item) => ({
+    ...item,
+    metadata: {
+      ...item.metadata,
+      prd_title:
+        item.resource_type === 'prd' && item.resource_id
+          ? (titleMap.get(item.resource_id) ?? item.metadata?.prd_title)
+          : item.metadata?.prd_title,
+    },
   })) as ActivityFeedItem[];
 }
 

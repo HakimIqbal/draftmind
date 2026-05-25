@@ -4,21 +4,21 @@ import type { ActivityFeedItem } from '@/lib/db/queries/dashboard';
 
 // Must match activity_type enum in DB
 const VERB_MAP: Record<string, string> = {
-  prd_created: 'created a PRD',
-  prd_edited: 'edited a PRD',
-  prd_duplicated: 'duplicated a PRD',
-  prd_deleted: 'deleted a PRD',
-  prd_exported: 'exported a PRD',
-  prd_status_changed: 'changed PRD status',
-  prd_pinned: 'pinned/unpinned a PRD',
-  prd_version_restored: 'restored a PRD version',
-  comment_added: 'commented',
-  comment_resolved: 'resolved a comment',
-  comment_edited: 'edited a comment',
-  comment_deleted: 'deleted a comment',
-  review_requested: 'requested a review',
-  ai_copilot_used: 'used AI Copilot',
-  ai_suggest_used: 'used AI Suggest',
+  prd_created: 'created',
+  prd_edited: 'edited',
+  prd_duplicated: 'duplicated',
+  prd_deleted: 'deleted',
+  prd_exported: 'exported',
+  prd_status_changed: 'changed status for',
+  prd_pinned: 'pinned/unpinned',
+  prd_version_restored: 'restored a version of',
+  comment_added: 'commented on',
+  comment_resolved: 'resolved a comment in',
+  comment_edited: 'edited a comment in',
+  comment_deleted: 'deleted a comment in',
+  review_requested: 'requested review for',
+  ai_copilot_used: 'used AI Copilot on',
+  ai_suggest_used: 'used AI Assist on',
   member_invited: 'invited a member',
   member_joined: 'joined the workspace',
   member_role_changed: 'changed a member role',
@@ -40,7 +40,7 @@ const VERB_MAP: Record<string, string> = {
   profile_updated: 'updated their profile',
   password_changed: 'changed their password',
   password_reset: 'reset a user password',
-  public_share_created: 'created a share link',
+  public_share_created: 'created a share link for',
   user_banned: 'banned a user',
   user_unbanned: 'unbanned a user',
   user_created_by_admin: 'created a user',
@@ -49,6 +49,26 @@ const VERB_MAP: Record<string, string> = {
 
 function getVerb(type: string): string {
   return VERB_MAP[type] ?? type.replace(/_/g, ' ');
+}
+
+function getResourceLabel(item: ActivityFeedItem): string | null {
+  const metadata = item.metadata ?? {};
+  const title =
+    metadata.prd_title ?? metadata.title ?? metadata.prdTitle ?? metadata.resource_title;
+
+  return typeof title === 'string' && title.trim().length > 0 ? title : null;
+}
+
+function getDetail(item: ActivityFeedItem): string | null {
+  const metadata = item.metadata ?? {};
+  const section = metadata.section ?? metadata.section_key ?? metadata.sectionName;
+  const status = metadata.status ?? metadata.to_status ?? metadata.new_status;
+  const action = metadata.action ?? metadata.ai_action;
+
+  if (typeof section === 'string' && section) return `Section: ${section}`;
+  if (typeof status === 'string' && status) return `Status: ${status}`;
+  if (typeof action === 'string' && action) return `Action: ${action.replace(/_/g, ' ')}`;
+  return null;
 }
 
 export function ActivityFeed({ items }: { items: ActivityFeedItem[] }) {
@@ -65,6 +85,9 @@ export function ActivityFeed({ items }: { items: ActivityFeedItem[] }) {
       <div className="divide-y divide-[#f5f5f5]">
         {items.map((item) => {
           const name = item.actor?.full_name ?? 'Former member';
+          const resourceLabel = getResourceLabel(item);
+          const detail = getDetail(item);
+
           return (
             <div key={item.id} className="flex items-start gap-3 px-4 py-3">
               <Avatar
@@ -76,9 +99,13 @@ export function ActivityFeed({ items }: { items: ActivityFeedItem[] }) {
                 }
               />
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] text-[#555]">
+                <p className="text-[12px] leading-5 text-[#555]">
                   <span className="font-medium text-[#1a1a1a]">{name}</span> {getVerb(item.type)}
+                  {resourceLabel && (
+                    <span className="font-medium text-[#1a1a1a]"> {resourceLabel}</span>
+                  )}
                 </p>
+                {detail && <p className="truncate text-[11px] text-[#999]">{detail}</p>}
                 <span className="text-[11px] text-[#bbb]" suppressHydrationWarning>
                   {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                 </span>

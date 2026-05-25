@@ -42,6 +42,66 @@ export function HomeFeed({
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const hasData = continueWorking.length > 0 || activityFeed.length > 0;
   const hasStats = stats.activePRDs > 0 || stats.queueCount > 0 || stats.avgHealth > 0;
+  const generatedNeedsAttention: NeedsAttentionItem[] = continueWorking
+    .flatMap((prd) => {
+      const items: NeedsAttentionItem[] = [];
+      const updatedAt = new Date(prd.updated_at);
+      const ageDays = Math.floor((Date.now() - updatedAt.getTime()) / 86_400_000);
+
+      if (prd.health_score === null) {
+        items.push({
+          id: `health-${prd.id}`,
+          type: 'ai_review_needed',
+          title: `${prd.title} needs an AI Review`,
+          body: 'No health score yet. Run AI Review before recording the PRD flow.',
+          resource_type: 'prd',
+          resource_id: prd.id,
+          action_url: `/prds/${prd.id}`,
+          created_at: prd.updated_at,
+        });
+      } else if (prd.health_score < 85) {
+        items.push({
+          id: `health-${prd.id}`,
+          type: 'health_gap',
+          title: `${prd.title} health is ${prd.health_score}%`,
+          body: 'Review missing details, risks, and success metrics to improve readiness.',
+          resource_type: 'prd',
+          resource_id: prd.id,
+          action_url: `/prds/${prd.id}`,
+          created_at: prd.updated_at,
+        });
+      }
+
+      if (prd.status === 'draft') {
+        items.push({
+          id: `draft-${prd.id}`,
+          type: 'draft_ready',
+          title: `${prd.title} is still in Draft`,
+          body: 'Add final success metrics and run AI Review before sharing.',
+          resource_type: 'prd',
+          resource_id: prd.id,
+          action_url: `/prds/${prd.id}`,
+          created_at: prd.updated_at,
+        });
+      }
+
+      if (ageDays >= 7) {
+        items.push({
+          id: `stale-${prd.id}`,
+          type: 'stale_prd',
+          title: `${prd.title} has not moved recently`,
+          body: 'Check if the PRD needs review, approval, or archive.',
+          resource_type: 'prd',
+          resource_id: prd.id,
+          action_url: `/prds/${prd.id}`,
+          created_at: prd.updated_at,
+        });
+      }
+
+      return items;
+    })
+    .slice(0, 3);
+  const attentionItems = needsAttention.length > 0 ? needsAttention : generatedNeedsAttention;
 
   useEffect(() => {
     const supabase = createClient();
@@ -147,9 +207,10 @@ export function HomeFeed({
         <Stat
           icon={Activity}
           label="Cycle Time"
-          value={stats.cycleTimeDays > 0 ? `${stats.cycleTimeDays}d` : '--'}
+          value={stats.cycleTimeDays > 0 ? `${stats.cycleTimeDays}d` : 'TBD'}
           bg="bg-violet-50"
           color="text-violet-600"
+          hint={stats.cycleTimeDays > 0 ? 'Average delivery speed' : 'Available after shipped PRDs'}
         />
       </div>
 
@@ -175,12 +236,12 @@ export function HomeFeed({
             </section>
           )}
 
-          {needsAttention.length > 0 && (
+          {attentionItems.length > 0 && (
             <section>
               <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-[#aaa]">
                 Needs attention
               </p>
-              <NeedsAttentionCard items={needsAttention} />
+              <NeedsAttentionCard items={attentionItems} />
             </section>
           )}
         </div>
@@ -205,12 +266,14 @@ function Stat({
   value,
   bg,
   color,
+  hint,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   bg: string;
   color: string;
+  hint?: string;
 }) {
   return (
     <div className="rounded-xl border border-[#eee] bg-white px-5 py-4">
@@ -221,6 +284,7 @@ function Stat({
         <div>
           <p className="text-[20px] font-bold leading-none text-[#1a1a1a]">{value}</p>
           <p className="mt-1 text-[11px] text-[#999]">{label}</p>
+          {hint && <p className="mt-1 text-[10px] text-[#aaa]">{hint}</p>}
         </div>
       </div>
     </div>
