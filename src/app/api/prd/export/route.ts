@@ -121,27 +121,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'PRD not found' }, { status: 404 });
     }
 
+    const prdContent = prd.content as Record<string, unknown>;
+    const isTemplateMode =
+      (prdContent.metadata as Record<string, unknown> | undefined)?.generation_mode ===
+        'template' ||
+      Array.isArray(
+        (prdContent.template_document as Record<string, unknown> | undefined)?.sections,
+      );
+
     const allSectionKeys = Object.keys(PRD_SECTION_LABELS);
     const requestedSections =
       Array.isArray(sections) && sections.length > 0 ? sections : allSectionKeys;
-    const selectedSections = requestedSections.filter((section) =>
-      allSectionKeys.includes(section),
-    );
-    if (selectedSections.length === 0) {
+    const selectedSections = isTemplateMode
+      ? []
+      : requestedSections.filter((section) => allSectionKeys.includes(section));
+    if (!isTemplateMode && selectedSections.length === 0) {
       return NextResponse.json(
         { error: 'At least one valid section is required' },
         { status: 400 },
       );
     }
 
-    const doc = filterPRDDocumentSections(prd.content as PRDDocument, selectedSections);
-    const hiddenSections: string[] = [
-      ...new Set([
-        ...(((prd as Record<string, unknown>).hidden_sections as string[]) ?? []),
-        ...allSectionKeys.filter((key) => !selectedSections.includes(key)),
-      ]),
-    ];
-    // Filter tiptap content: remove nodes belonging to hidden sections
+    const doc = isTemplateMode
+      ? (prd.content as PRDDocument)
+      : filterPRDDocumentSections(prd.content as PRDDocument, selectedSections);
+    const hiddenSections: string[] = isTemplateMode
+      ? []
+      : [
+          ...new Set([
+            ...(((prd as Record<string, unknown>).hidden_sections as string[]) ?? []),
+            ...allSectionKeys.filter((key) => !selectedSections.includes(key)),
+          ]),
+        ];
+    // Template PRDs are dynamic; never filter them through the standard 14-section map.
     const rawTiptap = prd.tiptap_content as {
       type: string;
       content: Record<string, unknown>[];
@@ -158,7 +170,7 @@ export async function POST(req: NextRequest) {
       type: 'prd_exported',
       resourceType: 'prd',
       resourceId: prdId,
-      metadata: { format, sections: selectedSections },
+      metadata: { format, sections: isTemplateMode ? 'template_dynamic' : selectedSections },
     });
 
     switch (format) {

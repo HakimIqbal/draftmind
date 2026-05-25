@@ -43,6 +43,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'PRD not found' }, { status: 404 });
   }
 
+  // Block AI Review for template PRDs until template-aware review is implemented
+  const prdContent = prd.content as Record<string, unknown>;
+  const generationMode = (prdContent?.metadata as Record<string, unknown>)?.generation_mode;
+  if (generationMode === 'template') {
+    return NextResponse.json(
+      {
+        error:
+          'AI Review is not yet available for template-generated PRDs. This feature will be added in a future update.',
+        template_blocked: true,
+      },
+      { status: 422 },
+    );
+  }
+
   // 2. Get AI client
   let aiClient;
   try {

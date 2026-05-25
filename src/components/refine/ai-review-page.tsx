@@ -71,6 +71,10 @@ export function AIReviewPage({
 
   const healthScore = (prd.health_score as number) ?? 0;
   const healthBreakdown = (prd.health_breakdown as Record<string, number> | null) ?? {};
+  const prdContent = prd.content as Record<string, unknown> | null | undefined;
+  const generationMode = (prdContent?.metadata as Record<string, unknown> | undefined)
+    ?.generation_mode;
+  const isTemplateMode = generationMode === 'template';
 
   const countBySeverity = (sev: string) => findings.filter((f) => f.severity === sev).length;
 
@@ -157,6 +161,50 @@ export function AIReviewPage({
 
   /* ---------- empty state ---------- */
   const prdId = prd.id as string;
+
+  if (isTemplateMode) {
+    return (
+      <div className="flex-1 p-lg">
+        <div className="mb-md">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `/prds/${prdId}`;
+            }}
+            className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-[#888] transition-colors hover:text-[#1a1a1a]"
+          >
+            <ArrowLeft size={14} />
+            Back to Editor
+          </button>
+          <p className="mb-1 font-mono text-[11px] text-ink-tertiary">
+            {prd.title as string} / AI Review
+          </p>
+          <h1 className="font-display text-xl font-bold text-ink-primary">AI Review</h1>
+          <p className="mt-1 text-sm text-ink-secondary">
+            Template-generated PRDs use dynamic sections, so the standard 14-section AI Review is
+            disabled for this document.
+          </p>
+        </div>
+
+        <div className="flex min-h-[400px] items-center justify-center">
+          <Card className="w-full max-w-md text-center">
+            <CardContent className="flex flex-col items-center gap-4 px-md py-lg">
+              <p className="text-sm font-medium text-ink-primary">
+                AI Review not available for template PRDs yet
+              </p>
+              <p className="text-sm text-ink-secondary">
+                This prevents misleading feedback based on DraftMind&apos;s standard 14-section
+                rubric. Use Template Health for now.
+              </p>
+              <Button variant="outline" onClick={() => router.push(`/prds/${prdId}`)}>
+                Back to Editor
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasReview) {
     return (

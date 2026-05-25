@@ -6,6 +6,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 interface HealthScoreDisplayProps {
   score: number | null;
   breakdown: Record<string, number> | null;
+  label?: string;
 }
 
 const BREAKDOWN_LABELS: Record<string, string> = {
@@ -14,20 +15,17 @@ const BREAKDOWN_LABELS: Record<string, string> = {
   structural: 'Structural',
   consistency: 'Consistency',
 };
-
-function getGrade(score: number): string {
-  if (score >= 90) return 'Excellent';
-  if (score >= 70) return 'Good shape';
-  if (score >= 50) return 'Needs work';
-  return 'Poor';
-}
-
-export function HealthScoreDisplay({ score, breakdown }: HealthScoreDisplayProps) {
+export function HealthScoreDisplay({
+  score,
+  breakdown,
+  label = 'Health Score',
+}: HealthScoreDisplayProps) {
   const hasScore = score !== null && score > 0;
   const displayScore = score ?? 0;
 
   return (
     <div className="flex items-start gap-4">
+      <span className="sr-only">{label}</span>
       <div className="flex flex-col items-center gap-1">
         <ProgressRing size={64} value={hasScore ? displayScore : 0}>
           <div className="flex flex-col items-center">
@@ -42,7 +40,7 @@ export function HealthScoreDisplay({ score, breakdown }: HealthScoreDisplayProps
           </div>
         </ProgressRing>
         <span className="font-mono text-[11px] text-ink-tertiary">
-          {hasScore ? getGrade(displayScore) : 'Run AI Review'}
+          {hasScore ? label : label === 'Template Health' ? 'Template Health' : 'Run AI Review'}
         </span>
       </div>
 

@@ -33,6 +33,7 @@ interface OutlinePanelProps {
     health_score: number | null;
     health_breakdown: Record<string, number> | null;
     updated_at: string;
+    content?: Record<string, unknown>;
     tiptap_content: Record<string, unknown> | null;
   };
   userId?: string;
@@ -419,7 +420,19 @@ export function OutlinePanel({
               <span className="font-bold text-ink-primary">{prd.read_time_minutes}m</span>
             </div>
           </div>
-          <HealthScoreDisplay score={prd.health_score} breakdown={prd.health_breakdown} />
+          <HealthScoreDisplay
+            score={prd.health_score}
+            breakdown={prd.health_breakdown}
+            label={
+              (
+                (prd.content as Record<string, unknown>)?.metadata as
+                  | Record<string, unknown>
+                  | undefined
+              )?.generation_mode === 'template'
+                ? 'Template Health'
+                : 'Health Score'
+            }
+          />
         </div>
       </div>
     </div>
