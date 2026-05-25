@@ -33,7 +33,7 @@ export async function getDashboardStats(workspaceId: string): Promise<DashboardS
         )
       : 0;
 
-  const completedStatuses = new Set(['final', 'approved', 'refined']);
+  const completedStatuses = new Set(['approved', 'final', 'shipped']);
   const completed = allPRDs.filter((p) => completedStatuses.has(p.status));
   let cycleTimeDays = 0;
   if (completed.length > 0) {
@@ -42,7 +42,7 @@ export async function getDashboardStats(workspaceId: string): Promise<DashboardS
         sum + (new Date(p.updated_at).getTime() - new Date(p.created_at).getTime()) / 86_400_000
       );
     }, 0);
-    cycleTimeDays = Math.round(totalDays / completed.length);
+    cycleTimeDays = Math.max(1, Math.round(totalDays / completed.length));
   }
 
   return { activePRDs, queueCount, avgHealth, cycleTimeDays };
