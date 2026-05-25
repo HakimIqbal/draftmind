@@ -7,11 +7,11 @@ import { PROVIDER_REGISTRY } from '@/lib/ai/providers';
 import { decryptApiKey } from '@/lib/utils/crypto';
 import { buildGeneratePRDPrompt } from '@/lib/ai/prompts/generate-prd';
 import { SYSTEM_PROMPT } from '@/lib/ai/prompts/system';
-import { AIGeneratedSectionsSchema } from '@/lib/ai/schema';
-import type { AIGeneratedSections } from '@/lib/ai/schema';
+import { AIGeneratedSectionsSchema, TemplateGeneratedSectionsSchema } from '@/lib/ai/schema';
+import type { AIGeneratedSections, TemplateGeneratedSections } from '@/lib/ai/schema';
 import { createEmptyPRD } from '@/lib/prd/schema';
 import type { PRDDocument } from '@/lib/prd/schema';
-import { prdToTiptap } from '@/lib/prd/tiptap-content';
+import { prdToTiptap, templateToTiptap } from '@/lib/prd/tiptap-content';
 import { computeHealthScore } from '@/lib/prd/health-score';
 import { generateObject, generateText } from 'ai';
 import { checkRateLimit, AI_RATE_LIMITS } from '@/lib/utils/rate-limit';
@@ -265,6 +265,66 @@ function countDocumentWords(prd: PRDDocument): number {
   return all.split(/\s+/).filter(Boolean).length;
 }
 
+type TemplateSectionContract = { name: string; guidelines?: string };
+
+type TemplateHealthBreakdown = {
+  completeness: number;
+  specificity: number;
+  structural: number;
+  consistency: number;
+};
+
+function normalizeTemplateAIOutput(
+  output: TemplateGeneratedSections,
+  templateSections: TemplateSectionContract[],
+): { title: string; content: string }[] {
+  const generated = Array.isArray(output.sections) ? output.sections : [];
+  return templateSections.map((templateSection, index) => {
+    const candidate = generated[index];
+    const content = String(candidate?.content ?? '').trim();
+    return {
+      title: templateSection.name,
+      content: content.length > 0 ? content : '[TO CONFIRM]',
+    };
+  });
+}
+
+function computeTemplateHealthScore(sections: { title: string; content: string }[]) {
+  const filled = sections.filter((section) => section.content.trim().length > 0).length;
+  const completeness = sections.length > 0 ? Math.round((filled / sections.length) * 100) : 0;
+  const allText = sections.map((section) => section.content).join(' ');
+  const words = allText.split(/\s+/).filter(Boolean);
+  const numberMatches = allText.match(/\b\d+(\.\d+)?%?\b/g) || [];
+  const dateMatches =
+    allText.match(
+      /\b\d{4}-\d{2}(-\d{2})?\b|\bQ[1-4]\s+\d{4}\b|\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/gi,
+    ) || [];
+  const specificity =
+    words.length > 0
+      ? Math.min(
+          100,
+          Math.round(((numberMatches.length + dateMatches.length) / words.length) * 1000),
+        )
+      : 0;
+  const avgWords = sections.length > 0 ? words.length / sections.length : 0;
+  const structural = Math.min(100, Math.round(avgWords * 4));
+  const markers = allText.match(/\[(?:TBD|TO CONFIRM|TODO|PLACEHOLDER|TBC|FIXME)\]/gi) || [];
+  const consistency = Math.max(0, 100 - markers.length * 10);
+  const breakdown: TemplateHealthBreakdown = { completeness, specificity, structural, consistency };
+  const score = Math.round(
+    completeness * 0.4 + specificity * 0.2 + structural * 0.25 + consistency * 0.15,
+  );
+  return { score, breakdown };
+}
+
+function countTemplateWords(sections: { title: string; content: string }[]) {
+  return sections
+    .flatMap((section) => [section.title, section.content])
+    .join(' ')
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
+
 // ---------------------------------------------------------------------------
 // POST handler
 // ---------------------------------------------------------------------------
@@ -360,6 +420,11 @@ export async function POST(request: Request) {
       design_link?: string;
       start_date?: string;
       end_date?: string;
+      template_id?: string;
+      template_name?: string;
+      template_sections?: TemplateSectionContract[];
+      template_instructions?: string;
+      generation_mode?: 'standard' | 'template';
     };
 
     activityContext = {
@@ -369,6 +434,18 @@ export async function POST(request: Request) {
       aiRunId,
       title: inputPayload.title,
     };
+
+    const templateSections: { name: string; guidelines: string }[] = Array.isArray(
+      inputPayload.template_sections,
+    )
+      ? inputPayload.template_sections
+          .filter((section) => section.name?.trim())
+          .map((section) => ({ name: section.name.trim(), guidelines: section.guidelines ?? '' }))
+      : [];
+    const generationMode =
+      inputPayload.generation_mode === 'template' && templateSections.length > 0
+        ? 'template'
+        : 'standard';
 
     await logActivity({
       workspaceId,
@@ -410,14 +487,15 @@ export async function POST(request: Request) {
       priority: inputPayload.priority,
       techStack: inputPayload.tech_stack,
       designLink: inputPayload.design_link,
-      templateName: (inputPayload as Record<string, unknown>).template_name as string | undefined,
-      templateSections: (inputPayload as Record<string, unknown>).template_sections as
-        | { name: string; guidelines: string }[]
-        | undefined,
+      templateName: inputPayload.template_name,
+      templateSections: generationMode === 'template' ? templateSections : undefined,
+      templateInstructions: inputPayload.template_instructions,
+      generationMode,
     });
 
     // Try ALL providers in priority order with real fallback
-    let aiSections: AIGeneratedSections = undefined!;
+    let aiSections: AIGeneratedSections | undefined;
+    let templateAIOutput: TemplateGeneratedSections | undefined;
     let modelUsed = 'pending';
     let tokensUsed = 0;
     let _providerId: string | null = null;
@@ -485,17 +563,29 @@ export async function POST(request: Request) {
         let result;
         try {
           // Try generateObject first (structured output mode)
-          const objectResult = await generateObject({
-            model,
-            schema: AIGeneratedSectionsSchema,
-            system: SYSTEM_PROMPT,
-            prompt: userPrompt,
-            maxTokens: 65000,
-            temperature: 0.25,
-          });
-
-          aiSections = objectResult.object;
-          tokensUsed = objectResult.usage?.totalTokens ?? 0;
+          if (generationMode === 'template') {
+            const objectResult = await generateObject({
+              model,
+              schema: TemplateGeneratedSectionsSchema,
+              system: SYSTEM_PROMPT,
+              prompt: userPrompt,
+              maxTokens: 65000,
+              temperature: 0.25,
+            });
+            templateAIOutput = objectResult.object;
+            tokensUsed = objectResult.usage?.totalTokens ?? 0;
+          } else {
+            const objectResult = await generateObject({
+              model,
+              schema: AIGeneratedSectionsSchema,
+              system: SYSTEM_PROMPT,
+              prompt: userPrompt,
+              maxTokens: 65000,
+              temperature: 0.25,
+            });
+            aiSections = objectResult.object;
+            tokensUsed = objectResult.usage?.totalTokens ?? 0;
+          }
         } catch (structuredError) {
           // Fallback to generateText + manual parse if provider doesn't support structured output
           logWarn(
@@ -516,7 +606,9 @@ export async function POST(request: Request) {
             system: SYSTEM_PROMPT,
             prompt:
               userPrompt +
-              '\n\nIMPORTANT: Output ONLY a valid JSON object matching the PRD schema. No markdown fences, no explanation, no text before or after the JSON. Generate ALL 14 sections with full detail.',
+              (generationMode === 'template'
+                ? '\n\nIMPORTANT: Output ONLY a valid JSON object with a sections array matching the selected template. No markdown fences, no explanation, no text before or after the JSON.'
+                : '\n\nIMPORTANT: Output ONLY a valid JSON object matching the PRD schema. No markdown fences, no explanation, no text before or after the JSON. Generate ALL 14 sections with full detail.'),
             maxTokens: 65000,
             temperature: 0.25,
           });
@@ -587,19 +679,34 @@ export async function POST(request: Request) {
             }
           }
 
-          const validation = AIGeneratedSectionsSchema.safeParse(parsed);
-          if (validation.success) {
-            aiSections = validation.data;
-          } else if (parsed.overview) {
-            aiSections = parsed as AIGeneratedSections;
+          if (generationMode === 'template') {
+            const validation = TemplateGeneratedSectionsSchema.safeParse(parsed);
+            if (validation.success) {
+              templateAIOutput = validation.data;
+            } else {
+              logError(
+                'prd.generate',
+                'Template AI output validation failed',
+                { issues: validation.error.issues.slice(0, 5) },
+                user.id,
+              );
+              throw new Error('AI output did not match expected template PRD schema');
+            }
           } else {
-            logError(
-              'prd.generate',
-              'AI output validation failed',
-              { issues: validation.error.issues.slice(0, 5) },
-              user.id,
-            );
-            throw new Error('AI output did not match expected PRD schema');
+            const validation = AIGeneratedSectionsSchema.safeParse(parsed);
+            if (validation.success) {
+              aiSections = validation.data;
+            } else if (parsed.overview) {
+              aiSections = parsed as AIGeneratedSections;
+            } else {
+              logError(
+                'prd.generate',
+                'AI output validation failed',
+                { issues: validation.error.issues.slice(0, 5) },
+                user.id,
+              );
+              throw new Error('AI output did not match expected PRD schema');
+            }
           }
         }
 
@@ -615,7 +722,14 @@ export async function POST(request: Request) {
             brief: inputPayload.brief?.slice(0, 500),
             model: modelUsed,
           },
-          outputs: { health_score: 0, word_count: 0, sections: Object.keys(aiSections).length },
+          outputs: {
+            health_score: 0,
+            word_count: 0,
+            sections:
+              generationMode === 'template'
+                ? templateSections.length
+                : Object.keys(aiSections ?? {}).length,
+          },
           startTime: new Date(startMs),
           endTime: new Date(),
           metadata: {
@@ -685,47 +799,97 @@ export async function POST(request: Request) {
       );
     }
 
-    // Convert to PRDDocument
-    const prdDocument = aiSectionsToPRDDocument(aiSections, user.id, inputPayload.title);
-
-    // Enrich metadata with form data
+    // Convert generated output into stored content and editor content.
     const ownerName =
       (user.user_metadata as Record<string, string> | undefined)?.full_name ?? user.email ?? 'User';
-    prdDocument.metadata.owner_name = ownerName;
-    prdDocument.metadata.project_tag = inputPayload.project_tag;
-    prdDocument.metadata.start_date = inputPayload.start_date;
-    prdDocument.metadata.end_date = inputPayload.end_date;
-    if (inputPayload.team_members && inputPayload.team_members.length > 0) {
-      prdDocument.metadata.developers = inputPayload.team_members.map((name, i) => ({
-        name,
-        role: inputPayload.team_member_roles?.[i] ?? '',
-      }));
+
+    let prdDocument: PRDDocument & Record<string, unknown>;
+    let tiptapContent: Record<string, unknown>;
+    let healthResult: { score: number; breakdown: Record<string, number> };
+    let wordCount: number;
+    let sectionCount: number;
+
+    if (generationMode === 'template') {
+      if (!templateAIOutput) {
+        throw new Error('AI output did not include template sections');
+      }
+      const generatedSections = normalizeTemplateAIOutput(templateAIOutput, templateSections);
+      prdDocument = createEmptyPRD(user.id, inputPayload.title) as PRDDocument &
+        Record<string, unknown>;
+      prdDocument.metadata.owner_name = ownerName;
+      prdDocument.metadata.project_tag = inputPayload.project_tag;
+      prdDocument.metadata.start_date = inputPayload.start_date;
+      prdDocument.metadata.end_date = inputPayload.end_date;
+      (prdDocument.metadata as Record<string, unknown>).generation_mode = 'template';
+      (prdDocument.metadata as Record<string, unknown>).template_id = inputPayload.template_id;
+      (prdDocument.metadata as Record<string, unknown>).template_name = inputPayload.template_name;
+      (prdDocument.metadata as Record<string, unknown>).template_sections = templateSections;
+      prdDocument.template_document = generatedSections;
+      if (inputPayload.team_members && inputPayload.team_members.length > 0) {
+        prdDocument.metadata.developers = inputPayload.team_members.map((name, i) => ({
+          name,
+          role: inputPayload.team_member_roles?.[i] ?? '',
+        }));
+      }
+      if (inputPayload.stakeholders) {
+        prdDocument.metadata.stakeholder_names = inputPayload.stakeholders
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+      }
+      tiptapContent = templateToTiptap({ sections: generatedSections }) as unknown as Record<
+        string,
+        unknown
+      >;
+      healthResult = computeTemplateHealthScore(generatedSections);
+      wordCount = countTemplateWords(generatedSections);
+      sectionCount = generatedSections.length;
+    } else {
+      if (!aiSections) {
+        throw new Error('AI output did not include standard PRD sections');
+      }
+      prdDocument = aiSectionsToPRDDocument(
+        aiSections,
+        user.id,
+        inputPayload.title,
+      ) as PRDDocument & Record<string, unknown>;
+      prdDocument.metadata.owner_name = ownerName;
+      prdDocument.metadata.project_tag = inputPayload.project_tag;
+      prdDocument.metadata.start_date = inputPayload.start_date;
+      prdDocument.metadata.end_date = inputPayload.end_date;
+      (prdDocument.metadata as Record<string, unknown>).generation_mode = 'standard';
+      if (inputPayload.team_members && inputPayload.team_members.length > 0) {
+        prdDocument.metadata.developers = inputPayload.team_members.map((name, i) => ({
+          name,
+          role: inputPayload.team_member_roles?.[i] ?? '',
+        }));
+      }
+      if (inputPayload.stakeholders) {
+        prdDocument.metadata.stakeholder_names = inputPayload.stakeholders
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+      }
+
+      // Force changelog to exactly 1 entry with correct data
+      prdDocument.sections.changelog = [
+        {
+          version: 1,
+          date: inputPayload.start_date || new Date().toISOString().slice(0, 10),
+          author: ownerName,
+          summary: 'Initial draft',
+        },
+      ];
+
+      tiptapContent = prdToTiptap(prdDocument) as unknown as Record<string, unknown>;
+      const rawHealth = computeHealthScore(prdDocument);
+      healthResult = {
+        score: rawHealth.score,
+        breakdown: rawHealth.breakdown as unknown as Record<string, number>,
+      };
+      wordCount = countDocumentWords(prdDocument);
+      sectionCount = 14;
     }
-    if (inputPayload.stakeholders) {
-      prdDocument.metadata.stakeholder_names = inputPayload.stakeholders
-        .split(',')
-        .map((s: string) => s.trim())
-        .filter(Boolean);
-    }
-
-    // Force changelog to exactly 1 entry with correct data
-    prdDocument.sections.changelog = [
-      {
-        version: 1,
-        date: inputPayload.start_date || new Date().toISOString().slice(0, 10),
-        author: ownerName,
-        summary: 'Initial draft',
-      },
-    ];
-
-    // Generate Tiptap content
-    const tiptapContent = prdToTiptap(prdDocument);
-
-    // Compute health score
-    const healthResult = computeHealthScore(prdDocument);
-
-    // Count words
-    const wordCount = countDocumentWords(prdDocument);
 
     // Update PRD + version + ai_run in parallel (all independent)
     const durationMs = Date.now() - startMs;
@@ -760,7 +924,9 @@ export async function POST(request: Request) {
           output_payload: {
             health_score: healthResult.score,
             word_count: wordCount,
-            section_count: 14,
+            section_count: sectionCount,
+            generation_mode: generationMode,
+            template_name: generationMode === 'template' ? inputPayload.template_name : undefined,
           },
           completed_at: new Date().toISOString(),
         })
@@ -792,6 +958,8 @@ export async function POST(request: Request) {
         model: modelUsed,
         duration_ms: durationMs,
         health_score: healthResult.score,
+        generation_mode: generationMode,
+        section_count: sectionCount,
       },
     });
 

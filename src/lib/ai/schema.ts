@@ -267,6 +267,20 @@ export const AIGeneratedSectionsSchema = z.object({
 export type AIGeneratedSections = z.infer<typeof AIGeneratedSectionsSchema>;
 
 // ---------------------------------------------------------------------------
+// Schema for template-aware PRD generation output
+// ---------------------------------------------------------------------------
+export const TemplateGeneratedSectionsSchema = z.object({
+  sections: z.array(
+    z.object({
+      title: z.string().min(1),
+      content: z.string().min(1),
+    }),
+  ),
+});
+
+export type TemplateGeneratedSections = z.infer<typeof TemplateGeneratedSectionsSchema>;
+
+// ---------------------------------------------------------------------------
 // Schema for AI review output
 // ---------------------------------------------------------------------------
 export const AIReviewOutputSchema = z.object({

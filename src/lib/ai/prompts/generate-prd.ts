@@ -7,6 +7,8 @@ export interface GeneratePRDInput {
   endDate?: string;
   templateName?: string;
   templateSections?: { name: string; guidelines: string }[];
+  templateInstructions?: string;
+  generationMode?: 'standard' | 'template';
   locale?: 'en' | 'id' | 'mixed';
   targetUsers?: string;
   problemStatement?: string;
@@ -75,6 +77,8 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
     endDate,
     templateName,
     templateSections,
+    templateInstructions,
+    generationMode = templateSections && templateSections.length > 0 ? 'template' : 'standard',
     locale = 'mixed',
     targetUsers,
     problemStatement,
@@ -131,6 +135,56 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
   ]
     .filter(Boolean)
     .join('\n');
+
+  if (generationMode === 'template' && templateSections && templateSections.length > 0) {
+    const sectionContract = templateSections
+      .map(
+        (s, i) =>
+          `${i + 1}. ${s.name}${s.guidelines ? ` — Guidelines: ${s.guidelines}` : ' — Guidelines: use the section name and user input as the rubric.'}`,
+      )
+      .join('\n');
+
+    return `Write a PRD using the selected template exactly. The output must match the template section contract and must not use DraftMind's standard 14-section PRD format.
+
+## Input
+${contextLines}
+
+## Brief
+${brief}
+
+## Language
+${localeInstruction}
+
+## Template
+Template Name: ${templateName || 'Selected template'}
+${templateInstructions ? `Global Template Instructions: ${templateInstructions}` : ''}
+
+## Exact Section Contract
+${sectionContract}
+
+## Rules
+KNOWN PEOPLE (with their professional roles): ${uniquePeople.join(', ')}
+These are the ONLY names you may use. Do not invent names, stakeholders, developers, statistics, links, dates, or metrics.
+
+1. Generate EXACTLY ${templateSections.length} sections.
+2. Use the exact section titles above.
+3. Preserve the exact order above.
+4. Do NOT add sections.
+5. Do NOT remove sections.
+6. Do NOT rename sections.
+7. Use each section's guidelines as instructions for its content.
+8. Use the global template instructions if provided.
+9. Use the user form input as context for every section.
+10. If information is missing, write [TO CONFIRM] instead of fabricating details.
+11. Keep content practical, specific, and directly useful for the product team.
+
+IMPORTANT OUTPUT FORMAT: Return ONLY JSON with this shape:
+{
+  "sections": [
+    { "title": "${templateSections[0]?.name ?? 'Section'}", "content": "Generated content..." }
+  ]
+}`;
+  }
 
   return `Write a complete PRD as if you're a senior product manager drafting this for your team. Make it read naturally — like a real person wrote it, not a template filler. All 14 sections must have real, useful content.
 

@@ -222,8 +222,12 @@ export function GenerateForm({
           templateName: selectedTemplate?.name,
           preferredProviderId: selectedProviderId || undefined,
         });
-      } catch {
-        showError('Failed to create PRD. Please try again.');
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          showError(err.message || 'Failed to create PRD. Please try again.');
+        } else {
+          showError('Failed to create PRD. Please try again.');
+        }
       }
     });
   }

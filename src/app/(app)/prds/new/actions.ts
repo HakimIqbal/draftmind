@@ -8,6 +8,42 @@ import { redirect } from 'next/navigation';
 import { logActivity } from '@/lib/logging/activity-log';
 import { logInfo } from '@/lib/logging/system-log';
 
+type TemplateSectionInput = {
+  name?: unknown;
+  title?: unknown;
+  guidelines?: unknown;
+  description?: unknown;
+};
+type TemplateStructure = {
+  sections?: TemplateSectionInput[];
+  sections_enabled?: unknown[];
+  instructions?: string;
+};
+
+function normalizeTemplateSections(structure: TemplateStructure | null | undefined) {
+  const sections = Array.isArray(structure?.sections)
+    ? structure!.sections
+        .map((section) => ({
+          name: String(section.name ?? section.title ?? '').trim(),
+          guidelines: String(section.guidelines ?? section.description ?? '').trim(),
+        }))
+        .filter((section) => section.name.length > 0)
+    : [];
+
+  if (sections.length > 0) return sections;
+
+  if (Array.isArray(structure?.sections_enabled)) {
+    return structure!.sections_enabled
+      .map((name) => ({ name: String(name ?? '').trim(), guidelines: '' }))
+      .filter((section) => section.name.length > 0);
+  }
+
+  return [];
+}
+
+const INVALID_TEMPLATE_MESSAGE =
+  'This template has no sections configured. Please edit the template or choose another template.';
+
 export async function getTemplates() {
   await requireUser();
   const supabase = await createClient();
@@ -86,30 +122,42 @@ export async function createPRDAndGenerate(data: {
   const admin = createAdminClient();
   const emptyPRD = createEmptyPRD(authenticatedUserId, data.title);
 
-  // If template selected, fetch its structure for AI context
+  const generationMode = data.templateId ? 'template' : 'standard';
+
+  // If template selected, fetch and validate its structure for AI context.
   let templateSections: { name: string; guidelines: string }[] | undefined;
+  let templateInstructions: string | undefined;
   if (data.templateId) {
-    const { data: template } = await supabase
+    const { data: template, error: templateError } = await supabase
       .from('prd_templates')
       .select('structure')
       .eq('id', data.templateId)
       .single();
-    if (template) {
-      templateSections = (
-        template.structure as { sections?: { name: string; guidelines: string }[] }
-      ).sections;
-      // Increment use count
-      const { data: current } = await admin
+
+    if (templateError || !template) {
+      throw new Error('Template not found. Please choose another template.');
+    }
+
+    const structure = template.structure as TemplateStructure;
+    templateSections = normalizeTemplateSections(structure);
+    templateInstructions =
+      typeof structure.instructions === 'string' ? structure.instructions : undefined;
+
+    if (templateSections.length === 0) {
+      throw new Error(INVALID_TEMPLATE_MESSAGE);
+    }
+
+    // Increment use count only after the template is proven valid.
+    const { data: current } = await admin
+      .from('prd_templates')
+      .select('use_count')
+      .eq('id', data.templateId)
+      .single();
+    if (current) {
+      await admin
         .from('prd_templates')
-        .select('use_count')
-        .eq('id', data.templateId)
-        .single();
-      if (current) {
-        await admin
-          .from('prd_templates')
-          .update({ use_count: (current.use_count ?? 0) + 1 })
-          .eq('id', data.templateId);
-      }
+        .update({ use_count: (current.use_count ?? 0) + 1 })
+        .eq('id', data.templateId);
     }
   }
 
@@ -137,6 +185,10 @@ export async function createPRDAndGenerate(data: {
         priority: data.priority,
         tech_stack: data.techStack,
         design_link: data.designLink,
+        generation_mode: generationMode,
+        template_id: data.templateId ?? null,
+        template_name: data.templateName,
+        template_sections: templateSections,
       },
     })
     .select('id')
@@ -194,6 +246,8 @@ export async function createPRDAndGenerate(data: {
       template_id: data.templateId,
       template_name: data.templateName,
       template_sections: templateSections,
+      template_instructions: templateInstructions,
+      generation_mode: generationMode,
       preferred_provider_id: data.preferredProviderId,
     },
   });

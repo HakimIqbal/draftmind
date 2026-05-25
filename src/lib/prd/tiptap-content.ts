@@ -947,3 +947,86 @@ function parseChangelog(nodes: TiptapNode[]): PRDDocument['sections']['changelog
 
   return entries;
 }
+
+// ---------------------------------------------------------------------------
+// Template-aware helpers
+// ---------------------------------------------------------------------------
+
+export interface TemplateSection {
+  title: string;
+  content: string;
+}
+
+export interface TemplateDocument {
+  sections: TemplateSection[];
+}
+
+/**
+ * Convert template output { sections: [{ title, content }] } into a Tiptap doc.
+ * The result shows only the template sections (no standard 14 sections).
+ */
+export function templateToTiptap(doc: TemplateDocument): TiptapDoc {
+  const nodes: TiptapNode[] = [];
+
+  nodes.push(heading(1, 'PRODUCT REQUIREMENTS DOCUMENT'));
+
+  for (const section of doc.sections) {
+    nodes.push(heading(2, section.title));
+    const paragraphs = section.content.split(/\n\n/).filter(Boolean);
+    for (const para of paragraphs) {
+      nodes.push(paragraph(para.trim()));
+    }
+  }
+
+  return { type: 'doc', content: nodes };
+}
+
+/**
+ * Parse a Tiptap doc back into template sections.
+ * Looks for H2 headings as section delimiters.
+ */
+export function tiptapToTemplate(doc: TiptapDoc): TemplateDocument {
+  const sections = splitByH2(doc.content);
+  return {
+    sections: sections.map(([title, sectionNodes]) => ({
+      title,
+      content: sectionNodes
+        .map((n) => {
+          if (n.type === 'paragraph') return extractText(n).trim();
+          if (n.type === 'bulletList' || n.type === 'orderedList') {
+            return (n.content ?? [])
+              .map((li) => extractText(li).trim())
+              .filter(Boolean)
+              .map((t) => `- ${t}`)
+              .join('\n');
+          }
+          return extractText(n).trim();
+        })
+        .filter(Boolean)
+        .join('\n\n'),
+    })),
+  };
+}
+
+/**
+ * Whether a PRD content object represents a template-mode PRD.
+ */
+export function isTemplatePRD(content: Record<string, unknown>): boolean {
+  const meta = content.metadata as Record<string, unknown> | undefined;
+  return (
+    meta?.generation_mode === 'template' &&
+    Array.isArray((content as Record<string, unknown>).template_document)
+  );
+}
+
+/**
+ * Merge template_document changes back into content while preserving metadata/sections.
+ */
+export function mergeTemplateContent(
+  content: Record<string, unknown>,
+  templateDocument: TemplateDocument,
+): Record<string, unknown> {
+  const updated = { ...content };
+  updated.template_document = templateDocument.sections;
+  return updated;
+}

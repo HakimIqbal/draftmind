@@ -6,7 +6,14 @@ import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import { tiptapToPRD, countTiptapWords, type TiptapDoc } from '@/lib/prd/tiptap-content';
+import {
+  tiptapToPRD,
+  countTiptapWords,
+  tiptapToTemplate,
+  isTemplatePRD,
+  mergeTemplateContent,
+  type TiptapDoc,
+} from '@/lib/prd/tiptap-content';
 import { computeHealthScore } from '@/lib/prd/health-score';
 import { PRDDocumentSchema } from '@/lib/prd/schema';
 import { logError } from '@/lib/logging/system-log';
@@ -164,35 +171,53 @@ export async function restoreVersion(prdId: string, versionId: string) {
   }
 
   const restoredTiptap = version.content as unknown as TiptapDoc;
-  const parsedExisting = PRDDocumentSchema.safeParse(prd.content);
   let structuredContent: unknown = prd.content;
   let healthScore: number | null = null;
   let healthBreakdown: unknown = null;
   let wordCount: number | null = null;
 
-  if (parsedExisting.success) {
+  if (isTemplatePRD(prd.content as Record<string, unknown>)) {
     try {
-      const updatedDocument = tiptapToPRD(restoredTiptap, parsedExisting.data);
-      const health = computeHealthScore(updatedDocument);
-      structuredContent = updatedDocument;
-      healthScore = health.score;
-      healthBreakdown = health.breakdown;
+      const templateDocument = tiptapToTemplate(restoredTiptap);
+      structuredContent = mergeTemplateContent(
+        prd.content as Record<string, unknown>,
+        templateDocument,
+      );
       wordCount = countTiptapWords(version.content as unknown as Record<string, unknown>);
     } catch (err) {
       logError(
-        'prd.restore-version.health',
-        err instanceof Error ? err.message : 'Failed to recompute health score on restore',
+        'prd.restore-version.template',
+        err instanceof Error ? err.message : 'Failed to restore template PRD content',
         { prdId, versionId },
         user.id,
       );
     }
   } else {
-    logError(
-      'prd.restore-version',
-      'Stored PRD content failed schema validation',
-      { prdId },
-      user.id,
-    );
+    const parsedExisting = PRDDocumentSchema.safeParse(prd.content);
+    if (parsedExisting.success) {
+      try {
+        const updatedDocument = tiptapToPRD(restoredTiptap, parsedExisting.data);
+        const health = computeHealthScore(updatedDocument);
+        structuredContent = updatedDocument;
+        healthScore = health.score;
+        healthBreakdown = health.breakdown;
+        wordCount = countTiptapWords(version.content as unknown as Record<string, unknown>);
+      } catch (err) {
+        logError(
+          'prd.restore-version.health',
+          err instanceof Error ? err.message : 'Failed to recompute health score on restore',
+          { prdId, versionId },
+          user.id,
+        );
+      }
+    } else {
+      logError(
+        'prd.restore-version',
+        'Stored PRD content failed schema validation',
+        { prdId },
+        user.id,
+      );
+    }
   }
 
   const updatePayload: Record<string, unknown> = {

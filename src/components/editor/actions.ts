@@ -5,7 +5,14 @@ import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { logError } from '@/lib/logging/system-log';
 import { logActivity } from '@/lib/logging/activity-log';
-import { countTiptapWords, tiptapToPRD, type TiptapDoc } from '@/lib/prd/tiptap-content';
+import {
+  countTiptapWords,
+  tiptapToPRD,
+  tiptapToTemplate,
+  isTemplatePRD,
+  mergeTemplateContent,
+  type TiptapDoc,
+} from '@/lib/prd/tiptap-content';
 import { computeHealthScore } from '@/lib/prd/health-score';
 import { PRDDocumentSchema } from '@/lib/prd/schema';
 
@@ -42,29 +49,46 @@ export async function savePRDContent(
   let healthBreakdown: Record<string, number> | null = null;
   let structuredContent = existing.content;
 
-  const parsed = PRDDocumentSchema.safeParse(existing.content);
-  if (parsed.success) {
+  if (isTemplatePRD(existing.content as Record<string, unknown>)) {
     try {
-      const updatedDocument = tiptapToPRD(tiptapContent as unknown as TiptapDoc, parsed.data);
-      const health = computeHealthScore(updatedDocument);
-      structuredContent = updatedDocument;
-      healthScore = health.score;
-      healthBreakdown = { ...health.breakdown };
+      const templateDocument = tiptapToTemplate(tiptapContent as unknown as TiptapDoc);
+      structuredContent = mergeTemplateContent(
+        existing.content as Record<string, unknown>,
+        templateDocument,
+      );
     } catch (err) {
       logError(
-        'editor.save.health',
-        err instanceof Error ? err.message : 'Failed to recompute health score',
+        'editor.save.template',
+        err instanceof Error ? err.message : 'Failed to update template PRD content',
         { prdId },
         user.id,
       );
     }
   } else {
-    logError(
-      'editor.save.health',
-      'Stored PRD content failed schema validation',
-      { prdId },
-      user.id,
-    );
+    const parsed = PRDDocumentSchema.safeParse(existing.content);
+    if (parsed.success) {
+      try {
+        const updatedDocument = tiptapToPRD(tiptapContent as unknown as TiptapDoc, parsed.data);
+        const health = computeHealthScore(updatedDocument);
+        structuredContent = updatedDocument;
+        healthScore = health.score;
+        healthBreakdown = { ...health.breakdown };
+      } catch (err) {
+        logError(
+          'editor.save.health',
+          err instanceof Error ? err.message : 'Failed to recompute health score',
+          { prdId },
+          user.id,
+        );
+      }
+    } else {
+      logError(
+        'editor.save.health',
+        'Stored PRD content failed schema validation',
+        { prdId },
+        user.id,
+      );
+    }
   }
 
   const updatePayload: Record<string, unknown> = {
