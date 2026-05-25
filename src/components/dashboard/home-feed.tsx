@@ -207,13 +207,13 @@ export function HomeFeed({
         <Stat
           icon={Activity}
           label="Cycle Time"
-          value={stats.cycleTimeDays > 0 ? `${stats.cycleTimeDays}d` : 'Pending'}
+          value={stats.cycleTimeDays > 0 ? `${stats.cycleTimeDays}d` : 'N/A'}
           bg="bg-violet-50"
           color="text-violet-600"
           hint={
             stats.cycleTimeDays > 0
               ? 'Average delivery time to shipped'
-              : 'Tracked after first PRD is approved or shipped'
+              : 'Appears after first completed PRD'
           }
         />
       </div>
