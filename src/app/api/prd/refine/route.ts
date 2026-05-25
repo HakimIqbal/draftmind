@@ -11,7 +11,7 @@ import { logToLangSmith } from '@/lib/ai/langsmith';
 import { PRD_SECTION_LABELS, type PRDSectionKey } from '@/types/prd';
 import type { PRDDocument } from '@/lib/prd/schema';
 import { logActivity } from '@/lib/logging/activity-log';
-import { prdToTiptap, countTiptapWords } from '@/lib/prd/tiptap-content';
+import { prdToTiptap, templateToTiptap, countTiptapWords } from '@/lib/prd/tiptap-content';
 
 const VALID_SECTION_KEYS = [
   'overview',
@@ -57,10 +57,6 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!VALID_SECTION_KEYS.includes(sectionKey)) {
-    return Response.json({ error: `Invalid section key: ${sectionKey}` }, { status: 400 });
-  }
-
   const supabase = await createClient();
 
   // 1. Fetch PRD — verify workspace ownership
@@ -73,6 +69,150 @@ export async function POST(request: Request) {
 
   if (!prd) {
     return Response.json({ error: 'PRD not found' }, { status: 404 });
+  }
+
+  const rawContent = prd.content as Record<string, unknown>;
+  const generationMode = (rawContent.metadata as Record<string, unknown> | undefined)
+    ?.generation_mode;
+  const templateSections = Array.isArray(rawContent.template_document)
+    ? (rawContent.template_document as { title?: unknown; content?: unknown }[])
+    : [];
+  const templateIndex = templateSections.findIndex(
+    (section) => String(section.title ?? '').trim() === String(sectionKey).trim(),
+  );
+
+  if (generationMode === 'template') {
+    if (templateIndex < 0) {
+      return Response.json({ error: `Invalid template section: ${sectionKey}` }, { status: 400 });
+    }
+
+    let aiClient;
+    try {
+      aiClient = providerId ? await createAIClient(providerId) : await getDefaultAIClient();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No AI provider available';
+      logError('prd.refine', msg, {}, user.id);
+      return Response.json(
+        { error: 'AI provider is not available. Please check your settings.' },
+        { status: 503 },
+      );
+    }
+
+    const currentTemplateSection = templateSections[templateIndex]!;
+    const originalText = String(currentTemplateSection.content ?? '');
+    const prompt = `You are refining the "${sectionKey}" section of the PRD titled "${prd.title}".
+
+## Current content
+${originalText}
+
+## User instruction
+${instruction}
+
+## Rules
+1. Output ONLY the refined content for this section as plain text.
+2. Preserve facts that are still valid.
+3. Apply the instruction precisely.
+4. If required information is unknown, use [TO CONFIRM].
+5. Do not include markdown code fences or wrapper JSON.`;
+
+    const startMs = Date.now();
+    try {
+      const result = await generateText({
+        model: aiClient.model,
+        prompt,
+        maxTokens: 4000,
+        temperature: 0.4,
+      });
+      const latencyMs = Date.now() - startMs;
+      updateProviderStats(aiClient.provider.id, true, latencyMs).catch(() => {});
+
+      const refinedText = result.text.trim() || '[TO CONFIRM]';
+      const nextSections = templateSections.map((section, index) =>
+        index === templateIndex
+          ? { title: String(section.title ?? sectionKey), content: refinedText }
+          : { title: String(section.title ?? ''), content: String(section.content ?? '') },
+      );
+      const updatedContent = { ...rawContent, template_document: nextSections };
+      const newTiptap = templateToTiptap({ sections: nextSections });
+      const newWordCount = countTiptapWords(newTiptap as unknown as Record<string, unknown>);
+      const nextVersion = ((prd.current_version as number) ?? 0) + 1;
+
+      await supabase
+        .from('prds')
+        .update({
+          content: updatedContent,
+          tiptap_content: newTiptap,
+          word_count: newWordCount,
+          read_time_minutes: Math.max(1, Math.round(newWordCount / 200)),
+          current_version: nextVersion,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', prdId);
+
+      await supabase.from('prd_versions').insert({
+        prd_id: prdId,
+        version_number: nextVersion,
+        content: newTiptap,
+        created_by: user.id,
+        source: 'ai_refine',
+        change_summary: `AI Refined: ${sectionKey}`,
+      });
+
+      const admin = createAdminClient();
+      admin
+        .from('ai_runs')
+        .insert({
+          workspace_id: workspace.id,
+          prd_id: prdId,
+          user_id: user.id,
+          provider_id: aiClient.provider.id,
+          type: 'refine_section',
+          status: 'success',
+          model_used: aiClient.modelId,
+          prompt_tokens: result.usage?.promptTokens ?? 0,
+          completion_tokens: result.usage?.completionTokens ?? 0,
+          total_tokens: result.usage?.totalTokens ?? 0,
+          duration_ms: latencyMs,
+          input_payload: {
+            sectionKey,
+            instruction: instruction.slice(0, 500),
+            generation_mode: 'template',
+          },
+          completed_at: new Date().toISOString(),
+        })
+        .then(
+          () => {},
+          () => {},
+        );
+
+      await logActivity({
+        workspaceId: workspace.id as string,
+        actorId: user.id,
+        type: 'ai_refinement_applied',
+        resourceType: 'prd',
+        resourceId: prdId,
+        metadata: {
+          section_key: sectionKey,
+          generation_mode: 'template',
+          provider: aiClient.provider.display_name,
+        },
+      });
+
+      return Response.json({ original: originalText, refined: refinedText, changes: 1 });
+    } catch (err) {
+      const latencyMs = Date.now() - startMs;
+      const msg = err instanceof Error ? err.message : 'Template refine failed';
+      updateProviderStats(aiClient.provider.id, false, latencyMs, msg).catch(() => {});
+      logError('prd.refine.template', msg, { latencyMs, sectionKey }, user.id);
+      return Response.json(
+        { error: 'Failed to refine section. Please try again.' },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (!VALID_SECTION_KEYS.includes(sectionKey)) {
+    return Response.json({ error: `Invalid section key: ${sectionKey}` }, { status: 400 });
   }
 
   const doc = prd.content as PRDDocument;
@@ -154,7 +294,7 @@ export async function POST(request: Request) {
     let newWordCount = 0;
     try {
       newTiptap = prdToTiptap(updatedDoc);
-      newWordCount = countTiptapWords(newTiptap as Record<string, unknown>);
+      newWordCount = countTiptapWords(newTiptap as unknown as Record<string, unknown>);
     } catch {
       // prdToTiptap failed — will skip tiptap update
     }

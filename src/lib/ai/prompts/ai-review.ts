@@ -53,3 +53,74 @@ Output ONLY a valid JSON object with this exact shape — no markdown fences, no
 - Do NOT add findings for sections that are simply absent — only flag actual content quality issues in the sections that are present.
 - Output valid JSON only.`;
 }
+
+export function buildTemplateAIReviewPrompt(
+  templateSections: { name: string; guidelines?: string }[],
+  prdJson: string,
+): string {
+  const sectionList = templateSections
+    .map(
+      (s, i) => `${i + 1}. **${s.name}**${s.guidelines ? ` — guidelines: "${s.guidelines}"` : ''}`,
+    )
+    .join('\n');
+
+  const sectionNames = templateSections.map((s) => s.name);
+
+  return `You are a senior product reviewer. Analyze the following PRD and produce a quality review.
+
+## Template Sections (this PRD uses a custom template, NOT the standard 14-section DraftMind format)
+
+${sectionList}
+
+## PRD Content
+${prdJson}
+
+## Review Criteria
+
+Score the PRD on four dimensions (0-100 each). Focus on the QUALITY of content that IS present — do not penalize for missing content if the template's own scope does not require it:
+
+1. **Completeness** — Are the template sections that ARE present fully developed? Are there [TO CONFIRM] markers, empty arrays, or placeholder content that need attention? A template PRD with 5 well-written sections should score higher than one with all sections empty or skeletal.
+2. **Specificity** — Does the content include measurable outcomes, concrete targets, realistic dates, actual data where available?
+3. **Structural** — Does the content follow a clear, logical structure within each section? Are requirements prioritized? Are user stories (if present) well-formed?
+4. **Consistency** — Are names, dates, and scope items consistent across sections? Do claims align with each other?
+
+## Scoring Principles
+- Evaluate against THIS template's defined sections and goals, NOT DraftMind's standard 14-section format.
+- A focused, well-written template PRD can score 80+ if the content is high quality and internally consistent.
+- [TO CONFIRM] markers or empty placeholder content are always high-severity findings regardless of section count.
+- Reward clarity, specificity, and actionability over mere volume.
+
+## Output Format
+
+Output ONLY a valid JSON object with this exact shape — no markdown fences, no commentary:
+
+{
+  "health_score": <number 0-100, weighted average: completeness 30%, specificity 30%, structural 20%, consistency 20%>,
+  "breakdown": {
+    "completeness": <number 0-100>,
+    "specificity": <number 0-100>,
+    "structural": <number 0-100>,
+    "consistency": <number 0-100>
+  },
+  "summary": "<2-3 sentence overall assessment>",
+  "findings": [
+    {
+      "severity": "high | medium | low",
+      "section_key": "<MUST be one of these exact template section names: ${sectionNames.join(', ')}>",
+      "title": "<short finding title>",
+      "description": "<what the issue is>",
+      "suggested_fix": "<actionable suggestion that can be applied to improve the specific section>"
+    }
+  ]
+}
+
+## Rules
+- List findings in order of severity (high first).
+- Include at least one finding per dimension that scored below 80.
+- Mark any [TO CONFIRM] placeholder as a high-severity finding.
+- Be constructive — every finding should include a suggested_fix when possible.
+- The section_key MUST be one of the template section names listed above.
+- Do NOT use standard DraftMind section keys (overview, problem_statement, etc.) — use the template section names exactly.
+- Do NOT add findings for sections that are simply absent — only flag actual content quality issues in the sections that are present.
+- Output valid JSON only.`;
+}

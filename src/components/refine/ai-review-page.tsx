@@ -40,9 +40,9 @@ const SEVERITY_META: Record<string, { color: string; label: string }> = {
 
 const BREAKDOWN_LABELS: Record<string, string> = {
   completeness: 'Completeness',
-  clarity: 'Clarity',
+  specificity: 'Specificity',
+  structural: 'Structural',
   consistency: 'Consistency',
-  measurability: 'Measurability',
 };
 
 function getGrade(score: number): string {
@@ -86,7 +86,10 @@ export function AIReviewPage({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prdId: prd.id }),
       });
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || 'Failed');
+      }
       toast.success('AI review completed');
       router.refresh();
     } catch {
@@ -162,50 +165,6 @@ export function AIReviewPage({
   /* ---------- empty state ---------- */
   const prdId = prd.id as string;
 
-  if (isTemplateMode) {
-    return (
-      <div className="flex-1 p-lg">
-        <div className="mb-md">
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = `/prds/${prdId}`;
-            }}
-            className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-[#888] transition-colors hover:text-[#1a1a1a]"
-          >
-            <ArrowLeft size={14} />
-            Back to Editor
-          </button>
-          <p className="mb-1 font-mono text-[11px] text-ink-tertiary">
-            {prd.title as string} / AI Review
-          </p>
-          <h1 className="font-display text-xl font-bold text-ink-primary">AI Review</h1>
-          <p className="mt-1 text-sm text-ink-secondary">
-            Template-generated PRDs use dynamic sections, so the standard 14-section AI Review is
-            disabled for this document.
-          </p>
-        </div>
-
-        <div className="flex min-h-[400px] items-center justify-center">
-          <Card className="w-full max-w-md text-center">
-            <CardContent className="flex flex-col items-center gap-4 px-md py-lg">
-              <p className="text-sm font-medium text-ink-primary">
-                AI Review not available for template PRDs yet
-              </p>
-              <p className="text-sm text-ink-secondary">
-                This prevents misleading feedback based on DraftMind&apos;s standard 14-section
-                rubric. Use Template Health for now.
-              </p>
-              <Button variant="outline" onClick={() => router.push(`/prds/${prdId}`)}>
-                Back to Editor
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   if (!hasReview) {
     return (
       <div className="flex-1 p-lg">
@@ -225,7 +184,9 @@ export function AIReviewPage({
           </p>
           <h1 className="font-display text-xl font-bold text-ink-primary">AI Review</h1>
           <p className="mt-1 text-sm text-ink-secondary">
-            Checks completeness, clarity, and acceptance criteria.
+            {isTemplateMode
+              ? 'Checks completeness, specificity, structure, and consistency against this template.'
+              : 'Checks completeness, specificity, structure, and consistency.'}
           </p>
         </div>
 
@@ -364,8 +325,9 @@ export function AIReviewPage({
           )}
           {visibleFiltered.map((finding, idx) => {
             const meta = SEVERITY_META[finding.severity] ?? { color: '#7A7468', label: 'LOW' };
-            const sectionLabel =
-              PRD_SECTION_LABELS[finding.section_key as PRDSectionKey] ?? finding.section_key;
+            const sectionLabel = isTemplateMode
+              ? finding.section_key
+              : (PRD_SECTION_LABELS[finding.section_key as PRDSectionKey] ?? finding.section_key);
 
             return (
               <Card key={finding.id ?? idx}>

@@ -7,7 +7,7 @@ import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { logError, logInfo } from '@/lib/logging/system-log';
 import { checkRateLimit, AI_RATE_LIMITS } from '@/lib/utils/rate-limit';
 import { getDefaultAIClient, createAIClient, updateProviderStats } from '@/lib/ai/client';
-import { buildAIReviewPrompt } from '@/lib/ai/prompts/ai-review';
+import { buildAIReviewPrompt, buildTemplateAIReviewPrompt } from '@/lib/ai/prompts/ai-review';
 import { logToLangSmith } from '@/lib/ai/langsmith';
 import { sendNotification } from '@/lib/notifications/send';
 import { logActivity } from '@/lib/logging/activity-log';
@@ -43,19 +43,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'PRD not found' }, { status: 404 });
   }
 
-  // Block AI Review for template PRDs until template-aware review is implemented
   const prdContent = prd.content as Record<string, unknown>;
-  const generationMode = (prdContent?.metadata as Record<string, unknown>)?.generation_mode;
-  if (generationMode === 'template') {
-    return NextResponse.json(
-      {
-        error:
-          'AI Review is not yet available for template-generated PRDs. This feature will be added in a future update.',
-        template_blocked: true,
-      },
-      { status: 422 },
-    );
-  }
+  const generationMode = (prdContent?.metadata as Record<string, unknown> | undefined)
+    ?.generation_mode;
+  const isTemplateMode = generationMode === 'template';
+  const templateSections = Array.isArray(
+    (prdContent.template_document as Record<string, unknown> | undefined)?.sections,
+  )
+    ? (
+        prdContent.template_document as {
+          sections: { title?: unknown; name?: unknown; content?: unknown }[];
+        }
+      ).sections
+        .map((section) => ({
+          name: String(section.title ?? section.name ?? '').trim(),
+          guidelines: '',
+        }))
+        .filter((section) => section.name.length > 0)
+    : Array.isArray((prdContent.metadata as Record<string, unknown> | undefined)?.template_sections)
+      ? (
+          (prdContent.metadata as Record<string, unknown>).template_sections as {
+            name?: unknown;
+            title?: unknown;
+            guidelines?: unknown;
+          }[]
+        )
+          .map((section) => ({
+            name: String(section.name ?? section.title ?? '').trim(),
+            guidelines: String(section.guidelines ?? '').trim(),
+          }))
+          .filter((section) => section.name.length > 0)
+      : [];
 
   // 2. Get AI client
   let aiClient;
@@ -71,7 +89,9 @@ export async function POST(request: Request) {
   }
 
   // 3. Call AI
-  const prompt = buildAIReviewPrompt(JSON.stringify(prd.content, null, 2));
+  const prompt = isTemplateMode
+    ? buildTemplateAIReviewPrompt(templateSections, JSON.stringify(prd.content, null, 2))
+    : buildAIReviewPrompt(JSON.stringify(prd.content, null, 2));
   const startMs = Date.now();
 
   try {
@@ -97,6 +117,8 @@ export async function POST(request: Request) {
         model: aiClient.modelId,
         latencyMs,
         userId: user.id,
+        generationMode,
+        templateSectionCount: templateSections.length,
       },
       usage: result.usage,
     }).catch(() => {});
@@ -137,6 +159,12 @@ export async function POST(request: Request) {
         total_tokens: result.usage?.totalTokens ?? 0,
         duration_ms: latencyMs,
         completed_at: new Date().toISOString(),
+        output_payload: {
+          generation_mode: generationMode ?? 'standard',
+          template_section_count: isTemplateMode ? templateSections.length : undefined,
+          health_score: healthScore,
+          findings_count: findings.length,
+        },
       })
       .select('id')
       .single();
