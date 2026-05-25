@@ -19,7 +19,7 @@ interface PRDPipelineBoardProps {
 }
 
 function HealthBadge({ score }: { score: number | null }) {
-  if (score === null) return null;
+  if (score === null || !Number.isFinite(score)) return null;
   const color = score >= 80 ? '#6B8E5A' : score >= 60 ? '#C68B3D' : '#B85843';
   return (
     <span className="inline-flex items-center gap-1 font-mono text-[10px]">
@@ -80,43 +80,53 @@ export function PRDPipelineBoard({ columns }: PRDPipelineBoardProps) {
 
               {/* Cards */}
               <div className="space-y-sm">
-                {items.map((prd) => (
-                  <Link key={prd.id} href={`/prds/${prd.id}`}>
-                    <Card className="cursor-pointer p-sm transition-colors hover:border-strong">
-                      <div className="flex items-start justify-between gap-xs">
-                        <p className="text-sm font-medium leading-tight text-ink-primary">
-                          {prd.title}
-                        </p>
-                        <HealthBadge score={prd.health_score} />
-                      </div>
+                {items.map((prd) => {
+                  const title =
+                    typeof prd.title === 'string' && prd.title.trim() ? prd.title : 'Untitled PRD';
+                  const updatedAt = prd.updated_at ? new Date(prd.updated_at) : null;
+                  const updatedLabel =
+                    updatedAt && !Number.isNaN(updatedAt.getTime())
+                      ? formatDistanceToNow(updatedAt, { addSuffix: true })
+                      : 'Recently updated';
 
-                      {prd.project_tag && (
-                        <p className="mt-xs font-mono text-[11px] text-ink-tertiary">
-                          {prd.project_tag}
-                        </p>
-                      )}
-
-                      <div className="mt-sm flex items-center justify-between">
-                        <div className="flex -space-x-1">
-                          {prd.owner && (
-                            <Avatar
-                              name={prd.owner.full_name ?? 'User'}
-                              size="sm"
-                              avatarUrl={prd.owner.avatar_url}
-                              seed={prd.owner.avatar_color_seed ?? undefined}
-                            />
-                          )}
+                  return (
+                    <Link key={prd.id} href={`/prds/${prd.id}`}>
+                      <Card className="cursor-pointer p-sm transition-colors hover:border-strong">
+                        <div className="flex items-start justify-between gap-xs">
+                          <p className="text-sm font-medium leading-tight text-ink-primary">
+                            {title}
+                          </p>
+                          <HealthBadge score={prd.health_score} />
                         </div>
-                        <span
-                          className="font-mono text-[10px] text-ink-tertiary"
-                          suppressHydrationWarning
-                        >
-                          {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                    </Card>
-                  </Link>
-                ))}
+
+                        {prd.project_tag && (
+                          <p className="mt-xs font-mono text-[11px] text-ink-tertiary">
+                            {prd.project_tag}
+                          </p>
+                        )}
+
+                        <div className="mt-sm flex items-center justify-between">
+                          <div className="flex -space-x-1">
+                            {prd.owner && (
+                              <Avatar
+                                name={prd.owner.full_name ?? 'User'}
+                                size="sm"
+                                avatarUrl={prd.owner.avatar_url}
+                                seed={prd.owner.avatar_color_seed ?? undefined}
+                              />
+                            )}
+                          </div>
+                          <span
+                            className="font-mono text-[10px] text-ink-tertiary"
+                            suppressHydrationWarning
+                          >
+                            {updatedLabel}
+                          </span>
+                        </div>
+                      </Card>
+                    </Link>
+                  );
+                })}
 
                 {items.length === 0 && (
                   <p className="py-lg text-center font-mono text-[11px] text-ink-quaternary">
