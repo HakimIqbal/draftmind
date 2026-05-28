@@ -32,6 +32,7 @@ const nextConfig = {
     return config;
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
       {
