@@ -378,7 +378,7 @@ export function EditorHeader({
 
       {/* Delete confirmation */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="max-w-[400px]">
+        <DialogContent className="max-w-[min(400px,calc(100vw-2rem))]">
           <DialogHeader>
             <DialogTitle>Delete PRD</DialogTitle>
             <DialogDescription>
@@ -402,7 +402,7 @@ export function EditorHeader({
 
       {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="max-w-[460px]">
+        <DialogContent className="max-w-[min(460px,calc(100vw-2rem))]">
           <DialogHeader>
             <DialogTitle>Share this PRD</DialogTitle>
             <DialogDescription>
@@ -439,12 +439,12 @@ export function EditorHeader({
 
       {/* Export Dialog */}
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
-        <DialogContent className="max-w-[420px]">
+        <DialogContent className="max-w-[min(420px,calc(100vw-2rem))]">
           <DialogHeader>
             <DialogTitle>Download / Export</DialogTitle>
             <DialogDescription>Choose a format to download this PRD.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {[
               { format: 'markdown', label: 'Markdown', ext: '.md' },
               { format: 'html', label: 'HTML', ext: '.html' },
@@ -474,7 +474,7 @@ export function EditorHeader({
       </Dialog>
 
       <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
-        <DialogContent className="max-w-[480px]">
+        <DialogContent className="max-w-[min(480px,calc(100vw-2rem))]">
           <DialogHeader>
             <DialogTitle>Save as template</DialogTitle>
           </DialogHeader>

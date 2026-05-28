@@ -265,7 +265,7 @@ export function AIReviewPage({
 
       {/* hero score card */}
       <Card className="mb-lg">
-        <CardContent className="flex items-center gap-lg px-md py-md">
+        <CardContent className="flex flex-col items-center gap-md px-md py-md sm:flex-row sm:gap-lg">
           <div className="flex flex-col items-center gap-2">
             <ProgressRing size={120} value={healthScore}>
               <div className="flex flex-col items-center">
@@ -278,7 +278,7 @@ export function AIReviewPage({
             </span>
           </div>
 
-          <div className="grid flex-1 grid-cols-2 gap-x-lg gap-y-3">
+          <div className="grid flex-1 grid-cols-1 gap-x-lg gap-y-3 sm:grid-cols-2">
             {Object.entries(BREAKDOWN_LABELS).map(([key, label]) => {
               const val = (healthBreakdown as Record<string, number>)[key] ?? 0;
               return (

@@ -479,7 +479,7 @@ export function HistoryView({
   return (
     <div className="flex h-full w-full flex-col bg-bg-canvas">
       {/* Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-subtle bg-white px-4">
+      <div className="flex h-11 shrink-0 items-center justify-between border-b border-subtle bg-white px-3 sm:h-14 sm:px-4">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
@@ -505,7 +505,7 @@ export function HistoryView({
         {/* Content preview — paper style */}
         <div className="hide-scrollbar flex-1 overflow-y-auto bg-[#f0efed]">
           <div
-            className="mx-auto my-8 max-w-[680px] rounded-sm bg-white px-16 py-12 shadow-sm"
+            className="mx-auto my-4 max-w-[680px] rounded-sm bg-white px-4 py-6 shadow-sm sm:my-6 sm:px-8 sm:py-8 md:my-8 md:px-16 md:py-12"
             style={{ minHeight: '80vh' }}
           >
             {selectedVersion ? (
@@ -541,7 +541,7 @@ export function HistoryView({
         </div>
 
         {/* Timeline sidebar — Google Docs style */}
-        <div className="flex w-[280px] shrink-0 flex-col border-l border-subtle bg-[#fafaf9]">
+        <div className="hidden w-[280px] shrink-0 flex-col border-l border-subtle bg-[#fafaf9] md:flex">
           <div className="hide-scrollbar flex-1 overflow-y-auto px-4 pt-4">
             {loading ? (
               <p className="text-xs text-ink-tertiary">Loading...</p>
@@ -652,7 +652,7 @@ export function HistoryView({
           </div>
 
           {/* Highlight changes — Google Docs style sticky bottom */}
-          <div className="shrink-0 border-t border-subtle bg-[#fafaf9] px-4 py-3">
+          <div className="shrink-0 border-t border-subtle bg-[#fafaf9] px-3 py-2 sm:px-4 sm:py-3">
             <label className="flex cursor-pointer items-center gap-2.5">
               <div
                 className={`flex h-[18px] w-[18px] items-center justify-center rounded-sm border-2 transition-colors ${highlightChanges ? 'border-blue-600 bg-blue-600' : 'border-[#bbb] bg-white'}`}

@@ -206,7 +206,7 @@ export function AIAssistPanel({
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 px-4 pb-3">
+        <div className="grid grid-cols-1 gap-2 px-4 pb-3 sm:grid-cols-2">
           {QUICK_ACTIONS.map(({ action, label, icon: Icon, desc }) => (
             <button
               key={action}
@@ -254,7 +254,7 @@ export function AIAssistPanel({
           </button>
         </div>
         {showMore && (
-          <div className="grid grid-cols-2 gap-2 px-4 pb-3 duration-200 animate-in fade-in slide-in-from-top-1">
+          <div className="grid grid-cols-1 gap-2 px-4 pb-3 duration-200 animate-in fade-in slide-in-from-top-1 sm:grid-cols-2">
             {MORE_ACTIONS.map(({ action, label, icon: Icon, desc }, index) => (
               <button
                 key={action}
@@ -291,7 +291,7 @@ export function AIAssistPanel({
         )}
 
         {/* Results */}
-        <div className="border-t border-subtle px-4 pb-6 pt-3">
+        <div className="border-t border-subtle px-3 pb-4 pt-3 sm:px-4 sm:pb-6">
           {loading && (
             <div className="flex flex-col items-center justify-center gap-3 py-10">
               <div className="relative flex h-12 w-12 items-center justify-center">

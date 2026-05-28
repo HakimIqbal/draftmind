@@ -187,7 +187,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
       }}
     >
       <div
-        className="flex items-center rounded-lg border border-[#e5e5e5] bg-white px-1 py-0.5 shadow-[0_2px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]"
+        className="flex max-w-[calc(100vw-1rem)] items-center overflow-x-auto rounded-lg border border-[#e5e5e5] bg-white px-1 py-0.5 shadow-[0_2px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]"
         style={{ whiteSpace: 'nowrap' }}
       >
         {linkMode ? (

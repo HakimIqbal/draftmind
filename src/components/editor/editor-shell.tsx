@@ -108,6 +108,13 @@ export function EditorShell({
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
   const [historyMode, setHistoryMode] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false);
+
+  useEffect(() => {
+    if (outlineCollapsed) {
+      setMobileOutlineOpen(false);
+    }
+  }, [outlineCollapsed]);
   const [hiddenSections, setHiddenSections] = useState<string[]>(prd.hidden_sections ?? []);
   const [liveWordCount, setLiveWordCount] = useState(prd.word_count);
   const [liveReadTime, setLiveReadTime] = useState(prd.read_time_minutes);
@@ -639,34 +646,83 @@ export function EditorShell({
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-bg-canvas">
-      {/* Left panel */}
-      {outlineCollapsed ? (
-        <PanelCollapsedRail
-          side="left"
-          onExpand={(tab) => expandOutline(tab as 'outline' | 'comments' | 'info' | undefined)}
-        />
-      ) : (
-        <OutlinePanel
-          prd={{ ...prd, word_count: liveWordCount, read_time_minutes: liveReadTime }}
-          userId={userId}
-          editorInstance={editorInstance}
-          hiddenSections={hiddenSections}
-          onToggleSection={handleToggleSection}
-          onCommentClick={handleCommentClick}
-          onCommentDeleted={handleCommentMarkRemoved}
-          onCommentResolved={handleCommentMarkRemoved}
-          onCommentReopened={handleCommentReopened}
-          activeCommentId={activeCommentId}
-        />
+      {/* Mobile editor quick actions */}
+      <div className="fixed bottom-14 left-3 z-30 flex gap-2 md:hidden">
+        <button
+          type="button"
+          onClick={() => {
+            expandOutline();
+            setMobileOutlineOpen(true);
+          }}
+          className="rounded-full border border-subtle bg-white px-3 py-1.5 font-mono text-[11px] text-ink-secondary shadow-lg"
+        >
+          Outline
+        </button>
+        <button
+          type="button"
+          onClick={() => expandCopilot()}
+          className="rounded-full border border-subtle bg-white px-3 py-1.5 font-mono text-[11px] text-ink-secondary shadow-lg"
+        >
+          AI
+        </button>
+      </div>
+
+      {/* Mobile outline drawer */}
+      {mobileOutlineOpen && !outlineCollapsed && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <button
+            type="button"
+            aria-label="Close outline"
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setMobileOutlineOpen(false)}
+          />
+          <div className="relative h-full w-[min(320px,calc(100vw-2rem))] bg-bg-surface shadow-2xl">
+            <OutlinePanel
+              prd={{ ...prd, word_count: liveWordCount, read_time_minutes: liveReadTime }}
+              userId={userId}
+              editorInstance={editorInstance}
+              hiddenSections={hiddenSections}
+              onToggleSection={handleToggleSection}
+              onCommentClick={handleCommentClick}
+              onCommentDeleted={handleCommentMarkRemoved}
+              onCommentResolved={handleCommentMarkRemoved}
+              onCommentReopened={handleCommentReopened}
+              activeCommentId={activeCommentId}
+            />
+          </div>
+        </div>
       )}
+
+      {/* Left panel */}
+      <div className="hidden h-full md:flex">
+        {outlineCollapsed ? (
+          <PanelCollapsedRail
+            side="left"
+            onExpand={(tab) => expandOutline(tab as 'outline' | 'comments' | 'info' | undefined)}
+          />
+        ) : (
+          <OutlinePanel
+            prd={{ ...prd, word_count: liveWordCount, read_time_minutes: liveReadTime }}
+            userId={userId}
+            editorInstance={editorInstance}
+            hiddenSections={hiddenSections}
+            onToggleSection={handleToggleSection}
+            onCommentClick={handleCommentClick}
+            onCommentDeleted={handleCommentMarkRemoved}
+            onCommentResolved={handleCommentMarkRemoved}
+            onCommentReopened={handleCommentReopened}
+            activeCommentId={activeCommentId}
+          />
+        )}
+      </div>
 
       {/* Main editor area — Word/Google Docs style */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="editor-scroll-area flex-1 overflow-y-auto bg-[#f0efed]">
           {/* Paper */}
           <div
-            className="mx-auto my-8 w-full max-w-[680px] rounded-sm bg-white px-12 py-10 shadow-sm"
-            style={{ minHeight: '900px' }}
+            className="mx-auto my-4 w-full max-w-[680px] rounded-sm bg-white px-4 py-6 shadow-sm sm:my-6 sm:px-8 sm:py-8 md:my-8 md:px-12 md:py-10"
+            style={{ minHeight: '500px' }}
           >
             <EditorHeader
               prd={{ ...prd, status: localStatus }}
@@ -717,7 +773,7 @@ export function EditorShell({
         </div>
 
         {/* Footer bar — save status only */}
-        <div className="flex shrink-0 items-center gap-4 border-t border-subtle bg-white px-8 py-2 font-mono text-[11px] text-ink-tertiary">
+        <div className="flex shrink-0 items-center gap-2 border-t border-subtle bg-white px-3 py-1.5 font-mono text-[11px] text-ink-tertiary sm:gap-4 sm:px-8 sm:py-2">
           <span className="flex items-center gap-1.5">
             {saveStatus === 'saving' ? (
               <>
@@ -749,7 +805,9 @@ export function EditorShell({
 
       {/* Right panel */}
       {copilotCollapsed ? (
-        <PanelCollapsedRail side="right" onExpand={() => expandCopilot()} />
+        <div className="hidden md:flex">
+          <PanelCollapsedRail side="right" onExpand={() => expandCopilot()} />
+        </div>
       ) : aiAssistMode && aiAssistSelectedText ? (
         <AIAssistPanel
           selectedText={aiAssistSelectedText}
@@ -764,7 +822,7 @@ export function EditorShell({
 
       {/* Remote-save notification — shown when actively typing and a collaborator saved */}
       {contentUpdatedBy && isTypingState && (
-        <div className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-[#1a1a1a] px-5 py-2.5 text-[13px] text-white shadow-xl">
+        <div className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#1a1a1a] px-3 py-2 text-[12px] text-white shadow-xl sm:gap-3 sm:px-5 sm:py-2.5 sm:text-[13px]">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
           <span>{contentUpdatedBy} saved changes</span>
           <button
