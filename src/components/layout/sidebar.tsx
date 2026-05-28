@@ -89,7 +89,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex h-screen w-[250px] shrink-0 flex-col border-r border-[#f0f0ee] bg-[#f8f8f7]">
+    <aside className="flex h-full min-h-0 w-[250px] shrink-0 flex-col border-r border-[#f0f0ee] bg-[#f8f8f7]">
       {/* Brand */}
       <div className="flex items-center justify-between px-5 pb-3 pt-5">
         <Link href="/dashboard" className="flex items-center gap-2.5">
@@ -111,7 +111,7 @@ export function Sidebar({
       </div>
 
       {/* Main Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 pt-2">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 pt-2">
         <ul className="space-y-[2px]">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -266,7 +266,7 @@ export function Sidebar({
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-[#e8e8e6] px-3 py-3">
+      <div className="shrink-0 border-t border-[#e8e8e6] bg-[#f8f8f7] px-3 py-3">
         {/* Workspace switcher */}
         {workspaces && currentWorkspaceId && (
           <div className="mb-2">
