@@ -89,7 +89,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex h-full min-h-0 w-[250px] shrink-0 flex-col border-r border-[#f0f0ee] bg-[#f8f8f7]">
+    <aside className="flex h-[100dvh] min-h-0 w-[250px] shrink-0 flex-col border-r border-[#f0f0ee] bg-[#f8f8f7]">
       {/* Brand */}
       <div className="flex items-center justify-between px-5 pb-3 pt-5">
         <Link href="/dashboard" className="flex items-center gap-2.5">

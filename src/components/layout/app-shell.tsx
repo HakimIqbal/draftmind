@@ -186,7 +186,7 @@ export function AppShell({
               aria-label="Close menu"
               onClick={() => setMobileSidebarOpen(false)}
             />
-            <div className="relative h-full w-[min(85vw,250px)] shadow-2xl">{sidebar}</div>
+            <div className="relative h-[100dvh] w-[min(85vw,250px)] shadow-2xl">{sidebar}</div>
           </div>
         )}
 
