@@ -21,7 +21,7 @@ export default async function LandingPage() {
   } = await supabase.auth.getUser();
 
   let primaryCtaHref = '/login';
-  let primaryCtaLabel = '{primaryCtaLabel}';
+  let primaryCtaLabel = 'Start drafting';
 
   if (user) {
     const { data: profile } = await supabase
