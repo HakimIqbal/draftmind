@@ -4,6 +4,13 @@ import { useEffect } from 'react';
 
 function sendClientLog(source: string, message: string, metadata: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
+  // Don't try to log if the current path is the login page — the middleware
+  // will redirect the POST to /login?redirectTo=/api/log which returns 405.
+  if (
+    window.location.pathname.startsWith('/login') ||
+    window.location.pathname.startsWith('/change-password')
+  )
+    return;
 
   fetch('/api/log', {
     method: 'POST',
@@ -34,76 +41,35 @@ function getPromiseRejectionMessage(reason: unknown) {
   }
 }
 
-function isChunkLikeError(message: string, filename?: string) {
+function isChunkLikeError(message: string | undefined, filename?: string): boolean {
   // Only treat actual Next.js chunk asset failures as stale-build errors.
-  // Avoid false positives from generic runtime/extension/network errors.
-  if (filename) {
-    return filename.includes('/_next/static/chunks/');
-  }
-  return message.toLowerCase().includes('chunkloaderror');
+  if (!message && !filename) return false;
+  if (filename && filename.includes('/_next/static/chunks/')) return true;
+  return String(message ?? '')
+    .toLowerCase()
+    .includes('chunkloaderror');
 }
 
 const CHUNK_RELOAD_FLAG = 'dm.chunk_reload_attempted_at';
 const CHUNK_RELOAD_ATTEMPTS_FLAG = 'dm.chunk_reload_attempts';
 const CHUNK_RELOAD_COOLDOWN_MS = 300_000;
-const CHUNK_RELOAD_MAX_ATTEMPTS = 1;
-const CHUNK_BANNER_ID = 'dm-chunk-stale-banner';
+const CHUNK_RELOAD_MAX_ATTEMPTS = 2;
 
-function showStaleBuildBanner() {
-  if (typeof document === 'undefined') return;
-  if (document.getElementById(CHUNK_BANNER_ID)) return;
-
-  const banner = document.createElement('div');
-  banner.id = CHUNK_BANNER_ID;
-  banner.style.cssText = [
-    'position:fixed',
-    'left:50%',
-    'top:16px',
-    'transform:translateX(-50%)',
-    'z-index:2147483647',
-    'background:#fafaf9',
-    'color:#1a1a1a',
-    'padding:12px 16px',
-    'border-radius:12px',
-    'box-shadow:0 4px 16px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)',
-    'font:14px system-ui,-apple-system,sans-serif',
-    'display:flex',
-    'gap:12px',
-    'align-items:center',
-    'max-width:calc(100vw - 32px)',
-  ].join(';');
-
-  banner.innerHTML =
-    '<span style="color:#1a1a1a;font-size:13px;line-height:1.4">A new version of DraftMind is available. Please refresh this page.</span>' +
-    '<button id="dm-chunk-refresh-btn" style="background:#e67a2a;color:#fff;border:0;padding:7px 14px;border-radius:8px;cursor:pointer;font:600 13px system-ui,-apple-system,sans-serif">Refresh</button>';
-
-  document.body.appendChild(banner);
-  const btn = document.getElementById('dm-chunk-refresh-btn');
-  btn?.addEventListener('click', () => {
-    try {
-      sessionStorage.removeItem(CHUNK_RELOAD_ATTEMPTS_FLAG);
-      sessionStorage.removeItem(CHUNK_RELOAD_FLAG);
-    } catch {
-      /* ignore */
-    }
-    window.location.reload();
-  });
-}
-
-function maybeReloadForStaleChunk(message: string, filename?: string) {
+function maybeReloadForStaleChunk(message: string | undefined, filename?: string) {
   if (typeof window === 'undefined') return false;
   if (!isChunkLikeError(message, filename)) return false;
 
   try {
     const attempts = Number(sessionStorage.getItem(CHUNK_RELOAD_ATTEMPTS_FLAG) ?? '0');
     if (Number.isFinite(attempts) && attempts >= CHUNK_RELOAD_MAX_ATTEMPTS) {
-      showStaleBuildBanner();
+      // Silently stop — no banner, just log to console for debugging
+      console.warn('DraftMind: stale chunk detected, suppressing after max attempts.');
       return false;
     }
 
     const last = Number(sessionStorage.getItem(CHUNK_RELOAD_FLAG) ?? '0');
     if (Number.isFinite(last) && Date.now() - last < CHUNK_RELOAD_COOLDOWN_MS) {
-      showStaleBuildBanner();
+      console.warn('DraftMind: stale chunk detected within cooldown, suppressing.');
       return false;
     }
 
