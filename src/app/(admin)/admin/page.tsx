@@ -169,7 +169,8 @@ export default async function AdminOverviewPage() {
     if (event.actor_id) activeTodayUserIds.add(event.actor_id);
   }
   for (const profile of allProfiles) {
-    if (profile.last_seen_at && profile.last_seen_at >= todayStart) activeTodayUserIds.add(profile.id);
+    if (profile.last_seen_at && profile.last_seen_at >= todayStart)
+      activeTodayUserIds.add(profile.id);
   }
 
   const onlineNowUserIds = new Set(
@@ -302,7 +303,7 @@ export default async function AdminOverviewPage() {
             System Health
           </span>
         </div>
-        <div className="grid grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 md:gap-4">
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${sysDbOk ? 'bg-emerald-500' : 'bg-red-500'}`} />
             <div>
@@ -367,7 +368,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {stats.map((s) => (
           <Link key={s.label} href={s.href} className="group">
             <div className="rounded-xl border border-[#eee] bg-white p-5 transition-all group-hover:border-[#ddd] group-hover:shadow-sm">
@@ -420,7 +421,7 @@ export default async function AdminOverviewPage() {
             <Zap size={16} className="text-[#999]" />
             <h2 className="text-[14px] font-semibold text-[#1a1a1a]">AI Usage</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase text-[#aaa]">Today</p>
               <p className="mt-1 text-[24px] font-bold text-[#1a1a1a]">
@@ -456,7 +457,7 @@ export default async function AdminOverviewPage() {
               Open Dashboard <ArrowUpRight size={12} />
             </a>
           </div>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             <div>
               <p className="text-[11px] font-medium uppercase text-[#aaa]">Traced Runs</p>
               <p className="mt-1 text-[20px] font-bold text-[#1a1a1a]">
@@ -504,7 +505,11 @@ export default async function AdminOverviewPage() {
             {(providersR.data ?? []).map((p) => {
               const hasTraffic = (p.total_requests ?? 0) > 0;
               const isActive = p.status === 'active';
-              const providerDot = isActive ? 'bg-emerald-500' : p.last_error ? 'bg-red-400' : 'bg-amber-400';
+              const providerDot = isActive
+                ? 'bg-emerald-500'
+                : p.last_error
+                  ? 'bg-red-400'
+                  : 'bg-amber-400';
               const providerStatusLabel = isActive
                 ? hasTraffic
                   ? 'Active'
@@ -555,10 +560,10 @@ export default async function AdminOverviewPage() {
       )}
 
       {/* Top PRDs + Recent Users */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Top 5 PRDs by Health */}
         <div className="rounded-xl border border-[#eee] bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-4">
+          <div className="flex flex-col gap-2 border-b border-[#f0f0f0] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
             <div className="flex items-center gap-2">
               <Trophy size={14} className="text-amber-500" />
               <h2 className="text-[14px] font-semibold text-[#1a1a1a]">Top PRDs by Health</h2>
@@ -602,7 +607,7 @@ export default async function AdminOverviewPage() {
 
         {/* Recent Users */}
         <div className="rounded-xl border border-[#eee] bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-4">
+          <div className="flex flex-col gap-2 border-b border-[#f0f0f0] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
             <h2 className="text-[14px] font-semibold text-[#1a1a1a]">Recently Active</h2>
             <Link href="/admin/users" className="text-[12px] text-accent hover:underline">
               View all
@@ -610,7 +615,10 @@ export default async function AdminOverviewPage() {
           </div>
           <div className="divide-y divide-[#f5f5f5]">
             {(recentUsersR.data ?? []).map((u) => (
-              <div key={u.id} className="flex items-center justify-between px-5 py-3">
+              <div
+                key={u.id}
+                className="flex items-start justify-between gap-3 px-4 py-3 sm:items-center sm:px-5"
+              >
                 <div className="flex items-center gap-3">
                   <Avatar name={u.full_name ?? 'User'} size="sm" avatarUrl={u.avatar_url} />
                   <div>
@@ -619,7 +627,9 @@ export default async function AdminOverviewPage() {
                     </p>
                     <p className="text-[11px] text-[#aaa]">{u.email}</p>
                     {'last_activity_type' in u && u.last_activity_type && (
-                      <p className="text-[10px] text-[#bbb]">{u.last_activity_type.replace(/_/g, ' ')}</p>
+                      <p className="text-[10px] text-[#bbb]">
+                        {u.last_activity_type.replace(/_/g, ' ')}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -631,17 +641,19 @@ export default async function AdminOverviewPage() {
               </div>
             ))}
             {(recentUsersR.data ?? []).length === 0 && (
-              <div className="px-5 py-8 text-center text-[13px] text-[#aaa]">No recent activity</div>
+              <div className="px-5 py-8 text-center text-[13px] text-[#aaa]">
+                No recent activity
+              </div>
             )}
           </div>
         </div>
       </div>
 
       {/* Recent Activity + Recent Errors */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent Activity */}
         <div className="rounded-xl border border-[#eee] bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-4">
+          <div className="flex flex-col gap-2 border-b border-[#f0f0f0] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
             <h2 className="text-[14px] font-semibold text-[#1a1a1a]">Recent Activity</h2>
             <Link href="/admin/activity" className="text-[12px] text-accent hover:underline">
               View all
@@ -651,7 +663,10 @@ export default async function AdminOverviewPage() {
             {(recentActivityR.data ?? []).map((a) => {
               const actor = actorMap.get(a.actor_id ?? '');
               return (
-                <div key={a.id} className="flex items-center justify-between px-5 py-3">
+                <div
+                  key={a.id}
+                  className="flex items-start justify-between gap-3 px-4 py-3 sm:items-center sm:px-5"
+                >
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#f5f5f4]">
                       <Activity size={12} className="text-[#999]" />
@@ -677,7 +692,7 @@ export default async function AdminOverviewPage() {
 
         {/* Recent Errors */}
         <div className="rounded-xl border border-[#eee] bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-4">
+          <div className="flex flex-col gap-2 border-b border-[#f0f0f0] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
             <div className="flex items-center gap-2">
               <AlertTriangle size={14} className="text-red-400" />
               <h2 className="text-[14px] font-semibold text-[#1a1a1a]">Recent Errors</h2>

@@ -270,7 +270,7 @@ function HistorySection({
 
   return (
     <div className="mt-8">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[12px] font-semibold uppercase tracking-wider text-[#aaa]">
           History ({history.length})
         </p>
@@ -399,7 +399,7 @@ function DeleteAnnouncementModal({
             </p>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4">
+        <div className="flex items-center justify-end gap-2 px-4 py-3 sm:px-6 sm:py-4">
           <button
             type="button"
             onClick={onCancel}

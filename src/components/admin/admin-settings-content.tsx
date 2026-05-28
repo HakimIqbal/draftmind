@@ -65,7 +65,10 @@ export function AdminSettingsContent({ data }: { data: SettingsData }) {
           </div>
           <div className="divide-y divide-[#f5f5f5]">
             {currentItems.map((item) => (
-              <div key={item.label} className="flex items-center justify-between px-6 py-3.5">
+              <div
+                key={item.label}
+                className="flex items-start justify-between gap-3 px-4 py-3.5 sm:items-center sm:px-6"
+              >
                 <span className="text-[13px] text-[#666]">{item.label}</span>
                 <span
                   className={`text-right text-[13px] font-medium ${item.accent ? 'text-accent' : 'text-[#1a1a1a]'}`}

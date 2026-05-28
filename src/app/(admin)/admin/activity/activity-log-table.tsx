@@ -217,7 +217,7 @@ export function ActivityLogTable({ initialActivities, initialActorMap, initialWs
       </div>
 
       {/* Activity list */}
-      <div className="rounded-xl border border-[#eee] bg-white">
+      <div className="overflow-x-auto rounded-xl border border-[#eee] bg-white">
         <div className="divide-y divide-[#f5f5f5]">
           {filtered.map((a) => {
             const actor = actorMap[a.actor_id ?? ''];
@@ -288,7 +288,7 @@ export function ActivityLogTable({ initialActivities, initialActorMap, initialWs
                 {/* Detail panel */}
                 {isExpanded && (
                   <div className="border-t border-[#f0f0f0] bg-[#fafaf9] px-5 py-4">
-                    <div className="grid grid-cols-3 gap-4 text-[12px]">
+                    <div className="grid grid-cols-1 gap-2 text-[12px] sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                       <div>
                         <p className="text-[10px] font-medium uppercase text-[#aaa]">Actor</p>
                         <p className="mt-1 text-[#555]">

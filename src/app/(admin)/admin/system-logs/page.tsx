@@ -163,11 +163,11 @@ export default function SystemLogsPage() {
   const totalUnresolved = stats.unresolvedErrors + stats.unresolvedWarnings;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-6">
+    <div className="mx-auto max-w-6xl px-3 py-4 sm:px-6 sm:py-6">
       {/* Copy fallback modal (Safari / no clipboard access) */}
       {showCopyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-[480px] rounded-xl border border-[#eee] bg-white p-6 shadow-xl">
+          <div className="w-[min(480px,calc(100vw-2rem))] rounded-xl border border-[#eee] bg-white p-6 shadow-xl">
             <h3 className="text-[15px] font-semibold text-[#1a1a1a]">Copy to clipboard</h3>
             <p className="mt-1 text-[13px] text-[#666]">
               Automatic copy failed. Select all and copy manually (Cmd+A, Cmd+C).
@@ -194,7 +194,7 @@ export default function SystemLogsPage() {
       {/* Confirm dialog overlay */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-[380px] rounded-xl border border-[#eee] bg-white p-6 shadow-xl">
+          <div className="w-[min(380px,calc(100vw-2rem))] rounded-xl border border-[#eee] bg-white p-6 shadow-xl">
             <h3 className="text-[15px] font-semibold text-[#1a1a1a]">Mark all as resolved?</h3>
             <p className="mt-2 text-[13px] text-[#666]">
               Mark all {totalUnresolved} unresolved errors/warnings as resolved? This cannot be
@@ -276,8 +276,16 @@ export default function SystemLogsPage() {
       <div className="mb-4 flex flex-wrap items-center gap-4 border-b border-[#eee] pb-3">
         <div className="flex items-center gap-1">
           {(['unresolved', 'all', 'resolved'] as const).map((status) => (
-            <Chip key={status} active={statusFilter === status} onClick={() => setStatusFilter(status)}>
-              {status === 'unresolved' ? 'Unresolved' : status === 'resolved' ? 'Resolved' : 'All history'}
+            <Chip
+              key={status}
+              active={statusFilter === status}
+              onClick={() => setStatusFilter(status)}
+            >
+              {status === 'unresolved'
+                ? 'Unresolved'
+                : status === 'resolved'
+                  ? 'Resolved'
+                  : 'All history'}
             </Chip>
           ))}
         </div>
@@ -299,7 +307,9 @@ export default function SystemLogsPage() {
       {logs.length === 0 ? (
         <div className="flex h-40 items-center justify-center">
           <p className="text-sm text-[#888]">
-            {statusFilter === 'unresolved' ? 'No unresolved system logs found' : 'No system logs found'}
+            {statusFilter === 'unresolved'
+              ? 'No unresolved system logs found'
+              : 'No system logs found'}
           </p>
         </div>
       ) : (
@@ -347,7 +357,7 @@ export default function SystemLogsPage() {
                 {/* Expanded details */}
                 {isExpanded && (
                   <div className="border-t border-[#eee] px-4 py-3">
-                    <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 sm:gap-3">
                       <div>
                         <span className="font-mono text-[10px] uppercase text-[#999]">Source</span>
                         <p className="mt-0.5 text-[#1a1a1a]">{log.source}</p>

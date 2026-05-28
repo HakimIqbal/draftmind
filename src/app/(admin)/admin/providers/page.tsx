@@ -110,7 +110,7 @@ export default function AdminProvidersPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-[#1a1a1a]">AI Providers</h1>
           <p className="mt-0.5 text-[13px] text-[#888]">
@@ -143,8 +143,8 @@ export default function AdminProvidersPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[#eee]">
-          <table className="w-full">
+        <div className="overflow-x-auto rounded-xl border border-[#eee]">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-[#f0f0f0] bg-[#fafaf9]">
                 <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
@@ -407,7 +407,7 @@ function AddProviderModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl max-sm:w-[calc(100vw-2rem)] sm:p-6 md:p-8">
         <button onClick={onClose} className="absolute right-4 top-4 text-[#bbb] hover:text-[#666]">
           <X size={18} />
         </button>
@@ -416,7 +416,7 @@ function AddProviderModal({
           <>
             <h2 className="text-[18px] font-bold text-[#1a1a1a]">Add AI Provider</h2>
             <p className="mt-1 text-[13px] text-[#888]">Choose a provider to connect</p>
-            <div className="mt-6 grid grid-cols-2 gap-2">
+            <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {registry.map((item) => {
                 const icon = getProviderIcon(item.key);
                 return (

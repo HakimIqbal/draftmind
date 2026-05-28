@@ -90,7 +90,7 @@ export function AdminUsersTable({ users, totalCount }: { users: AdminUser[]; tot
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-[#1a1a1a]">Users</h1>
           <p className="mt-0.5 text-[13px] text-[#888]">{totalCount} registered users</p>
@@ -119,7 +119,7 @@ export function AdminUsersTable({ users, totalCount }: { users: AdminUser[]; tot
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[#eee]">
-        <table className="w-full">
+        <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-[#f0f0f0] bg-[#fafaf9]">
               <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
