@@ -79,7 +79,7 @@ export default async function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#fafaf9]">
+      <section className="relative overflow-y-auto overflow-x-hidden bg-[#fafaf9]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(200,120,60,0.07),transparent)]" />
         <div className="relative mx-auto max-w-[1140px] px-4 pb-20 pt-16 md:px-8 md:pb-32 md:pt-24">
           <div className="mx-auto max-w-2xl text-center">
@@ -99,7 +99,7 @@ export default async function LandingPage() {
               stories, DARCI matrix, acceptance criteria, and success metrics. Review, refine, and
               approve as a team.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-4">
+            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
                 href={primaryCtaHref}
                 className="shadow-ink-primary/15 hover:shadow-ink-primary/20 group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-ink-primary px-7 text-[14px] font-medium text-white shadow-xl transition-all hover:shadow-2xl sm:w-auto"
@@ -275,7 +275,7 @@ export default async function LandingPage() {
             Share your PRD anywhere - from stakeholder presentations to engineering handoffs.
           </p>
 
-          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6">
+          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6">
             <ExportCard
               label="PDF"
               description=".pdf document"
@@ -325,7 +325,7 @@ export default async function LandingPage() {
           </h2>
 
           {/* Tech grid */}
-          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-4 gap-3 sm:grid-cols-6 sm:gap-4 lg:grid-cols-8">
+          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-8">
             {[
               { name: 'Next.js 15', icon: '/icons/tech/icon-nextjs.png' },
               { name: 'React 19', icon: '/icons/tech/icon-react.png' },
