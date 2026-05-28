@@ -3,13 +3,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, Plus, Search } from 'lucide-react';
+import { Bell, Menu, Plus, Search } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { NotificationsInbox } from '@/components/overlays/notifications-inbox';
 import { getUnreadCount } from '@/app/(app)/notifications/actions';
 import { createClient } from '@/lib/supabase/client';
 
-export function Topbar({ hasWorkspace = false }: { hasWorkspace?: boolean }) {
+interface TopbarProps {
+  hasWorkspace?: boolean;
+  onToggleSidebar?: () => void;
+}
+
+export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const pathname = usePathname();
@@ -32,7 +37,6 @@ export function Topbar({ hasWorkspace = false }: { hasWorkspace?: boolean }) {
 
   // Get userId + setup polling + focus listener
   useEffect(() => {
-    // Get current user ID for realtime filter
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUserId(data.user.id);
@@ -72,18 +76,40 @@ export function Topbar({ hasWorkspace = false }: { hasWorkspace?: boolean }) {
   }, [userId, fetchUnread]);
 
   return (
-    <header className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-[#f0f0ee] bg-white px-6">
-      <div />
+    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[#f0f0ee] bg-white px-3 md:px-6">
+      {/* Left: hamburger (mobile) */}
+      <div className="flex items-center gap-2">
+        {onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#666] transition-colors hover:bg-[#f5f5f4] hover:text-[#1a1a1a] md:hidden"
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
+        )}
+      </div>
 
-      <div className="flex h-9 w-[360px] items-center gap-2.5 rounded-lg border border-[#eee] bg-[#fafafa] px-4 text-[12px] text-[#aaa]">
+      {/* Center: search bar */}
+      <div className="hidden h-9 w-[360px] items-center gap-2.5 rounded-lg border border-[#eee] bg-[#fafafa] px-4 text-[12px] text-[#aaa] md:flex lg:w-[420px]">
         <Search size={14} className="shrink-0 text-[#bbb]" />
         <span className="flex-1 text-left">{searchLabel}</span>
         <kbd className="flex items-center gap-1 rounded-md border border-[#ddd] bg-white px-2 py-1 font-mono text-[11px] font-medium text-[#999] shadow-sm">
           <span className="text-[13px]">⌘</span>K
         </kbd>
       </div>
+      {/* Mobile: search icon only */}
+      <button
+        type="button"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-[#666] transition-colors hover:bg-[#f5f5f4] hover:text-[#1a1a1a] md:hidden"
+        aria-label="Search"
+      >
+        <Search size={17} />
+      </button>
 
-      <div className="flex items-center justify-end gap-2">
+      {/* Right: actions */}
+      <div className="flex items-center justify-end gap-1.5 md:gap-2">
         <Popover
           onOpenChange={(open) => {
             if (!open) fetchUnread();
@@ -91,7 +117,7 @@ export function Topbar({ hasWorkspace = false }: { hasWorkspace?: boolean }) {
         >
           <PopoverTrigger asChild>
             <button
-              className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[#999] transition-colors hover:bg-[#f5f5f4] hover:text-[#555]"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#999] transition-colors hover:bg-[#f5f5f4] hover:text-[#555]"
               aria-label="Notifications"
             >
               <Bell size={17} />
@@ -113,20 +139,20 @@ export function Topbar({ hasWorkspace = false }: { hasWorkspace?: boolean }) {
         {hasWorkspace ? (
           <Link
             href="/prds/new"
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-3.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-3 text-[12px] font-medium text-white transition-opacity hover:opacity-90 md:px-3.5"
           >
             <Plus size={14} />
-            New PRD
+            <span className="hidden sm:inline">New PRD</span>
           </Link>
         ) : (
           <button
             type="button"
             onClick={() => router.replace('/dashboard')}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-3.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-3 text-[12px] font-medium text-white transition-opacity hover:opacity-90 md:px-3.5"
             title="Create or join a workspace before creating a PRD."
           >
             <Plus size={14} />
-            New PRD
+            <span className="hidden sm:inline">New PRD</span>
           </button>
         )}
       </div>

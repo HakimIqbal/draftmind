@@ -38,6 +38,7 @@ export function AppShell({
   userId,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const setOpenTicketCount = useUserStore((s) => s.setOpenTicketCount);
   const router = useRouter();
   const pathname = usePathname();
@@ -48,7 +49,17 @@ export function AppShell({
 
   useEffect(() => {
     pathnameRef.current = pathname;
+    setMobileSidebarOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [mobileSidebarOpen]);
 
   // Sync initial server-rendered count to store
   useEffect(() => {
@@ -133,35 +144,54 @@ export function AppShell({
     };
   }, [userId, setOpenTicketCount]);
 
+  const sidebar = (
+    <Sidebar
+      collapsed={false}
+      onToggleCollapse={() => setSidebarOpen(false)}
+      workspaces={workspaces}
+      currentWorkspaceId={currentWorkspaceId}
+      currentUserRole={currentUserRole}
+      userName={userName}
+      userEmail={userEmail}
+      userAvatarUrl={userAvatarUrl}
+      recentPRDs={recentPRDs}
+      openTicketCount={openTicketCount}
+      hasWorkspace={hasWorkspace}
+    />
+  );
+
   return (
     <TooltipProvider>
       <PresenceHeartbeat />
-      <div className="flex h-screen">
-        {sidebarOpen ? (
-          <Sidebar
-            collapsed={false}
-            onToggleCollapse={() => setSidebarOpen(false)}
-            workspaces={workspaces}
-            currentWorkspaceId={currentWorkspaceId}
-            currentUserRole={currentUserRole}
-            userName={userName}
-            userEmail={userEmail}
-            userAvatarUrl={userAvatarUrl}
-            recentPRDs={recentPRDs}
-            openTicketCount={openTicketCount}
-            hasWorkspace={hasWorkspace}
-          />
-        ) : (
-          <SidebarCollapsedRail
-            onExpand={() => setSidebarOpen(true)}
-            userName={userName}
-            userEmail={userEmail}
-            userAvatarUrl={userAvatarUrl}
-            hasWorkspace={hasWorkspace}
-          />
+      <div className="flex h-dvh min-h-dvh overflow-hidden">
+        <div className="hidden md:block">
+          {sidebarOpen ? (
+            sidebar
+          ) : (
+            <SidebarCollapsedRail
+              onExpand={() => setSidebarOpen(true)}
+              userName={userName}
+              userEmail={userEmail}
+              userAvatarUrl={userAvatarUrl}
+              hasWorkspace={hasWorkspace}
+            />
+          )}
+        </div>
+
+        {mobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/30"
+              aria-label="Close menu"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            <div className="relative h-full w-[min(85vw,250px)] shadow-2xl">{sidebar}</div>
+          </div>
         )}
+
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar hasWorkspace={hasWorkspace} />
+          <Topbar hasWorkspace={hasWorkspace} onToggleSidebar={() => setMobileSidebarOpen(true)} />
           <main className="flex-1 overflow-auto">{children}</main>
         </div>
       </div>
