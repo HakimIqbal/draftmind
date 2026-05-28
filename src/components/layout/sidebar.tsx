@@ -14,6 +14,7 @@ import {
   Settings,
   Activity,
   PanelLeftClose,
+  X,
   LogOut,
   ChevronDown,
   Ticket,
@@ -43,6 +44,7 @@ const WORKSPACE_NAV = [
 interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onClose?: () => void;
   workspaces?: WorkspaceListItem[];
   currentWorkspaceId?: string;
   currentUserRole?: string;
@@ -57,6 +59,7 @@ interface SidebarProps {
 export function Sidebar({
   collapsed,
   onToggleCollapse,
+  onClose,
   workspaces,
   currentWorkspaceId,
   currentUserRole,
@@ -103,10 +106,11 @@ export function Sidebar({
           <span className="text-[14px] font-bold text-[#1a1a1a]">DraftMind</span>
         </Link>
         <button
-          onClick={onToggleCollapse}
+          onClick={onClose ?? onToggleCollapse}
           className="flex h-7 w-7 items-center justify-center rounded-md text-[#bbb] transition-colors hover:bg-white hover:text-[#666]"
         >
-          <PanelLeftClose size={15} />
+          <X size={15} className="md:hidden" />
+          <PanelLeftClose size={15} className="hidden md:block" />
         </button>
       </div>
 

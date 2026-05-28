@@ -105,13 +105,13 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-0 sm:pt-[20vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
       onClick={() => setOpen(false)}
     >
-      <div className="absolute inset-0 bg-black/30 sm:bg-black/50" />
+      <div className="absolute inset-0 bg-black/50" />
 
       <div
-        className="relative w-full bg-bg-elevated sm:max-w-[720px] sm:overflow-hidden sm:rounded-lg sm:border sm:border-strong sm:shadow-2xl"
+        className="relative w-[92vw] max-w-[720px] overflow-hidden rounded-lg border border-strong bg-bg-elevated shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <Command label="Command palette" shouldFilter={!showContentResults}>

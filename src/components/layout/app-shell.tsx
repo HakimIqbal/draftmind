@@ -148,6 +148,7 @@ export function AppShell({
     <Sidebar
       collapsed={false}
       onToggleCollapse={() => setSidebarOpen(false)}
+      onClose={() => setMobileSidebarOpen(false)}
       workspaces={workspaces}
       currentWorkspaceId={currentWorkspaceId}
       currentUserRole={currentUserRole}
