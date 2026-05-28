@@ -290,7 +290,7 @@ export function AdminShell({
               aria-label="Close menu"
               onClick={() => setMobileSidebarOpen(false)}
             />
-            <aside className="relative flex h-full w-[min(85vw,260px)] flex-col border-r border-[#e5e5e3] bg-[#f8f8f7] shadow-2xl">
+            <aside className="relative flex h-[100dvh] w-[min(85vw,260px)] flex-col border-r border-[#e5e5e3] bg-[#f8f8f7] shadow-2xl">
               {sidebarContent}
             </aside>
           </div>

@@ -65,7 +65,7 @@ export function SidebarCollapsedRail({
   }
 
   return (
-    <aside className="flex h-screen w-[52px] shrink-0 flex-col items-center border-r border-subtle bg-bg-canvas">
+    <aside className="flex h-dvh w-[52px] shrink-0 flex-col items-center border-r border-subtle bg-bg-canvas">
       {/* Top: Logo that transforms to open button on hover */}
       <div className="flex w-full flex-col items-center pb-2 pt-3">
         <Tooltip>
