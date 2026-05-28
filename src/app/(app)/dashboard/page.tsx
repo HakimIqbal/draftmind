@@ -69,7 +69,7 @@ export default async function HomePage() {
           Having trouble?{' '}
           <a
             href="/tickets"
-            className="text-[#555] underline underline-offset-2 hover:text-[#1a1a1a]"
+            className="inline-flex min-h-10 items-center rounded-md px-1 text-[#555] underline underline-offset-2 hover:text-[#1a1a1a]"
           >
             Go to My Tickets
           </a>

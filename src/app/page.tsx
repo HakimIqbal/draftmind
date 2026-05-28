@@ -57,19 +57,19 @@ export default async function LandingPage() {
           <div className="hidden items-center gap-8 sm:flex">
             <a
               href="#how-it-works"
-              className="text-[13px] text-ink-tertiary transition-colors hover:text-ink-primary"
+              className="focus-visible:ring-accent/30 inline-flex min-h-10 items-center rounded-md px-2 text-[13px] text-ink-tertiary transition-colors hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2"
             >
               How it works
             </a>
             <a
               href="#features"
-              className="text-[13px] text-ink-tertiary transition-colors hover:text-ink-primary"
+              className="focus-visible:ring-accent/30 inline-flex min-h-10 items-center rounded-md px-2 text-[13px] text-ink-tertiary transition-colors hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2"
             >
               Features
             </a>
             <a
               href="#tech"
-              className="text-[13px] text-ink-tertiary transition-colors hover:text-ink-primary"
+              className="focus-visible:ring-accent/30 inline-flex min-h-10 items-center rounded-md px-2 text-[13px] text-ink-tertiary transition-colors hover:text-ink-primary focus-visible:outline-none focus-visible:ring-2"
             >
               Tech Stack
             </a>

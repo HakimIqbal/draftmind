@@ -139,7 +139,7 @@ function LoginForm() {
         <div className="mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#999] hover:text-[#555]"
+            className="focus-visible:ring-accent/30 inline-flex min-h-10 items-center gap-1.5 rounded-md px-1.5 text-[13px] text-[#999] transition hover:text-[#555] focus-visible:outline-none focus-visible:ring-2"
           >
             <ArrowLeft size={13} />
             Back to home
@@ -229,7 +229,7 @@ function LoginForm() {
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={loading || checkingSession}
-                  className="h-3.5 w-3.5 rounded border-[#ddd] accent-accent"
+                  className="h-4 w-4 rounded border-[#ddd] accent-accent"
                 />
                 <span className="text-sm text-ink-secondary">Remember me</span>
               </label>
@@ -239,7 +239,7 @@ function LoginForm() {
                   href="https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fmail.google.com%2Fmail%2F%3Fview%3Dcm%26fs%3D1%26to%3Dsupport%40draftmind.web.id%26su%3DPassword%2BReset%2BRequest%2B-%2BDraftMind%26body%3DHello%2C%250A%250AI%2Bneed%2Bhelp%2Bresetting%2Bmy%2BDraftMind%2Bpassword.%250A%250AAccount%2Bemail%3A%2B%250AWorkspace%2Bname%2B%28if%2Bknown%29%3A%2B%250A%250AThank%2Byou.&dsh=S-619824507%3A1779546942704362&emr=1&ltmpl=default&ltmplcache=2&osid=1&passive=true&rm=false&scc=1&service=mail&flowName=GlifWebSignIn&flowEntry=ServiceLogin&ifkv=AWa2PavcLUodlfBmlU53m_QkMjaHocAGrwoHnUrHESuPmT05nNsmyNNIByTt9mxwVG1j-OdTAXp5vg"
                   target="_blank"
                   rel="noreferrer"
-                  className="font-medium underline-offset-2 transition hover:text-accent hover:underline"
+                  className="inline-flex min-h-10 items-center font-medium underline-offset-2 transition hover:text-accent hover:underline"
                 >
                   Contact your admin.
                 </a>
@@ -262,12 +262,15 @@ function LoginForm() {
           &copy; {new Date().getFullYear()} DraftMind &middot;{' '}
           <a
             href="/privacy"
-            className="underline-offset-2 hover:text-ink-secondary hover:underline"
+            className="inline-flex min-h-8 items-center underline-offset-2 hover:text-ink-secondary hover:underline"
           >
             Privacy
           </a>{' '}
           &middot;{' '}
-          <a href="/terms" className="underline-offset-2 hover:text-ink-secondary hover:underline">
+          <a
+            href="/terms"
+            className="inline-flex min-h-8 items-center underline-offset-2 hover:text-ink-secondary hover:underline"
+          >
             Terms
           </a>
         </p>
