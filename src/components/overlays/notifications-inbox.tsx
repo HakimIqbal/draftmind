@@ -118,7 +118,7 @@ export function NotificationsInbox() {
   }
 
   return (
-    <div className="flex max-h-[480px] w-[400px] flex-col bg-white">
+    <div className="flex max-h-[min(480px,calc(100vh-2rem))] w-[min(400px,calc(100vw-2rem))] flex-col bg-white">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
         <span className="text-[14px] font-semibold text-[#1a1a1a]">

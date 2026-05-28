@@ -42,7 +42,7 @@ export default async function AdminAnalyticsPage() {
         <p className="mt-0.5 text-[13px] text-[#888]">System-wide usage and metrics</p>
       </div>
 
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {[
           {
             label: 'Users',

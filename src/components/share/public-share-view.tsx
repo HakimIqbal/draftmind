@@ -18,7 +18,7 @@ export function PublicShareView({ prd, tiptapContent }: PublicShareViewProps) {
     <div className="min-h-screen bg-[#f0efed]">
       {/* Top bar */}
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-12 max-w-[860px] items-center justify-between px-6">
+        <div className="mx-auto flex h-12 max-w-[860px] items-center justify-between px-4 sm:px-6">
           <span className="text-sm font-bold tracking-tight text-gray-900">DraftMind</span>
           <span className="inline-flex items-center gap-1.5 font-mono text-xs text-gray-400">
             <Globe size={12} />
@@ -32,14 +32,14 @@ export function PublicShareView({ prd, tiptapContent }: PublicShareViewProps) {
 
       {/* Paper — same style as editor */}
       <main
-        className="mx-auto my-8 w-full max-w-[816px] rounded-sm bg-white px-16 py-12 shadow-sm"
+        className="mx-auto my-4 w-full max-w-[816px] rounded-sm bg-white px-4 py-6 shadow-sm sm:my-6 sm:px-8 sm:py-8 md:my-8 md:px-16 md:py-12"
         style={{ minHeight: '1056px' }}
       >
         <TiptapRenderer nodes={doc.content} />
       </main>
 
       {/* Footer */}
-      <footer className="mx-auto max-w-[816px] px-6 py-8">
+      <footer className="mx-auto max-w-[816px] px-4 py-6 sm:px-6 sm:py-8">
         <p className="text-center text-xs text-gray-400">Generated with DraftMind</p>
       </footer>
     </div>

@@ -47,7 +47,7 @@ export function RegenerateFullModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[600px]">
+      <DialogContent className="max-w-[min(600px,calc(100vw-2rem))]">
         <DialogHeader>
           <DialogTitle>Regenerate full PRD</DialogTitle>
           <DialogDescription>

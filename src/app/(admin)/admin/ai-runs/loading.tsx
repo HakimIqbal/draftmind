@@ -7,7 +7,7 @@ export default function AIRunsLoading() {
       </div>
 
       {/* Summary stats skeleton */}
-      <div className="mb-8 grid grid-cols-4 gap-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="rounded-xl border border-[#eee] bg-white p-4">
             <div className="h-3 w-20 rounded bg-[#f5f5f4]" />

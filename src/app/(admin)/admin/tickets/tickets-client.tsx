@@ -164,7 +164,7 @@ function DetailPanel({ ticket, onStatusUpdated }: DetailPanelProps) {
         </div>
 
         {/* Meta grid */}
-        <div className="grid grid-cols-2 gap-3 text-[12px]">
+        <div className="grid grid-cols-1 gap-2 text-[12px] sm:grid-cols-2 sm:gap-3">
           <div>
             <p className="text-[#aaa]">Kategori</p>
             <p className="font-medium text-[#444]">{CATEGORY_LABELS[ticket.category]}</p>
@@ -287,7 +287,7 @@ export function AdminTicketsClient({ initialTickets }: AdminTicketsClientProps) 
   return (
     <div className="flex h-[calc(100dvh-64px)] min-h-[600px] flex-col overflow-hidden rounded-xl border border-[#eeeeed] lg:flex-row">
       {/* LEFT — list panel */}
-      <div className="flex w-[340px] shrink-0 flex-col border-r border-[#eeeeed]">
+      <div className="flex w-full shrink-0 flex-col border-r border-[#eeeeed] lg:w-[340px]">
         {/* Panel header */}
         <div className="border-b border-[#f0f0ee] px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

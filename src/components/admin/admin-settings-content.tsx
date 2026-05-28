@@ -33,7 +33,7 @@ export function AdminSettingsContent({ data }: { data: SettingsData }) {
   return (
     <div className="flex gap-6">
       {/* Sidebar tabs */}
-      <div className="w-[200px] shrink-0">
+      <div className="w-full shrink-0 sm:w-[200px]">
         <nav className="space-y-1">
           {TABS.map((tab) => (
             <button

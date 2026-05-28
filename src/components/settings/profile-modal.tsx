@@ -174,7 +174,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
     <>
       {/* Profile Modal */}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[440px] gap-0 overflow-hidden rounded-2xl border border-[#e8e8e6] p-0 shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
+        <DialogContent className="max-w-[min(440px,calc(100vw-2rem))] gap-0 overflow-hidden rounded-2xl border border-[#e8e8e6] p-0 shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
           <DialogTitle className="sr-only">Profile</DialogTitle>
           <DialogDescription className="sr-only">Manage your profile settings</DialogDescription>
           {loading ? (
@@ -258,7 +258,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
 
               {/* Info fields */}
               <div className="px-6 py-5">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[#aaa]">
                       Job title
@@ -309,7 +309,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
                         onChange={(e) => setOldPassword(e.target.value)}
                         className="h-10 rounded-xl text-[13px]"
                       />
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Input
                           type="password"
                           placeholder="New password"
@@ -352,7 +352,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
           }
         }}
       >
-        <DialogContent className="max-w-[380px] gap-0 overflow-hidden rounded-2xl border border-[#e8e8e6] p-0 shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
+        <DialogContent className="max-w-[min(380px,calc(100vw-2rem))] gap-0 overflow-hidden rounded-2xl border border-[#e8e8e6] p-0 shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
           <DialogTitle className="sr-only">Upload Profile Photo</DialogTitle>
           <DialogDescription className="sr-only">
             Position and crop your profile photo

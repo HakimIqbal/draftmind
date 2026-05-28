@@ -137,7 +137,7 @@ export default async function AdminAIRunsPage({
       </div>
 
       {/* Summary: Internal Stats */}
-      <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border border-[#eee] bg-white p-4">
           <p className="text-[11px] font-medium uppercase text-[#aaa]">Today</p>
           <p className="mt-1 text-[24px] font-bold text-[#1a1a1a]">{todayRuns.length}</p>
@@ -197,7 +197,7 @@ export default async function AdminAIRunsPage({
           </div>
 
           {/* Breakdown by Operation */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from(lsByName.entries()).map(([name, stats]) => {
               const avgLatency = stats.count > 0 ? Math.round(stats.totalLatency / stats.count) : 0;
               const opSuccessRate =
@@ -253,7 +253,7 @@ export default async function AdminAIRunsPage({
       {byType.size > 0 && (
         <div className="mt-6">
           <h2 className="mb-3 text-[14px] font-semibold text-[#1a1a1a]">Breakdown by Type</h2>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from(byType.entries()).map(([type, stats]) => {
               const avgLatency = stats.count > 0 ? Math.round(stats.totalLatency / stats.count) : 0;
               return (

@@ -148,7 +148,7 @@ export function ExportModal({ open, onOpenChange, prdId }: ExportModalProps) {
             <RadioCardGroup
               value={format}
               onValueChange={(v) => setFormat(v as ExportFormat)}
-              className="grid grid-cols-2 gap-2"
+              className="grid grid-cols-1 gap-2 sm:grid-cols-2"
             >
               {FORMAT_OPTIONS.map((opt) => {
                 const Icon = opt.icon;

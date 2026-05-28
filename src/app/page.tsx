@@ -360,7 +360,7 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-black/[0.06] py-10">
-        <div className="mx-auto max-w-[1140px] px-8 text-center">
+        <div className="mx-auto max-w-[1140px] px-4 text-center md:px-8">
           <div className="flex items-center justify-center gap-2.5">
             <Image
               src="/logo/logo.jpg"
