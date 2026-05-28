@@ -43,7 +43,7 @@ export default async function LandingPage() {
     <div className="min-h-screen bg-white">
       {/* Nav */}
       <nav className="sticky top-0 z-40 border-b border-black/[0.05] bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1140px] items-center justify-between px-8">
+        <div className="mx-auto flex h-16 max-w-[1140px] items-center justify-between px-4 md:px-8">
           <Link href="/" className="flex items-center gap-2.5">
             <Image
               src="/logo/logo.jpg"
@@ -81,7 +81,7 @@ export default async function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-[#fafaf9]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(200,120,60,0.07),transparent)]" />
-        <div className="relative mx-auto max-w-[1140px] px-8 pb-32 pt-24">
+        <div className="relative mx-auto max-w-[1140px] px-4 pb-20 pt-16 md:px-8 md:pb-32 md:pt-24">
           <div className="mx-auto max-w-2xl text-center">
             <div className="border-accent/20 bg-accent/5 mx-auto mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
               <Sparkles size={14} className="text-accent" />
@@ -102,7 +102,7 @@ export default async function LandingPage() {
             <div className="mt-10 flex items-center justify-center gap-4">
               <Link
                 href={primaryCtaHref}
-                className="shadow-ink-primary/15 hover:shadow-ink-primary/20 group inline-flex h-12 items-center gap-2 rounded-xl bg-ink-primary px-7 text-[14px] font-medium text-white shadow-xl transition-all hover:shadow-2xl"
+                className="shadow-ink-primary/15 hover:shadow-ink-primary/20 group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-ink-primary px-7 text-[14px] font-medium text-white shadow-xl transition-all hover:shadow-2xl sm:w-auto"
               >
                 {primaryCtaLabel}
                 <ChevronRight
@@ -112,7 +112,7 @@ export default async function LandingPage() {
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex h-12 items-center gap-2 rounded-xl border border-black/10 px-6 text-[14px] font-medium text-ink-secondary transition-all hover:border-black/20 hover:bg-[#fafaf9]"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/10 px-6 text-[14px] font-medium text-ink-secondary transition-all hover:border-black/20 hover:bg-[#fafaf9] sm:w-auto"
               >
                 See how it works
               </a>
@@ -130,7 +130,7 @@ export default async function LandingPage() {
 
       {/* How it works */}
       <section id="how-it-works" className="scroll-mt-16 border-t border-black/[0.06] py-28">
-        <div className="mx-auto max-w-[1140px] px-8">
+        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             How it works
           </p>
@@ -146,7 +146,7 @@ export default async function LandingPage() {
             {/* Connecting line - desktop only */}
             <div className="from-accent/0 via-accent/20 to-accent/0 absolute left-[16.67%] right-[16.67%] top-10 hidden h-px bg-gradient-to-r sm:block" />
 
-            <div className="grid gap-12 sm:grid-cols-3 sm:gap-8">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-8">
               {/* Step 1 */}
               <div className="group text-center">
                 <div className="border-accent/15 from-accent/[0.08] to-accent/[0.02] group-hover:border-accent/25 group-hover:shadow-accent/10 relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border bg-gradient-to-b shadow-sm transition-all group-hover:shadow-md">
@@ -201,7 +201,7 @@ export default async function LandingPage() {
         id="features"
         className="scroll-mt-16 border-t border-black/[0.06] bg-[#fafaf9] py-28"
       >
-        <div className="mx-auto max-w-[1140px] px-8">
+        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Features
           </p>
@@ -221,7 +221,7 @@ export default async function LandingPage() {
 
       {/* AI Providers */}
       <section id="tech" className="scroll-mt-16 border-t border-black/[0.06] py-24">
-        <div className="mx-auto max-w-[1140px] px-8">
+        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Powered by
           </p>
@@ -232,7 +232,7 @@ export default async function LandingPage() {
             Bring your own API key. Switch between providers anytime - your PRDs, your choice.
           </p>
 
-          <div className="mx-auto mt-14 grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mx-auto mt-14 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
             <AIProviderCard
               name="OpenAI"
               models="GPT-4o, GPT-4o Mini, o1-preview"
@@ -264,7 +264,7 @@ export default async function LandingPage() {
 
       {/* Export Formats */}
       <section className="border-t border-black/[0.06] bg-[#fafaf9] py-24">
-        <div className="mx-auto max-w-[1140px] px-8">
+        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Export
           </p>
@@ -275,7 +275,7 @@ export default async function LandingPage() {
             Share your PRD anywhere - from stakeholder presentations to engineering handoffs.
           </p>
 
-          <div className="mx-auto mt-14 grid max-w-3xl gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6">
             <ExportCard
               label="PDF"
               description=".pdf document"
@@ -316,7 +316,7 @@ export default async function LandingPage() {
 
       {/* Built with + Security */}
       <section className="border-t border-black/[0.06] py-24">
-        <div className="mx-auto max-w-[1140px] px-8">
+        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Built with
           </p>
@@ -325,7 +325,7 @@ export default async function LandingPage() {
           </h2>
 
           {/* Tech grid */}
-          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-4 gap-4 sm:grid-cols-8">
+          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-4 gap-3 sm:grid-cols-6 sm:gap-4 lg:grid-cols-8">
             {[
               { name: 'Next.js 15', icon: '/icons/tech/icon-nextjs.png' },
               { name: 'React 19', icon: '/icons/tech/icon-react.png' },

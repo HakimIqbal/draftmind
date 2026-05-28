@@ -233,7 +233,7 @@ export function GenerateForm({
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-4 md:px-8 md:py-8">
       <button
         onClick={() => router.push('/prds')}
         className="mb-4 flex items-center gap-1.5 text-[13px] text-[#999] hover:text-[#555]"
@@ -469,7 +469,7 @@ export function GenerateForm({
                 placeholder="What problem does this product/feature solve?"
               />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Stakeholders" required hint="Decision makers, approvers">
                 <TextInput
                   value={stakeholders}
@@ -485,7 +485,7 @@ export function GenerateForm({
                 />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Start date" required>
                 <DateInput value={startDate} onChange={setStartDate} />
               </Field>
@@ -493,7 +493,7 @@ export function GenerateForm({
                 <DateInput value={endDate} onChange={setEndDate} />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Platform">
                 <SelectInput
                   value={platform}
@@ -596,7 +596,7 @@ export function GenerateForm({
               <X size={18} />
             </button>
 
-            <div className="border-b border-subtle px-8 py-6">
+            <div className="border-b border-subtle px-4 py-4 md:px-8 md:py-6">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
                 Template Preview
               </p>
@@ -627,7 +627,7 @@ export function GenerateForm({
               </div>
             </div>
 
-            <div className="space-y-5 px-8 py-6">
+            <div className="space-y-5 px-4 py-4 md:px-8 md:py-6">
               {previewTemplate.structure.instructions && (
                 <div className="border-accent/20 bg-accent/5 rounded-xl border px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
@@ -730,7 +730,7 @@ export function GenerateForm({
               )}
             </div>
 
-            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-subtle bg-white/95 px-8 py-4 backdrop-blur">
+            <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-subtle bg-white/95 px-4 py-4 backdrop-blur sm:flex-row sm:justify-end md:px-8">
               <button
                 type="button"
                 onClick={() => setPreviewTemplate(null)}
@@ -744,7 +744,7 @@ export function GenerateForm({
                   setSelectedTemplate(previewTemplate);
                   setPreviewTemplate(null);
                 }}
-                className="h-9 rounded-lg bg-accent px-5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+                className="h-9 w-full rounded-lg bg-accent px-5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 sm:w-auto"
               >
                 Use this template
               </button>
@@ -754,7 +754,7 @@ export function GenerateForm({
       )}
 
       {/* Submit */}
-      <div className="mt-6 flex items-center justify-end gap-3">
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         {providers && providers.length > 1 && (
           <select
             value={selectedProviderId}
@@ -770,14 +770,14 @@ export function GenerateForm({
         )}
         <button
           onClick={() => router.push('/prds')}
-          className="h-9 rounded-lg border border-[#e5e5e3] bg-white px-4 text-[13px] font-medium text-[#666] hover:border-[#ddd] hover:text-[#1a1a1a]"
+          className="h-9 w-full rounded-lg border border-[#e5e5e3] bg-white px-4 text-[13px] font-medium text-[#666] hover:border-[#ddd] hover:text-[#1a1a1a] sm:w-auto"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={isPending}
-          className="h-9 rounded-lg bg-accent px-5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-30"
+          className="h-9 w-full rounded-lg bg-accent px-5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-30 sm:w-auto"
         >
           {isPending ? 'Generating...' : 'Generate PRD'}
         </button>

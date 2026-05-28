@@ -73,14 +73,14 @@ export function PRDListTable({
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-[#1a1a1a]">My PRDs</h1>
           <p className="mt-0.5 text-[13px] text-[#888]">
             {total} document{total !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/prds/pipeline"
             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#e5e5e3] bg-white px-3 text-[12px] font-medium text-[#666] transition-colors hover:border-[#ddd] hover:text-[#1a1a1a]"
@@ -140,8 +140,8 @@ export function PRDListTable({
           <p className="text-[13px] text-[#aaa]">No PRDs match your filter.</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="overflow-hidden rounded-xl border border-[#eee]">
-          <table className="w-full">
+        <div className="overflow-x-auto rounded-xl border border-[#eee]">
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-[#f0f0f0] bg-[#fafaf9]">
                 <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
@@ -179,7 +179,7 @@ export function PRDListTable({
                   </td>
                   <td className="px-5 py-3.5">
                     {prd.owner && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Avatar
                           name={prd.owner.full_name ?? 'User'}
                           size="sm"
@@ -224,7 +224,7 @@ export function PRDListTable({
               )}
               <div className="mt-auto flex items-center justify-between pt-4">
                 {prd.owner && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Avatar
                       name={prd.owner.full_name ?? 'User'}
                       size="sm"

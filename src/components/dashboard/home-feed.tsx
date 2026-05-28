@@ -121,7 +121,7 @@ export function HomeFeed({
   // ─── Empty workspace ───
   if (!hasData && !hasStats) {
     return (
-      <div className="mx-auto max-w-2xl px-8 py-16">
+      <div className="mx-auto max-w-2xl px-4 py-10 md:px-8 md:py-16">
         <div className="text-center">
           <div className="bg-accent/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
             <FileText size={24} className="text-accent" />
@@ -135,7 +135,7 @@ export function HomeFeed({
         </div>
 
         {/* Actions */}
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <ActionCard href="/prds/new" icon={Plus} label="Blank PRD" accent />
           <ActionCard href="/templates" icon={LayoutTemplate} label="From template" />
           <ActionCard href="/workspace/members" icon={Users} label="Invite team" />
@@ -152,7 +152,7 @@ export function HomeFeed({
                 Browse all
               </Link>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {templates.map((t) => (
                 <Link
                   key={t.id}
@@ -175,14 +175,14 @@ export function HomeFeed({
 
   // ─── Active workspace ───
   return (
-    <div className="mx-auto max-w-[1060px] px-8 py-8">
+    <div className="mx-auto max-w-[1060px] px-4 py-4 md:px-8 md:py-8">
       {/* Greeting */}
       <h1 className="text-[24px] font-bold text-[#1a1a1a]">
         {greeting}, {firstName}
       </h1>
 
       {/* Stats */}
-      <div className="mt-5 grid grid-cols-4 gap-3">
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat
           icon={FileText}
           label="Total PRDs"
@@ -214,7 +214,7 @@ export function HomeFeed({
       </div>
 
       {/* Two column layout */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr,320px]">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr,320px]">
         {/* Main */}
         <div className="space-y-6">
           {continueWorking.length > 0 && (
