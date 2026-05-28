@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Bell, Menu, Plus, Search } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { NotificationsInbox } from '@/components/overlays/notifications-inbox';
 import { getUnreadCount } from '@/app/(app)/notifications/actions';
 import { createClient } from '@/lib/supabase/client';
+import { useCommandPaletteStore } from '@/stores/command-palette-store';
 
 interface TopbarProps {
   hasWorkspace?: boolean;
@@ -17,10 +18,9 @@ interface TopbarProps {
 export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const mobileSearchRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const { setOpen } = useCommandPaletteStore();
   const isTicketsPage = pathname === '/tickets' || pathname.startsWith('/tickets/');
   const searchLabel = isTicketsPage
     ? 'Search tickets...'
@@ -77,22 +77,15 @@ export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
     };
   }, [userId, fetchUnread]);
 
-  // Focus mobile search input when opened
-  useEffect(() => {
-    if (mobileSearchOpen) {
-      setTimeout(() => mobileSearchRef.current?.focus(), 50);
-    }
-  }, [mobileSearchOpen]);
-
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[#f0f0ee] bg-white px-3 md:px-6">
-      {/* Left: hamburger (mobile) — hidden when search is open */}
+      {/* Left: hamburger (mobile) */}
       <div className="flex shrink-0 items-center">
         {onToggleSidebar && (
           <button
             type="button"
             onClick={onToggleSidebar}
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#666] transition-colors hover:bg-[#f5f5f4] hover:text-[#1a1a1a] md:hidden ${mobileSearchOpen ? 'hidden' : ''}`}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#666] transition-colors hover:bg-[#f5f5f4] hover:text-[#1a1a1a] md:hidden"
             aria-label="Open menu"
           >
             <Menu size={18} />
@@ -100,50 +93,31 @@ export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
         )}
       </div>
 
-      {/* Center: search bar (desktop) */}
-      <div className="hidden h-9 w-[360px] items-center gap-2.5 rounded-lg border border-[#eee] bg-[#fafafa] px-4 text-[12px] text-[#aaa] md:flex lg:w-[420px]">
+      {/* Center: search bar (desktop) — click opens command palette */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="hidden h-9 w-[360px] cursor-pointer items-center gap-2.5 rounded-lg border border-[#eee] bg-[#fafafa] px-4 text-[12px] text-[#aaa] transition-colors hover:border-[#ddd] hover:bg-[#f5f5f4] md:flex lg:w-[420px]"
+      >
         <Search size={14} className="shrink-0 text-[#bbb]" />
         <span className="flex-1 text-left">{searchLabel}</span>
         <kbd className="flex items-center gap-1 rounded-md border border-[#ddd] bg-white px-2 py-1 font-mono text-[11px] font-medium text-[#999] shadow-sm">
           <span className="text-[13px]">⌘</span>K
         </kbd>
-      </div>
+      </button>
 
-      {/* Mobile: inline expandable search */}
-      {mobileSearchOpen ? (
-        <div className="flex h-9 flex-1 items-center gap-2 md:hidden">
-          <div className="flex h-9 flex-1 items-center gap-2.5 rounded-lg border border-[#eee] bg-[#fafafa] px-3 text-[13px] text-[#aaa]">
-            <Search size={15} className="shrink-0 text-[#bbb]" />
-            <input
-              ref={mobileSearchRef}
-              type="text"
-              placeholder={searchLabel}
-              className="min-w-0 flex-1 bg-transparent text-[#1a1a1a] outline-none placeholder:text-[#aaa]"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setMobileSearchOpen(false)}
-            className="flex h-9 shrink-0 items-center justify-center rounded-lg px-2 text-[13px] font-medium text-[#666] hover:bg-[#f5f5f4]"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setMobileSearchOpen(true)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#666] transition-colors hover:bg-[#f5f5f4] hover:text-[#1a1a1a] md:hidden"
-          aria-label="Search"
-        >
-          <Search size={17} />
-        </button>
-      )}
-
-      {/* Right: actions — hidden when search is open on mobile */}
-      <div
-        className={`flex shrink-0 items-center justify-end gap-2.5 md:gap-2 ${mobileSearchOpen ? 'hidden md:flex' : ''}`}
+      {/* Mobile: search icon — opens command palette */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#666] transition-colors hover:bg-[#f5f5f4] hover:text-[#1a1a1a] md:hidden"
+        aria-label="Search"
       >
+        <Search size={17} />
+      </button>
+
+      {/* Right: actions */}
+      <div className="flex shrink-0 items-center justify-end gap-2.5 md:gap-2">
         <Popover
           onOpenChange={(open) => {
             if (!open) fetchUnread();
