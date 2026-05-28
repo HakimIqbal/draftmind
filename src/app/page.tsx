@@ -40,9 +40,9 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen w-full overflow-x-hidden bg-white">
       {/* Nav */}
-      <nav className="sticky top-0 z-40 border-b border-black/[0.05] bg-white/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-40 w-full border-b border-black/[0.05] bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1140px] items-center justify-between px-4 md:px-8">
           <Link href="/" className="flex items-center gap-2.5">
             <Image
@@ -74,14 +74,14 @@ export default async function LandingPage() {
               Tech Stack
             </a>
           </div>
-          <div className="w-[120px]" />
+          <div className="hidden w-[120px] sm:block" />
         </div>
       </nav>
 
       {/* Hero */}
       <section className="relative overflow-y-auto overflow-x-hidden bg-[#fafaf9]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(200,120,60,0.07),transparent)]" />
-        <div className="relative mx-auto max-w-[1140px] px-4 pb-20 pt-16 md:px-8 md:pb-32 md:pt-24">
+        <div className="relative mx-auto w-full max-w-[1140px] px-4 pb-20 pt-16 md:px-8 md:pb-32 md:pt-24">
           <div className="mx-auto max-w-2xl text-center">
             <div className="border-accent/20 bg-accent/5 mx-auto mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
               <Sparkles size={14} className="text-accent" />
@@ -130,7 +130,7 @@ export default async function LandingPage() {
 
       {/* How it works */}
       <section id="how-it-works" className="scroll-mt-16 border-t border-black/[0.06] py-28">
-        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
+        <div className="mx-auto w-full max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             How it works
           </p>
@@ -201,7 +201,7 @@ export default async function LandingPage() {
         id="features"
         className="scroll-mt-16 border-t border-black/[0.06] bg-[#fafaf9] py-28"
       >
-        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
+        <div className="mx-auto w-full max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Features
           </p>
@@ -221,7 +221,7 @@ export default async function LandingPage() {
 
       {/* AI Providers */}
       <section id="tech" className="scroll-mt-16 border-t border-black/[0.06] py-24">
-        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
+        <div className="mx-auto w-full max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Powered by
           </p>
@@ -264,7 +264,7 @@ export default async function LandingPage() {
 
       {/* Export Formats */}
       <section className="border-t border-black/[0.06] bg-[#fafaf9] py-24">
-        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
+        <div className="mx-auto w-full max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Export
           </p>
@@ -316,7 +316,7 @@ export default async function LandingPage() {
 
       {/* Built with + Security */}
       <section className="border-t border-black/[0.06] py-24">
-        <div className="mx-auto max-w-[1140px] px-4 md:px-8">
+        <div className="mx-auto w-full max-w-[1140px] px-4 md:px-8">
           <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ink-tertiary">
             Built with
           </p>
@@ -360,7 +360,7 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-black/[0.06] py-10">
-        <div className="mx-auto max-w-[1140px] px-4 text-center md:px-8">
+        <div className="mx-auto w-full max-w-[1140px] px-4 text-center md:px-8">
           <div className="flex items-center justify-center gap-2.5">
             <Image
               src="/logo/logo.jpg"
