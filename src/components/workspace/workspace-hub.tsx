@@ -182,7 +182,7 @@ export function WorkspaceHub({
   ];
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
       {/* Header */}
       <div className="mb-2">
         <h1 className="text-[22px] font-bold text-[#1a1a1a]">{workspace.name}</h1>
@@ -283,7 +283,7 @@ function MembersTab({
 
   return (
     <>
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative w-56">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#bbb]" />
           <input
@@ -296,7 +296,7 @@ function MembersTab({
         {isAdmin && (
           <button
             onClick={() => setInviteOpen(true)}
-            className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+            className="ml-0 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 sm:ml-auto"
           >
             <UserPlus className="h-3.5 w-3.5" />
             Invite
@@ -336,7 +336,7 @@ function MembersTab({
                   className="border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
                 >
                   <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <div className="relative shrink-0">
                         <Avatar
                           name={name}
@@ -454,7 +454,7 @@ function MembersTab({
                     className="border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
                   >
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50">
                           <Mail size={13} className="text-amber-500" />
                         </div>
@@ -575,7 +575,7 @@ function SettingsTab({
               className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] focus:border-accent focus:outline-none focus:ring-1"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">
                 Industry
@@ -622,7 +622,7 @@ function SettingsTab({
               </select>
             </div>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {null}
             <button
               onClick={handleSave}
@@ -643,7 +643,7 @@ function SettingsTab({
         </div>
         <div className="divide-y divide-red-50 px-6">
           {!isOwner && (
-            <div className="flex items-center justify-between py-4">
+            <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-[13px] font-medium text-[#1a1a1a]">Leave workspace</p>
                 <p className="mt-0.5 text-[12px] text-[#888]">You will lose access to all PRDs</p>
@@ -672,7 +672,7 @@ function SettingsTab({
               <p className="mt-0.5 text-[12px] text-[#888]">
                 Permanently delete this workspace and all its PRDs
               </p>
-              <div className="mt-3 flex items-center gap-3">
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 <input
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
@@ -758,7 +758,7 @@ function ActivityTab({ workspaceId }: { workspaceId: string }) {
           return (
             <div
               key={a.id}
-              className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#fafaf9]"
+              className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[#fafaf9] sm:items-center sm:gap-4 sm:px-5 sm:py-3.5"
             >
               <Avatar
                 name={actor?.full_name ?? 'Former member'}

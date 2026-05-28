@@ -193,7 +193,7 @@ export function WorkspaceSettingsTab({ workspace, isOwner, isAdmin }: Props) {
                 className="focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 text-[13px] text-[#1a1a1a] focus:border-accent focus:outline-none focus:ring-1"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-[#1a1a1a]">
                   Industry
@@ -240,7 +240,7 @@ export function WorkspaceSettingsTab({ workspace, isOwner, isAdmin }: Props) {
                 </select>
               </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p />
               <button
                 onClick={handleSave}
@@ -261,7 +261,7 @@ export function WorkspaceSettingsTab({ workspace, isOwner, isAdmin }: Props) {
           </div>
           <div className="divide-y divide-red-50 px-6">
             {!isOwner && (
-              <div className="flex items-center justify-between py-4">
+              <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[13px] font-medium text-[#1a1a1a]">Leave workspace</p>
                   <p className="mt-0.5 text-[12px] text-[#888]">You will lose access to all PRDs</p>
@@ -290,7 +290,7 @@ export function WorkspaceSettingsTab({ workspace, isOwner, isAdmin }: Props) {
                 <p className="mt-0.5 text-[12px] text-[#888]">
                   Permanently delete this workspace and all its PRDs
                 </p>
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
                   <input
                     value={deleteConfirm}
                     onChange={(e) => setDeleteConfirm(e.target.value)}

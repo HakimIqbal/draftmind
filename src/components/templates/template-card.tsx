@@ -85,7 +85,7 @@ export function TemplateCard({ template, onEdit, canManage = false }: TemplateCa
                 <Trash2 size={12} />
               </button>
               <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-                <DialogContent className="max-w-[400px]">
+                <DialogContent className="max-w-[400px] max-sm:w-[calc(100vw-2rem)] sm:max-w-[400px]">
                   <DialogHeader>
                     <DialogTitle>Delete template</DialogTitle>
                     <DialogDescription>

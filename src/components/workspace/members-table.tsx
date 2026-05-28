@@ -103,9 +103,9 @@ export function MembersTable({
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-[#1a1a1a]">Team</h1>
           <p className="mt-0.5 text-[13px] text-[#888]">
@@ -113,7 +113,7 @@ export function MembersTable({
             {invitations.length > 0 && ` · ${invitations.length} pending`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-56">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#bbb]" />
             <input
@@ -170,7 +170,7 @@ export function MembersTable({
                 >
                   {/* Member */}
                   <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <div className="relative shrink-0">
                         <Avatar
                           name={name}
@@ -285,7 +285,7 @@ export function MembersTable({
                     className="border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
                   >
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50">
                           <Mail size={13} className="text-amber-500" />
                         </div>

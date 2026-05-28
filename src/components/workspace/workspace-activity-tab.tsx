@@ -134,7 +134,7 @@ export function WorkspaceActivityTab({ workspaceId }: { workspaceId: string }) {
           return (
             <div
               key={a.id}
-              className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#fafaf9]"
+              className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[#fafaf9] sm:items-center sm:gap-4 sm:px-5 sm:py-3.5"
             >
               <Avatar
                 name={actor?.full_name ?? 'Former member'}

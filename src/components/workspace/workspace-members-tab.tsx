@@ -122,7 +122,7 @@ export function WorkspaceMembersTab({
 
   return (
     <>
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative w-56">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#bbb]" />
           <input
@@ -138,7 +138,7 @@ export function WorkspaceMembersTab({
         {isAdmin && (
           <button
             onClick={() => setInviteOpen(true)}
-            className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+            className="ml-0 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a1a1a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 sm:ml-auto"
           >
             <UserPlus className="h-3.5 w-3.5" />
             Invite
@@ -179,7 +179,7 @@ export function WorkspaceMembersTab({
                   className="border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
                 >
                   <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <div className="relative shrink-0">
                         <Avatar
                           name={name}
@@ -295,7 +295,7 @@ export function WorkspaceMembersTab({
                     className="border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
                   >
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50">
                           <Mail size={13} className="text-amber-500" />
                         </div>

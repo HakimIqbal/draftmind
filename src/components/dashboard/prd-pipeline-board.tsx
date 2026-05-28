@@ -32,7 +32,7 @@ function HealthBadge({ score }: { score: number | null }) {
 export function PRDPipelineBoard({ columns }: PRDPipelineBoardProps) {
   return (
     <div className="p-lg">
-      <div className="mb-md flex items-center justify-between">
+      <div className="mb-md flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-xl font-bold">Pipeline</h1>
           <p className="font-mono text-[11px] text-ink-tertiary">
@@ -64,79 +64,83 @@ export function PRDPipelineBoard({ columns }: PRDPipelineBoardProps) {
         </Link>
       </div>
 
-      <div className="grid grid-cols-5 gap-md">
-        {COLUMN_CONFIG.map((col) => {
-          const items = columns[col.key] ?? [];
-          return (
-            <div key={col.key}>
-              {/* Column header */}
-              <div className="mb-sm flex items-center gap-xs">
-                <span className="h-2 w-2 rounded-full" style={{ background: col.dotColor }} />
-                <span className="font-mono text-[11px] uppercase tracking-wider text-ink-tertiary">
-                  {col.label}
-                </span>
-                <span className="font-mono text-[11px] text-ink-quaternary">{items.length}</span>
-              </div>
+      <div className="overflow-x-auto pb-2">
+        <div className="grid min-w-[1100px] grid-cols-5 gap-md">
+          {COLUMN_CONFIG.map((col) => {
+            const items = columns[col.key] ?? [];
+            return (
+              <div key={col.key}>
+                {/* Column header */}
+                <div className="mb-sm flex items-center gap-xs">
+                  <span className="h-2 w-2 rounded-full" style={{ background: col.dotColor }} />
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-ink-tertiary">
+                    {col.label}
+                  </span>
+                  <span className="font-mono text-[11px] text-ink-quaternary">{items.length}</span>
+                </div>
 
-              {/* Cards */}
-              <div className="space-y-sm">
-                {items.map((prd) => {
-                  const title =
-                    typeof prd.title === 'string' && prd.title.trim() ? prd.title : 'Untitled PRD';
-                  const updatedAt = prd.updated_at ? new Date(prd.updated_at) : null;
-                  const updatedLabel =
-                    updatedAt && !Number.isNaN(updatedAt.getTime())
-                      ? formatDistanceToNow(updatedAt, { addSuffix: true })
-                      : 'Recently updated';
+                {/* Cards */}
+                <div className="space-y-sm">
+                  {items.map((prd) => {
+                    const title =
+                      typeof prd.title === 'string' && prd.title.trim()
+                        ? prd.title
+                        : 'Untitled PRD';
+                    const updatedAt = prd.updated_at ? new Date(prd.updated_at) : null;
+                    const updatedLabel =
+                      updatedAt && !Number.isNaN(updatedAt.getTime())
+                        ? formatDistanceToNow(updatedAt, { addSuffix: true })
+                        : 'Recently updated';
 
-                  return (
-                    <Link key={prd.id} href={`/prds/${prd.id}`}>
-                      <Card className="cursor-pointer p-sm transition-colors hover:border-strong">
-                        <div className="flex items-start justify-between gap-xs">
-                          <p className="text-sm font-medium leading-tight text-ink-primary">
-                            {title}
-                          </p>
-                          <HealthBadge score={prd.health_score} />
-                        </div>
-
-                        {prd.project_tag && (
-                          <p className="mt-xs font-mono text-[11px] text-ink-tertiary">
-                            {prd.project_tag}
-                          </p>
-                        )}
-
-                        <div className="mt-sm flex items-center justify-between">
-                          <div className="flex -space-x-1">
-                            {prd.owner && (
-                              <Avatar
-                                name={prd.owner.full_name ?? 'User'}
-                                size="sm"
-                                avatarUrl={prd.owner.avatar_url}
-                                seed={prd.owner.avatar_color_seed ?? undefined}
-                              />
-                            )}
+                    return (
+                      <Link key={prd.id} href={`/prds/${prd.id}`}>
+                        <Card className="cursor-pointer p-sm transition-colors hover:border-strong">
+                          <div className="flex items-start justify-between gap-xs">
+                            <p className="text-sm font-medium leading-tight text-ink-primary">
+                              {title}
+                            </p>
+                            <HealthBadge score={prd.health_score} />
                           </div>
-                          <span
-                            className="font-mono text-[10px] text-ink-tertiary"
-                            suppressHydrationWarning
-                          >
-                            {updatedLabel}
-                          </span>
-                        </div>
-                      </Card>
-                    </Link>
-                  );
-                })}
 
-                {items.length === 0 && (
-                  <p className="py-lg text-center font-mono text-[11px] text-ink-quaternary">
-                    No PRDs
-                  </p>
-                )}
+                          {prd.project_tag && (
+                            <p className="mt-xs font-mono text-[11px] text-ink-tertiary">
+                              {prd.project_tag}
+                            </p>
+                          )}
+
+                          <div className="mt-sm flex items-center justify-between">
+                            <div className="flex -space-x-1">
+                              {prd.owner && (
+                                <Avatar
+                                  name={prd.owner.full_name ?? 'User'}
+                                  size="sm"
+                                  avatarUrl={prd.owner.avatar_url}
+                                  seed={prd.owner.avatar_color_seed ?? undefined}
+                                />
+                              )}
+                            </div>
+                            <span
+                              className="font-mono text-[10px] text-ink-tertiary"
+                              suppressHydrationWarning
+                            >
+                              {updatedLabel}
+                            </span>
+                          </div>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+
+                  {items.length === 0 && (
+                    <p className="py-lg text-center font-mono text-[11px] text-ink-quaternary">
+                      No PRDs
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

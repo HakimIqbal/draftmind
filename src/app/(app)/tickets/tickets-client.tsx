@@ -156,18 +156,18 @@ function NewTicketModal({ onClose, onSuccess }: NewTicketModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-[#f0f0ee] px-6 py-4">
+        <div className="flex flex-col-reverse gap-2 border-t border-[#f0f0ee] px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
           <button
             onClick={onClose}
             disabled={isPending}
-            className="rounded-lg px-4 py-2 text-[13px] text-[#666] transition-colors hover:bg-[#f5f5f3]"
+            className="w-full rounded-lg px-4 py-2 text-[13px] text-[#666] transition-colors hover:bg-[#f5f5f3] sm:w-auto"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-40"
+            className="w-full rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-40 sm:w-auto"
           >
             {isPending ? 'Submitting...' : 'Submit Ticket'}
           </button>
@@ -227,7 +227,7 @@ export function TicketsPageClient({ initialTickets, userId }: TicketsPageClientP
     <>
       <div className="mx-auto max-w-2xl px-4 py-8">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-[22px] font-bold text-[#1a1a1a]">My Tickets</h1>
             <p className="mt-0.5 text-[13px] text-[#999]">Your support request history</p>

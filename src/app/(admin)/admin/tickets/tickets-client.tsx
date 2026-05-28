@@ -285,12 +285,12 @@ export function AdminTicketsClient({ initialTickets }: AdminTicketsClientProps) 
   ];
 
   return (
-    <div className="flex h-[calc(100vh-64px)] gap-0 overflow-hidden rounded-xl border border-[#eeeeed]">
+    <div className="flex h-[calc(100dvh-64px)] min-h-[600px] flex-col overflow-hidden rounded-xl border border-[#eeeeed] lg:flex-row">
       {/* LEFT — list panel */}
       <div className="flex w-[340px] shrink-0 flex-col border-r border-[#eeeeed]">
         {/* Panel header */}
         <div className="border-b border-[#f0f0ee] px-5 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-[15px] font-bold text-[#1a1a1a]">Tickets</h1>
             {openCount > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1.5 text-[11px] font-semibold text-blue-600">
