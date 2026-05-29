@@ -18,6 +18,7 @@ interface TopbarProps {
 export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const [mobileNotificationsOpen, setMobileNotificationsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { setOpen } = useCommandPaletteStore();
@@ -77,6 +78,10 @@ export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
     };
   }, [userId, fetchUnread]);
 
+  useEffect(() => {
+    setMobileNotificationsOpen(false);
+  }, [pathname]);
+
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[#f0f0ee] bg-white px-3 md:px-6">
       {/* Left: hamburger (mobile) */}
@@ -118,6 +123,21 @@ export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
 
       {/* Right: actions */}
       <div className="flex shrink-0 items-center justify-end gap-2.5 md:gap-2">
+        <button
+          type="button"
+          onClick={() => setMobileNotificationsOpen(true)}
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#999] transition-colors hover:bg-[#f5f5f4] hover:text-[#555] md:hidden"
+          aria-label="Notifications"
+          aria-expanded={mobileNotificationsOpen}
+        >
+          <Bell size={17} />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white ring-2 ring-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
+
         <Popover
           onOpenChange={(open) => {
             if (!open) fetchUnread();
@@ -125,7 +145,7 @@ export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
         >
           <PopoverTrigger asChild>
             <button
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#999] transition-colors hover:bg-[#f5f5f4] hover:text-[#555]"
+              className="relative hidden h-9 w-9 items-center justify-center rounded-lg text-[#999] transition-colors hover:bg-[#f5f5f4] hover:text-[#555] md:flex"
               aria-label="Notifications"
             >
               <Bell size={17} />
@@ -143,6 +163,29 @@ export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
             <NotificationsInbox />
           </PopoverContent>
         </Popover>
+
+        {mobileNotificationsOpen && (
+          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/30"
+              onClick={() => {
+                setMobileNotificationsOpen(false);
+                fetchUnread();
+              }}
+              aria-label="Close notifications"
+            />
+            <div className="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-hidden rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl">
+              <NotificationsInbox
+                onClose={() => {
+                  setMobileNotificationsOpen(false);
+                  fetchUnread();
+                }}
+                className="h-[min(85dvh,620px)] max-h-[85dvh] w-full rounded-t-2xl"
+              />
+            </div>
+          </div>
+        )}
 
         {hasWorkspace ? (
           <Link

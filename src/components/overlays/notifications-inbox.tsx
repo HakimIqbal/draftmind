@@ -57,7 +57,12 @@ const TYPE_LABELS: Record<string, string> = {
   ticket_update: 'Tiket',
 };
 
-export function NotificationsInbox() {
+interface NotificationsInboxProps {
+  onClose?: () => void;
+  className?: string;
+}
+
+export function NotificationsInbox({ onClose, className }: NotificationsInboxProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [tab, setTab] = useState<'inbox' | 'announcements'>('inbox');
   const router = useRouter();
@@ -109,7 +114,10 @@ export function NotificationsInbox() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)),
     );
-    if (actionUrl) router.push(actionUrl);
+    if (actionUrl) {
+      onClose?.();
+      router.push(actionUrl);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -118,17 +126,34 @@ export function NotificationsInbox() {
   }
 
   return (
-    <div className="flex max-h-[min(480px,calc(100vh-2rem))] w-[min(400px,calc(100vw-2rem))] flex-col bg-white">
+    <div
+      className={cn(
+        'flex max-h-[min(480px,calc(100dvh-2rem))] w-[min(400px,calc(100vw-2rem))] flex-col bg-white',
+        className,
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
         <span className="text-[14px] font-semibold text-[#1a1a1a]">
           Notifications{totalUnread > 0 ? ` · ${totalUnread}` : ''}
         </span>
-        {(tab === 'inbox' ? inboxUnread : announcementUnread) > 0 && (
-          <button onClick={handleMarkAllRead} className="text-[12px] text-accent hover:underline">
-            Mark all read
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {(tab === 'inbox' ? inboxUnread : announcementUnread) > 0 && (
+            <button onClick={handleMarkAllRead} className="text-[12px] text-accent hover:underline">
+              Mark all read
+            </button>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#999] transition-colors hover:bg-[#f5f5f4] hover:text-[#555]"
+              aria-label="Close notifications"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
