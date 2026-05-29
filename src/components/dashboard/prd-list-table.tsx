@@ -80,7 +80,7 @@ export function PRDListTable({
             {total} document{total !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden items-center gap-2 sm:flex">
           <Link
             href="/prds/pipeline"
             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#e5e5e3] bg-white px-3 text-[12px] font-medium text-[#666] transition-colors hover:border-[#ddd] hover:text-[#1a1a1a]"
@@ -116,7 +116,7 @@ export function PRDListTable({
       </div>
 
       {/* Filters */}
-      <div className="mb-5 flex flex-wrap gap-1.5">
+      <div className="-mx-4 mb-5 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
         {STATUS_FILTERS.map((f) => {
           const count = statusCounts[f.value] ?? 0;
           const Icon = f.icon;
@@ -139,45 +139,136 @@ export function PRDListTable({
         <div className="py-16 text-center">
           <p className="text-[13px] text-[#aaa]">No PRDs match your filter.</p>
         </div>
-      ) : viewMode === 'list' ? (
-        <div className="overflow-x-auto rounded-xl border border-[#eee]">
-          <table className="w-full min-w-[720px]">
-            <thead>
-              <tr className="border-b border-[#f0f0f0] bg-[#fafaf9]">
-                <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
-                  Name
-                </th>
-                <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
-                  Status
-                </th>
-                <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
-                  Owner
-                </th>
-                <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
-                  Health
-                </th>
-                <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
-                  Updated
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((prd) => (
-                <tr
-                  key={prd.id}
-                  onClick={() => router.push(`/prds/${prd.id}`)}
-                  className="cursor-pointer border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
-                >
-                  <td className="px-5 py-3.5">
-                    <p className="text-[13px] font-medium text-[#1a1a1a]">{prd.title}</p>
-                    {prd.project_tag && (
-                      <p className="text-[11px] text-[#aaa]">{prd.project_tag}</p>
+      ) : (
+        <>
+          {/* Mobile card list */}
+          <div className="space-y-2.5 sm:hidden">
+            {items.map((prd) => (
+              <Link
+                key={prd.id}
+                href={`/prds/${prd.id}`}
+                className="block rounded-xl border border-[#eee] bg-white px-4 py-3.5 transition-colors hover:border-[#ddd] hover:bg-[#fafaf9]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">{prd.title}</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Pill status={prd.status as Parameters<typeof Pill>[0]['status']} />
+                      <span className="text-[11px] text-[#bbb]" suppressHydrationWarning>
+                        {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <HealthDot score={prd.health_score} />
+                    {prd.owner && (
+                      <div className="flex items-center gap-1.5">
+                        <Avatar
+                          name={prd.owner.full_name ?? 'User'}
+                          size="sm"
+                          avatarUrl={
+                            (prd.owner as Record<string, unknown>).avatar_url as string | null
+                          }
+                        />
+                        <span className="max-w-[80px] truncate text-[11px] text-[#999]">
+                          {prd.owner.full_name ?? 'Unknown'}
+                        </span>
+                      </div>
                     )}
-                  </td>
-                  <td className="px-5 py-3.5">
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop list view */}
+          {viewMode === 'list' && (
+            <div className="hidden overflow-x-auto rounded-xl border border-[#eee] sm:block">
+              <table className="w-full min-w-[720px]">
+                <thead>
+                  <tr className="border-b border-[#f0f0f0] bg-[#fafaf9]">
+                    <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
+                      Name
+                    </th>
+                    <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
+                      Status
+                    </th>
+                    <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
+                      Owner
+                    </th>
+                    <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
+                      Health
+                    </th>
+                    <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#999]">
+                      Updated
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((prd) => (
+                    <tr
+                      key={prd.id}
+                      onClick={() => router.push(`/prds/${prd.id}`)}
+                      className="cursor-pointer border-b border-[#f5f5f5] transition-colors hover:bg-[#fafaf9]"
+                    >
+                      <td className="px-5 py-3.5">
+                        <p className="text-[13px] font-medium text-[#1a1a1a]">{prd.title}</p>
+                        {prd.project_tag && (
+                          <p className="text-[11px] text-[#aaa]">{prd.project_tag}</p>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Pill status={prd.status as Parameters<typeof Pill>[0]['status']} />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {prd.owner && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Avatar
+                              name={prd.owner.full_name ?? 'User'}
+                              size="sm"
+                              avatarUrl={
+                                (prd.owner as Record<string, unknown>).avatar_url as string | null
+                              }
+                            />
+                            <span className="text-[12px] text-[#888]">
+                              {prd.owner.full_name ?? 'Unknown'}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <HealthDot score={prd.health_score} />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-[12px] text-[#bbb]" suppressHydrationWarning>
+                          {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Desktop grid view */}
+          {viewMode === 'grid' && (
+            <div className="hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((prd) => (
+                <Link
+                  key={prd.id}
+                  href={`/prds/${prd.id}`}
+                  className="flex flex-col rounded-xl border border-[#eee] bg-white p-5 transition-all hover:border-[#ddd] hover:shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
                     <Pill status={prd.status as Parameters<typeof Pill>[0]['status']} />
-                  </td>
-                  <td className="px-5 py-3.5">
+                    <HealthDot score={prd.health_score} />
+                  </div>
+                  <h3 className="mt-3 text-[13px] font-medium text-[#1a1a1a]">{prd.title}</h3>
+                  {prd.project_tag && (
+                    <p className="mt-0.5 text-[11px] text-[#aaa]">{prd.project_tag}</p>
+                  )}
+                  <div className="mt-auto flex items-center justify-between pt-4">
                     {prd.owner && (
                       <div className="flex flex-wrap items-center gap-2">
                         <Avatar
@@ -187,61 +278,20 @@ export function PRDListTable({
                             (prd.owner as Record<string, unknown>).avatar_url as string | null
                           }
                         />
-                        <span className="text-[12px] text-[#888]">
+                        <span className="text-[11px] text-[#888]">
                           {prd.owner.full_name ?? 'Unknown'}
                         </span>
                       </div>
                     )}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <HealthDot score={prd.health_score} />
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className="text-[12px] text-[#bbb]" suppressHydrationWarning>
+                    <span className="text-[11px] text-[#bbb]">
                       {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((prd) => (
-            <Link
-              key={prd.id}
-              href={`/prds/${prd.id}`}
-              className="flex flex-col rounded-xl border border-[#eee] bg-white p-5 transition-all hover:border-[#ddd] hover:shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <Pill status={prd.status as Parameters<typeof Pill>[0]['status']} />
-                <HealthDot score={prd.health_score} />
-              </div>
-              <h3 className="mt-3 text-[13px] font-medium text-[#1a1a1a]">{prd.title}</h3>
-              {prd.project_tag && (
-                <p className="mt-0.5 text-[11px] text-[#aaa]">{prd.project_tag}</p>
-              )}
-              <div className="mt-auto flex items-center justify-between pt-4">
-                {prd.owner && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Avatar
-                      name={prd.owner.full_name ?? 'User'}
-                      size="sm"
-                      avatarUrl={(prd.owner as Record<string, unknown>).avatar_url as string | null}
-                    />
-                    <span className="text-[11px] text-[#888]">
-                      {prd.owner.full_name ?? 'Unknown'}
-                    </span>
                   </div>
-                )}
-                <span className="text-[11px] text-[#bbb]">
-                  {formatDistanceToNow(new Date(prd.updated_at), { addSuffix: true })}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
