@@ -168,20 +168,20 @@ export function Topbar({ hasWorkspace = false, onToggleSidebar }: TopbarProps) {
           <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
             <button
               type="button"
-              className="absolute inset-0 bg-black/30"
+              className="absolute inset-0 bg-black/20"
               onClick={() => {
                 setMobileNotificationsOpen(false);
                 fetchUnread();
               }}
               aria-label="Close notifications"
             />
-            <div className="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-hidden rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl">
+            <div className="fixed inset-x-4 top-[calc(3.5rem+env(safe-area-inset-top,0px)+1rem)] max-h-[min(80vh,500px)] overflow-hidden rounded-2xl bg-white shadow-2xl">
               <NotificationsInbox
                 onClose={() => {
                   setMobileNotificationsOpen(false);
                   fetchUnread();
                 }}
-                className="h-[min(85dvh,620px)] max-h-[85dvh] w-full rounded-t-2xl"
+                className="!h-[min(80vh,500px)] !max-h-[min(80vh,500px)] !w-full !max-w-none rounded-2xl"
               />
             </div>
           </div>
