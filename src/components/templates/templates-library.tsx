@@ -69,15 +69,20 @@ export function TemplatesLibrary({ templates, canManageTemplates }: TemplatesLib
   }, [templates]);
 
   return (
-    <div className="space-y-6 p-md">
+    <div className="space-y-6 px-4 py-5 pb-24 sm:p-md sm:pb-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-xl font-bold text-ink-primary">Templates</h1>
           <p className="mt-1 text-sm text-ink-secondary">Start faster with proven structures.</p>
         </div>
         {canManageTemplates && (
-          <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            className="w-full sm:w-auto"
+          >
             <Plus size={14} className="mr-1.5" />
             Create template
           </Button>
@@ -85,7 +90,7 @@ export function TemplatesLibrary({ templates, canManageTemplates }: TemplatesLib
       </div>
 
       {/* Filter chips */}
-      <div className="flex items-center gap-1.5 border-b border-subtle pb-0">
+      <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto border-b border-subtle px-4 pb-0 sm:mx-0 sm:px-0">
         {filterOptions.map((opt) => {
           const count = counts[opt.value] ?? 0;
           const Icon = opt.icon;
@@ -94,8 +99,9 @@ export function TemplatesLibrary({ templates, canManageTemplates }: TemplatesLib
               key={opt.value}
               active={activeFilter === opt.value}
               onClick={() => setActiveFilter(opt.value)}
+              className="whitespace-nowrap"
             >
-              {Icon && <Icon size={12} className="mr-1 inline-block opacity-60" />}
+              {Icon && <Icon size={12} className="mr-1 hidden opacity-60 sm:inline-block" />}
               {opt.label}
               {count > 0 && <span className="ml-1 text-[10px] opacity-50">{count}</span>}
             </Chip>

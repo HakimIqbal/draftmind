@@ -117,17 +117,23 @@ export function TemplateCard({ template, onEdit, canManage = false }: TemplateCa
           <p className="line-clamp-2 text-xs text-ink-secondary">{template.description}</p>
         )}
 
-        {/* Category badge */}
-        <span className="inline-block font-mono text-[10px] text-ink-tertiary">
+        {/* Category badge - hidden on mobile, shown in footer */}
+        <span className="hidden font-mono text-[10px] text-ink-tertiary sm:inline-block">
           {template.category}
         </span>
       </div>
 
       {/* Bottom row */}
       <div className="mt-4 flex items-center justify-between border-t border-subtle pt-3">
-        <span className="font-mono text-[11px] text-ink-tertiary">
-          {template.use_count} {template.use_count === 1 ? 'use' : 'uses'}
-        </span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate font-mono text-[10px] uppercase text-ink-tertiary sm:hidden">
+            {template.category}
+          </span>
+          <span className="text-[10px] text-ink-tertiary sm:hidden">·</span>
+          <span className="font-mono text-[11px] text-ink-tertiary sm:text-[11px]">
+            {template.use_count} {template.use_count === 1 ? 'use' : 'uses'}
+          </span>
+        </div>
         <Button variant="outline" size="sm" onClick={handleUse} disabled={isNavigating}>
           {isNavigating ? 'Opening...' : 'Use'}
         </Button>
