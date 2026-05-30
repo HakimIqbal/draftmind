@@ -70,6 +70,67 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return entities[char] ?? char;
+  });
+}
+
+function aiTextToHtml(text: string): string {
+  const lines = text.split('\n');
+  const parts: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      if (inUl) { parts.push('</ul>'); inUl = false; }
+      if (inOl) { parts.push('</ol>'); inOl = false; }
+      continue;
+    }
+
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      if (inUl) { parts.push('</ul>'); inUl = false; }
+      if (inOl) { parts.push('</ol>'); inOl = false; }
+      const level = Math.min(3, headingMatch[1]!.length);
+      parts.push(`<h${level}>${escapeHtml(headingMatch[2] ?? '')}</h${level}>`);
+      continue;
+    }
+
+    if (/^[-*•]\s+/.test(line)) {
+      if (inOl) { parts.push('</ol>'); inOl = false; }
+      if (!inUl) { parts.push('<ul>'); inUl = true; }
+      parts.push(`<li>${escapeHtml(line.replace(/^[-*•]\s+/, ''))}</li>`);
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(line)) {
+      if (inUl) { parts.push('</ul>'); inUl = false; }
+      if (!inOl) { parts.push('<ol>'); inOl = true; }
+      parts.push(`<li>${escapeHtml(line.replace(/^\d+\.\s+/, ''))}</li>`);
+      continue;
+    }
+
+    if (inUl) { parts.push('</ul>'); inUl = false; }
+    if (inOl) { parts.push('</ol>'); inOl = false; }
+    parts.push(`<p>${escapeHtml(line)}</p>`);
+  }
+
+  if (inUl) parts.push('</ul>');
+  if (inOl) parts.push('</ol>');
+
+  return parts.join('');
+}
+
 export function EditorShell({
   prd,
   userName,
@@ -352,12 +413,8 @@ export function EditorShell({
       if (editorInstance) {
         const range = useEditorStore.getState().aiAssistSelectionRange;
 
-        // Convert plain text to HTML paragraphs for proper Tiptap insertion
-        const html = text
-          .split('\n')
-          .filter((line) => line.trim())
-          .map((line) => `<p>${line}</p>`)
-          .join('');
+        // Convert AI text to HTML preserving formatting (headings, lists, paragraphs)
+        const html = aiTextToHtml(text);
 
         if (range) {
           const docSize = editorInstance.state.doc.content.size;
@@ -433,12 +490,22 @@ export function EditorShell({
     [editorInstance],
   );
 
-  const handleCommentAdded = useCallback(() => {
-    // Trigger a save so the comment marks are persisted in tiptap_content
-    if (editorInstance) {
-      handleUpdate(editorInstance.getJSON() as Record<string, unknown>);
-    }
-  }, [editorInstance, handleUpdate]);
+  const handleCommentAdded = useCallback(
+    (commentId?: string) => {
+      // Trigger a save so the comment marks are persisted in tiptap_content
+      if (editorInstance) {
+        handleUpdate(editorInstance.getJSON() as Record<string, unknown>);
+      }
+      // Open outline panel on Comments tab so the user sees the new comment
+      expandOutline('comments');
+      setMobileOutlineOpen(true);
+      if (commentId) {
+        setActiveCommentId(commentId);
+        setTimeout(() => setActiveCommentId(null), 2000);
+      }
+    },
+    [editorInstance, handleUpdate, expandOutline],
+  );
 
   // Remove CommentMark from editor when a comment is deleted or resolved,
   // then save so the mark is also removed from tiptap_content in DB.
@@ -519,6 +586,7 @@ export function EditorShell({
       if (!commentId) return;
       // Open outline panel on Comments tab
       useEditorStore.getState().expandOutline('comments');
+      setMobileOutlineOpen(true);
       setActiveCommentId(commentId);
       setTimeout(() => setActiveCommentId(null), 2000);
     }

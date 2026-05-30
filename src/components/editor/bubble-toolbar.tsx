@@ -126,8 +126,9 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
 
   const handleLink = useCallback(() => {
     if (linkMode) {
-      const url = linkInput.trim();
+      let url = linkInput.trim();
       if (url) {
+        if (!/^(https?:\/\/|mailto:|tel:|\/)/.test(url)) url = `https://${url}`;
         editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
       } else {
         editor.chain().focus().extendMarkRange('link').unsetLink().run();
@@ -161,6 +162,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
         placement: 'top',
         appendTo: () => document.body,
         maxWidth: 'none',
+        interactive: true,
         // Pin horizontal position to the editor container's center,
         // so the toolbar doesn't shift when text alignment changes.
         getReferenceClientRect: () => {
@@ -272,7 +274,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
                           editor
                             .chain()
                             .focus()
-                            .toggleHeading({ level: level as 1 | 2 | 3 })
+                            .setNode('heading', { level: level as 1 | 2 | 3 })
                             .run();
                         }
                         setHeadingOpen(false);

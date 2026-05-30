@@ -256,8 +256,22 @@ function renderSegs(segs: DiffSegment[]): React.ReactNode {
 
 // Diff or plain text — if old exists, diff per-char, otherwise just text
 function diffOrPlain(oldStr: string | null, newStr: string): React.ReactNode {
+  if (oldStr === null) return renderSegs([{ type: 'insert', text: newStr }]);
   if (!oldStr || oldStr === newStr) return newStr;
   return renderSegs(diffText(oldStr, newStr));
+}
+
+function normalizeDiffText(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function textSimilarity(a: string, b: string): number {
+  const aWords = normalizeDiffText(a).split(' ').filter(Boolean);
+  const bWords = normalizeDiffText(b).split(' ').filter(Boolean);
+  if (aWords.length === 0 || bWords.length === 0) return 0;
+  const bSet = new Set(bWords);
+  const overlap = aWords.filter((word) => bSet.has(word)).length;
+  return overlap / Math.max(aWords.length, bWords.length);
 }
 
 // Build flat text arrays from nodes for positional matching
@@ -292,15 +306,34 @@ function DiffContentPreview({
 }) {
   if (!oldContent) return <FormattedContentPreview content={newContent} />;
 
-  // Build positional text arrays
+  // Build text arrays, but match by nearby content instead of raw position.
+  // This avoids noisy full-document highlights when a heading/list/table row is inserted.
   const oldTexts = flattenTexts(oldContent);
   const newNodes = getNodes(newContent);
 
   let textIdx = 0;
 
-  // For each new node, try to match with old text at same position
-  function getOld(): string | null {
-    if (textIdx < oldTexts.length) return oldTexts[textIdx++] ?? null;
+  function getOld(newStr: string): string | null {
+    const normalizedNew = normalizeDiffText(newStr);
+    if (!normalizedNew) return textIdx < oldTexts.length ? (oldTexts[textIdx++] ?? null) : null;
+
+    const current = oldTexts[textIdx];
+    if (current !== undefined) {
+      const normalizedCurrent = normalizeDiffText(current);
+      if (normalizedCurrent === normalizedNew || textSimilarity(current, newStr) >= 0.45) {
+        textIdx += 1;
+        return current;
+      }
+    }
+
+    const searchLimit = Math.min(oldTexts.length, textIdx + 12);
+    for (let i = textIdx + 1; i < searchLimit; i++) {
+      if (normalizeDiffText(oldTexts[i] ?? '') === normalizedNew) {
+        textIdx = i + 1;
+        return oldTexts[i] ?? null;
+      }
+    }
+
     return null;
   }
 
@@ -313,7 +346,7 @@ function DiffContentPreview({
         const children = node.content as Record<string, unknown>[] | undefined;
 
         if (type === 'heading') {
-          const old = getOld();
+          const old = getOld(text);
           const Tag = `h${level ?? 2}` as 'h1' | 'h2' | 'h3';
           const sizes: Record<string, string> = {
             h1: 'text-xl font-bold mt-4 mb-2',
@@ -328,7 +361,7 @@ function DiffContentPreview({
         }
 
         if (type === 'paragraph') {
-          const old = getOld();
+          const old = getOld(text);
           if (!text.trim()) return <div key={i} className="h-2" />;
           return (
             <p key={i} className="mb-1 text-[13px] leading-relaxed text-ink-secondary">
@@ -345,8 +378,8 @@ function DiffContentPreview({
               className={`mb-2 pl-5 text-[13px] text-ink-secondary ${type === 'bulletList' ? 'list-disc' : 'list-decimal'}`}
             >
               {children?.map((li, j) => {
-                const old = getOld();
                 const t = lt(li);
+                const old = getOld(t);
                 return (
                   <li key={j} className="mb-0.5">
                     {diffOrPlain(old, t)}
@@ -370,8 +403,8 @@ function DiffContentPreview({
                     return (
                       <tr key={ri}>
                         {cells.map((cell, ci) => {
-                          const old = getOld();
                           const t = ct(cell);
+                          const old = getOld(t);
                           const isHeader = (cell.type as string) === 'tableHeader';
                           if (isHeader)
                             return (
