@@ -265,6 +265,8 @@ function normalizeDiffText(value: string): string {
   return value.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
+const DIFF_SIMILARITY_THRESHOLD = 0.7;
+
 function textSimilarity(a: string, b: string): number {
   const aWords = normalizeDiffText(a).split(' ').filter(Boolean);
   const bWords = normalizeDiffText(b).split(' ').filter(Boolean);
@@ -274,6 +276,12 @@ function textSimilarity(a: string, b: string): number {
   return overlap / Math.max(aWords.length, bWords.length);
 }
 
+function isSameOrSimilar(oldText: string, newText: string): boolean {
+  const oldNorm = normalizeDiffText(oldText);
+  const newNorm = normalizeDiffText(newText);
+  return oldNorm === newNorm || textSimilarity(oldText, newText) >= DIFF_SIMILARITY_THRESHOLD;
+}
+
 // Build flat text arrays from nodes for positional matching
 function flattenTexts(content: Record<string, unknown>): string[] {
   const nodes = getNodes(content);
@@ -281,15 +289,22 @@ function flattenTexts(content: Record<string, unknown>): string[] {
   for (const node of nodes) {
     const type = node.type as string;
     if (type === 'heading' || type === 'paragraph') {
-      texts.push(nt(node));
+      const text = nt(node);
+      if (normalizeDiffText(text)) texts.push(text);
     } else if (type === 'bulletList' || type === 'orderedList') {
       const children = (node.content as Record<string, unknown>[]) ?? [];
-      for (const li of children) texts.push(lt(li));
+      for (const li of children) {
+        const text = lt(li);
+        if (normalizeDiffText(text)) texts.push(text);
+      }
     } else if (type === 'table') {
       const rows = (node.content as Record<string, unknown>[]) ?? [];
       for (const row of rows) {
         const cells = (row.content as Record<string, unknown>[]) ?? [];
-        for (const cell of cells) texts.push(ct(cell));
+        for (const cell of cells) {
+          const text = ct(cell);
+          if (normalizeDiffText(text)) texts.push(text);
+        }
       }
     }
   }
@@ -318,17 +333,14 @@ function DiffContentPreview({
     if (!normalizedNew) return textIdx < oldTexts.length ? (oldTexts[textIdx++] ?? null) : null;
 
     const current = oldTexts[textIdx];
-    if (current !== undefined) {
-      const normalizedCurrent = normalizeDiffText(current);
-      if (normalizedCurrent === normalizedNew || textSimilarity(current, newStr) >= 0.45) {
-        textIdx += 1;
-        return current;
-      }
+    if (current !== undefined && isSameOrSimilar(current, newStr)) {
+      textIdx += 1;
+      return current;
     }
 
     const searchLimit = Math.min(oldTexts.length, textIdx + 12);
     for (let i = textIdx + 1; i < searchLimit; i++) {
-      if (normalizeDiffText(oldTexts[i] ?? '') === normalizedNew) {
+      if (isSameOrSimilar(oldTexts[i] ?? '', newStr)) {
         textIdx = i + 1;
         return oldTexts[i] ?? null;
       }

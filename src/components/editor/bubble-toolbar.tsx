@@ -268,14 +268,29 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
+                        let ok = false;
                         if (level === 0) {
-                          editor.chain().focus().setParagraph().run();
+                          ok = editor.chain().focus().setParagraph().run();
+                          // Fallback: unwrap list/heading-like nodes back to a plain paragraph.
+                          if (!ok) {
+                            ok = editor.chain().focus().clearNodes().setParagraph().run();
+                          }
                         } else {
-                          editor
+                          ok = editor
                             .chain()
                             .focus()
                             .setNode('heading', { level: level as 1 | 2 | 3 })
                             .run();
+                          // Fallback: some selections (e.g. list items) block setNode
+                          if (!ok) {
+                            ok = editor
+                              .chain()
+                              .focus()
+                              .clearNodes()
+                              .setNode('heading', { level: level as 1 | 2 | 3 })
+                              .run();
+                          }
                         }
                         setHeadingOpen(false);
                       }}

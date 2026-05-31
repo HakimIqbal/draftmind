@@ -77,7 +77,8 @@ export function InlineCommentPopover({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showInput]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.MouseEvent) => {
+    e?.stopPropagation(); // prevent outside-click handler from closing popover
     const trimmed = body.trim();
     if (!trimmed || submitting || !selectionRef.current) return;
 

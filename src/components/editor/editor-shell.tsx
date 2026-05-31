@@ -92,36 +92,68 @@ function aiTextToHtml(text: string): string {
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) {
-      if (inUl) { parts.push('</ul>'); inUl = false; }
-      if (inOl) { parts.push('</ol>'); inOl = false; }
+      if (inUl) {
+        parts.push('</ul>');
+        inUl = false;
+      }
+      if (inOl) {
+        parts.push('</ol>');
+        inOl = false;
+      }
       continue;
     }
 
     const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
     if (headingMatch) {
-      if (inUl) { parts.push('</ul>'); inUl = false; }
-      if (inOl) { parts.push('</ol>'); inOl = false; }
-      const level = Math.min(3, headingMatch[1]!.length);
-      parts.push(`<h${level}>${escapeHtml(headingMatch[2] ?? '')}</h${level}>`);
+      if (inUl) {
+        parts.push('</ul>');
+        inUl = false;
+      }
+      if (inOl) {
+        parts.push('</ol>');
+        inOl = false;
+      }
+      // AI Assist must not alter the document outline. Preserve heading-like
+      // emphasis visually, but insert it as a paragraph so OutlinePanel does
+      // not treat generated AI text as a real PRD section heading.
+      parts.push(`<p><strong>${escapeHtml(headingMatch[2] ?? '')}</strong></p>`);
       continue;
     }
 
     if (/^[-*•]\s+/.test(line)) {
-      if (inOl) { parts.push('</ol>'); inOl = false; }
-      if (!inUl) { parts.push('<ul>'); inUl = true; }
+      if (inOl) {
+        parts.push('</ol>');
+        inOl = false;
+      }
+      if (!inUl) {
+        parts.push('<ul>');
+        inUl = true;
+      }
       parts.push(`<li>${escapeHtml(line.replace(/^[-*•]\s+/, ''))}</li>`);
       continue;
     }
 
     if (/^\d+\.\s+/.test(line)) {
-      if (inUl) { parts.push('</ul>'); inUl = false; }
-      if (!inOl) { parts.push('<ol>'); inOl = true; }
+      if (inUl) {
+        parts.push('</ul>');
+        inUl = false;
+      }
+      if (!inOl) {
+        parts.push('<ol>');
+        inOl = true;
+      }
       parts.push(`<li>${escapeHtml(line.replace(/^\d+\.\s+/, ''))}</li>`);
       continue;
     }
 
-    if (inUl) { parts.push('</ul>'); inUl = false; }
-    if (inOl) { parts.push('</ol>'); inOl = false; }
+    if (inUl) {
+      parts.push('</ul>');
+      inUl = false;
+    }
+    if (inOl) {
+      parts.push('</ol>');
+      inOl = false;
+    }
     parts.push(`<p>${escapeHtml(line)}</p>`);
   }
 

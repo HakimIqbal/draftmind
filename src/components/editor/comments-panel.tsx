@@ -424,13 +424,19 @@ export function CommentsPanel({
     onChange: () => loadCommentsRef.current(),
   });
 
-  // S6: scroll to + highlight comment when editor highlight is clicked
+  // S6: scroll to + highlight comment when editor highlight is clicked or when a new
+  // inline comment is added. The realtime subscription can lag, so force a reload
+  // on activeCommentId changes before attempting to scroll.
   useEffect(() => {
     if (!activeCommentId) return;
-    const el = commentRefs.current[activeCommentId];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    loadCommentsRef.current();
+    const t = setTimeout(() => {
+      const el = commentRefs.current[activeCommentId];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+    return () => clearTimeout(t);
   }, [activeCommentId]);
 
   const threads = useMemo(() => buildThreads(comments), [comments]);
