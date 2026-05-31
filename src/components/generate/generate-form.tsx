@@ -448,6 +448,7 @@ export function GenerateForm({
               <TextInput
                 value={title}
                 onChange={setTitle}
+                data-testid="prd-title-input"
                 placeholder="e.g. Checkout Redesign Q2"
               />
             </Field>
@@ -458,6 +459,7 @@ export function GenerateForm({
               <TextInput
                 value={projectTag}
                 onChange={setProjectTag}
+                data-testid="prd-tag-input"
                 placeholder="e.g. Q2 2026 Growth"
               />
             </Field>
@@ -466,6 +468,7 @@ export function GenerateForm({
                 value={problemStatement}
                 onChange={setProblemStatement}
                 rows={3}
+                data-testid="prd-problem-input"
                 placeholder="What problem does this product/feature solve?"
               />
             </Field>
@@ -474,6 +477,7 @@ export function GenerateForm({
                 <TextInput
                   value={stakeholders}
                   onChange={setStakeholders}
+                  data-testid="prd-stakeholders-input"
                   placeholder="e.g. Denis Setyawan"
                 />
               </Field>
@@ -567,6 +571,7 @@ export function GenerateForm({
             value={brief}
             onChange={setBrief}
             rows={8}
+            data-testid="prd-brief-input"
             placeholder="Describe the product, feature, or problem you want to solve..."
           />
           <p className="mt-2 text-[11px] text-[#bbb]">
@@ -775,6 +780,7 @@ export function GenerateForm({
           Cancel
         </button>
         <button
+          data-testid="prd-generate-submit"
           onClick={handleSubmit}
           disabled={isPending}
           className="h-9 w-full rounded-lg bg-accent px-5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-30 sm:w-auto"
@@ -962,19 +968,24 @@ function TextInput({
   onChange,
   placeholder,
   readOnly,
+  ...inputProps
 }: {
   value: string;
   onChange?: (v: string) => void;
   placeholder?: string;
   readOnly?: boolean;
-}) {
+} & Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'value' | 'onChange' | 'placeholder' | 'readOnly'
+>) {
   return (
     <input
+      {...inputProps}
       value={value}
       onChange={onChange ? (e) => onChange(e.target.value) : undefined}
       placeholder={placeholder}
       readOnly={readOnly}
-      className={`focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1 ${readOnly ? 'bg-[#fafaf9] text-[#999]' : 'bg-white'}`}
+      className={`focus:ring-accent/30 h-10 w-full rounded-lg border border-[#e5e5e3] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1 ${readOnly ? 'bg-[#fafaf9] text-[#999]' : 'bg-white'} ${inputProps.className ?? ''}`}
     />
   );
 }
@@ -984,19 +995,24 @@ function TextareaInput({
   onChange,
   placeholder,
   rows,
+  ...textareaProps
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   rows?: number;
-}) {
+} & Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  'value' | 'onChange' | 'placeholder' | 'rows'
+>) {
   return (
     <textarea
+      {...textareaProps}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows ?? 4}
-      className="focus:ring-accent/30 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 py-2.5 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1"
+      className={`focus:ring-accent/30 w-full rounded-lg border border-[#e5e5e3] bg-white px-3 py-2.5 text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] focus:border-accent focus:outline-none focus:ring-1 ${textareaProps.className ?? ''}`}
     />
   );
 }

@@ -186,6 +186,7 @@ function LoginForm() {
               <label className="mb-1.5 block text-[15px] font-medium text-ink-primary">Email</label>
               <Input
                 type="email"
+                data-testid="login-email"
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -203,6 +204,7 @@ function LoginForm() {
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
+                  data-testid="login-password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -247,6 +249,7 @@ function LoginForm() {
             </div>
             <Button
               type="submit"
+              data-testid="login-submit"
               variant="primary-fill"
               className="h-12 w-full text-base"
               disabled={loading || checkingSession}

@@ -139,6 +139,7 @@ export function InlineCommentPopover({
         <Textarea
           ref={textareaRef}
           rows={2}
+          data-testid="inline-comment-body"
           placeholder="Add your comment..."
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -166,6 +167,7 @@ export function InlineCommentPopover({
             <Button
               variant="outline"
               size="sm"
+              data-testid="inline-comment-submit"
               disabled={!body.trim() || submitting}
               onClick={handleSubmit}
             >

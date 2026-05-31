@@ -105,6 +105,7 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class: 'tiptap-editor',
+        'data-testid': 'editor-content',
       },
     },
     onUpdate: ({ editor }) => {

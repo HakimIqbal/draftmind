@@ -48,12 +48,14 @@ function Btn({
   children,
   title,
   className = '',
+  testId,
 }: {
   active?: boolean;
   onClick: () => void;
   children: React.ReactNode;
   title: string;
   className?: string;
+  testId?: string;
 }) {
   return (
     <button
@@ -66,6 +68,7 @@ function Btn({
         active ? 'bg-accent/10 text-accent' : 'text-[#555] hover:bg-[#f5f5f4] hover:text-[#1a1a1a]'
       } ${className}`}
       title={title}
+      data-testid={testId}
     >
       {children}
     </button>
@@ -213,6 +216,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
                   setLinkInput('');
                 }
               }}
+              data-testid="editor-link-input"
               placeholder="Paste link..."
               className="h-7 w-40 bg-transparent text-[12px] text-[#1a1a1a] placeholder:text-[#bbb] focus:outline-none"
             />
@@ -224,7 +228,9 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
               }}
               className="shrink-0 rounded-md bg-accent px-2 py-1 text-[11px] font-medium text-white hover:bg-accent-deep"
             >
-              {linkInput.trim() ? 'Apply' : 'Remove'}
+              <span data-testid="editor-link-apply-label">
+                {linkInput.trim() ? 'Apply' : 'Remove'}
+              </span>
             </button>
             <button
               type="button"
@@ -255,6 +261,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
                     ? 'bg-accent/10 text-accent'
                     : 'text-[#555] hover:bg-[#f5f5f4] hover:text-[#1a1a1a]'
                 }`}
+                data-testid="editor-heading-dropdown"
                 title="Text style"
               >
                 <span>{currentHeadingLabel}</span>
@@ -269,6 +276,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
                     <button
                       key={level}
                       type="button"
+                      data-testid={`editor-heading-${level}`}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -316,6 +324,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
               active={editor.isActive('bold')}
               onClick={() => editor.chain().focus().toggleBold().run()}
               title="Bold (Cmd+B)"
+              testId="editor-bold"
             >
               <Bold size={14} strokeWidth={2.5} />
             </Btn>
@@ -323,6 +332,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
               active={editor.isActive('italic')}
               onClick={() => editor.chain().focus().toggleItalic().run()}
               title="Italic (Cmd+I)"
+              testId="editor-italic"
             >
               <Italic size={14} />
             </Btn>
@@ -337,10 +347,16 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
               active={editor.isActive('underline')}
               onClick={() => editor.chain().focus().toggleUnderline().run()}
               title="Underline (Cmd+U)"
+              testId="editor-underline"
             >
               <Underline size={14} />
             </Btn>
-            <Btn active={editor.isActive('link')} onClick={handleLink} title="Link (Cmd+K)">
+            <Btn
+              active={editor.isActive('link')}
+              onClick={handleLink}
+              title="Link (Cmd+K)"
+              testId="editor-link"
+            >
               <Link2 size={14} />
             </Btn>
 
@@ -396,7 +412,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
             <Sep />
 
             {/* ── Comment ── */}
-            <Btn active={false} onClick={onComment} title="Add comment">
+            <Btn active={false} onClick={onComment} title="Add comment" testId="editor-add-comment">
               <MessageSquarePlus size={14} />
             </Btn>
 
@@ -410,6 +426,7 @@ export function BubbleToolbar({ editor, onAIAssist, onComment }: BubbleToolbarPr
                 handleAIAssist();
               }}
               className="bg-accent/8 hover:bg-accent/15 ml-0.5 flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium text-accent transition-colors"
+              data-testid="editor-ai-assist"
               title="AI Assist"
             >
               <Sparkle size={12} />

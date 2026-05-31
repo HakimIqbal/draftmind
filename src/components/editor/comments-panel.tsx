@@ -500,7 +500,7 @@ export function CommentsPanel({
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="comments-sidebar">
       {/* Header */}
       <div className="px-4 pb-2 pt-3">
         <span className="font-mono text-[11px] text-ink-tertiary">
@@ -562,6 +562,7 @@ export function CommentsPanel({
       <div className="border-t border-subtle px-4 py-3">
         <Textarea
           rows={2}
+          data-testid="comments-new-body"
           placeholder="Add a comment..."
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
