@@ -83,6 +83,38 @@ function escapeHtml(text: string): string {
   });
 }
 
+function stripAiBlockSyntax(text: string): string {
+  return text
+    .split('\n')
+    .map((raw) =>
+      raw
+        .trim()
+        .replace(/^(#{1,6})\s+/, '')
+        .replace(/^[-*•]\s+/, '')
+        .replace(/^\d+\.\s+/, ''),
+    )
+    .filter(Boolean)
+    .join(' ');
+}
+
+function shouldInsertAIAsInlineText(editor: Editor, range: { from: number; to: number }): boolean {
+  try {
+    const { doc } = editor.state;
+    const from = Math.max(0, Math.min(range.from, doc.content.size));
+    const to = Math.max(from, Math.min(range.to, doc.content.size));
+    const $from = doc.resolve(from);
+    const $to = doc.resolve(to);
+    if (!$from.sameParent($to)) return false;
+    const parentType = $from.parent.type.name;
+    if (!['paragraph', 'heading'].includes(parentType)) return false;
+    const startsAtParentStart = from <= $from.start();
+    const endsAtParentEnd = to >= $from.end();
+    return !(startsAtParentStart && endsAtParentEnd);
+  } catch {
+    return false;
+  }
+}
+
 function aiTextToHtml(text: string): string {
   const lines = text.split('\n');
   const parts: string[] = [];
@@ -445,20 +477,23 @@ export function EditorShell({
       if (editorInstance) {
         const range = useEditorStore.getState().aiAssistSelectionRange;
 
-        // Convert AI text to HTML preserving formatting (headings, lists, paragraphs)
-        const html = aiTextToHtml(text);
-
         if (range) {
           const docSize = editorInstance.state.doc.content.size;
           const from = Math.min(range.from, docSize);
           const to = Math.min(range.to, docSize);
+          const insertValue = shouldInsertAIAsInlineText(editorInstance, { from, to })
+            ? stripAiBlockSyntax(text)
+            : aiTextToHtml(text);
+
           editorInstance
             .chain()
             .focus()
-            .insertContentAt({ from, to }, html, { parseOptions: { preserveWhitespace: false } })
+            .insertContentAt({ from, to }, insertValue, {
+              parseOptions: { preserveWhitespace: false },
+            })
             .run();
         } else {
-          editorInstance.chain().focus().insertContent(html).run();
+          editorInstance.chain().focus().insertContent(aiTextToHtml(text)).run();
         }
 
         // Force immediate save + version snapshot

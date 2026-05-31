@@ -330,7 +330,7 @@ function DiffContentPreview({
 
   function getOld(newStr: string): string | null {
     const normalizedNew = normalizeDiffText(newStr);
-    if (!normalizedNew) return textIdx < oldTexts.length ? (oldTexts[textIdx++] ?? null) : null;
+    if (!normalizedNew) return null;
 
     const current = oldTexts[textIdx];
     if (current !== undefined && isSameOrSimilar(current, newStr)) {
@@ -373,8 +373,8 @@ function DiffContentPreview({
         }
 
         if (type === 'paragraph') {
+          if (!normalizeDiffText(text)) return <div key={i} className="h-2" />;
           const old = getOld(text);
-          if (!text.trim()) return <div key={i} className="h-2" />;
           return (
             <p key={i} className="mb-1 text-[13px] leading-relaxed text-ink-secondary">
               {diffOrPlain(old, text)}
@@ -391,6 +391,7 @@ function DiffContentPreview({
             >
               {children?.map((li, j) => {
                 const t = lt(li);
+                if (!normalizeDiffText(t)) return null;
                 const old = getOld(t);
                 return (
                   <li key={j} className="mb-0.5">
@@ -416,7 +417,7 @@ function DiffContentPreview({
                       <tr key={ri}>
                         {cells.map((cell, ci) => {
                           const t = ct(cell);
-                          const old = getOld(t);
+                          const old = normalizeDiffText(t) ? getOld(t) : null;
                           const isHeader = (cell.type as string) === 'tableHeader';
                           if (isHeader)
                             return (

@@ -90,8 +90,18 @@ export function InlineCommentPopover({
     const result = await addComment(prdId, trimmed, null, selectionRange);
 
     if (result.id) {
-      // Apply comment mark to the selected range
-      editor.chain().focus().setComment(result.id).run();
+      // Textarea focus clears the editor selection. Restore the captured range
+      // before applying CommentMark so the highlight and persisted JSON match
+      // the comment row that was just inserted.
+      const docSize = editor.state.doc.content.size;
+      const safeFrom = Math.max(0, Math.min(from, docSize));
+      const safeTo = Math.max(safeFrom, Math.min(to, docSize));
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from: safeFrom, to: safeTo })
+        .setComment(result.id)
+        .run();
       onCommentAdded?.(result.id, selectionRange);
     }
 
