@@ -44,6 +44,11 @@ export async function addComment(
   const { data: prd } = await admin.from('prds').select('workspace_id').eq('id', prdId).single();
   if (!prd) return { error: 'PRD not found' };
   const { user } = await requireWorkspaceRole(prd.workspace_id, [...COMMENTER_ROLES]);
+  if (!user) {
+    console.error('[COMMENTS] addComment: user is null after requireWorkspaceRole, workspace_id=', prd.workspace_id);
+    return { error: 'Not authorized' };
+  }
+  console.log('[COMMENTS] addComment: user.id=', user.id, 'prdId=', prdId, 'body.length=', body.length);
 
   const { data, error } = await admin
     .from('comments')
@@ -58,6 +63,7 @@ export async function addComment(
     .single();
 
   if (error) {
+    console.error('[COMMENTS] addComment insert failed:', JSON.stringify({ message: error.message, code: error.code, details: error.details, hint: error.hint }));
     logWarn('comments.add', error.message, { prdId }, user.id);
     return { error: 'Failed to add comment' };
   }
