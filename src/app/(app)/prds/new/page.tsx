@@ -22,7 +22,7 @@ export default async function GeneratePrdPage({
   // Fetch active providers + workspace members before hydration so the Developer picker
   // is populated immediately and does not depend on a client-side server action round trip.
   const adminSupa = createAdminClient();
-  const [{ data: providersList }, initialMembers] = await Promise.all([
+  const [{ data: providersList }] = await Promise.all([
     adminSupa
       .from('providers')
       .select('id, display_name, default_model')
