@@ -71,7 +71,7 @@ export async function tracedAICall<T>({
     try {
       await run.end({ error: message });
       await run.patchRun();
-    } catch (_traceError) {
+    } catch {
       // LangSmith is optional — never pollute admin dashboard with trace failures.
       // The error is a best-effort notification, not a system problem.
       // (Intentionally no systemLog call here.)
