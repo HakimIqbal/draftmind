@@ -129,11 +129,11 @@ export function WorkspacesClient({
               <div className="mt-4 flex gap-4">
                 <div className="flex items-center gap-1.5 text-[12px] text-[#888]">
                   <Users size={12} />
-                  {countMap[ws.id] ?? 0} members
+                  {countMap[ws.id] ?? 0} member{(countMap[ws.id] ?? 0) !== 1 ? 's' : ''}
                 </div>
                 <div className="flex items-center gap-1.5 text-[12px] text-[#888]">
                   <FileText size={12} />
-                  {prdMap[ws.id] ?? 0} PRDs
+                  {prdMap[ws.id] ?? 0} PRD{(prdMap[ws.id] ?? 0) !== 1 ? 's' : ''}
                 </div>
               </div>
 
@@ -186,11 +186,11 @@ export function WorkspacesClient({
             <div className="flex gap-6 border-b border-[#f0f0ee] px-6 py-3">
               <div className="flex items-center gap-1.5 text-[12px] text-[#888]">
                 <Users size={12} />
-                {countMap[selected.id] ?? 0} members
+                {countMap[selected.id] ?? 0} member{(countMap[selected.id] ?? 0) !== 1 ? 's' : ''}
               </div>
               <div className="flex items-center gap-1.5 text-[12px] text-[#888]">
                 <FileText size={12} />
-                {prdMap[selected.id] ?? 0} PRDs
+                {prdMap[selected.id] ?? 0} PRD{(prdMap[selected.id] ?? 0) !== 1 ? 's' : ''}
               </div>
               {selected.industry && (
                 <span className="text-[12px] text-[#888]">{selected.industry}</span>

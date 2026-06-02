@@ -450,10 +450,18 @@ export function CommentsPanel({
     const body = newComment.trim();
     if (!body || submitting) return;
     setSubmitting(true);
-    await addComment(prdId, body, null);
-    setNewComment('');
-    setSubmitting(false);
-    loadComments();
+    try {
+      const result = await addComment(prdId, body, null);
+      if (result?.error) {
+        setSubmitting(false);
+        return;
+      }
+      setNewComment('');
+      setSubmitting(false);
+      await loadComments();
+    } catch {
+      setSubmitting(false);
+    }
   };
 
   // Inline reply handlers
@@ -465,10 +473,15 @@ export function CommentsPanel({
   const handleReplySubmit = async (parentId: string) => {
     const body = replyBody.trim();
     if (!body) return;
-    await addComment(prdId, body, parentId);
-    setActiveReplyId(null);
-    setReplyBody('');
-    loadComments();
+    try {
+      const result = await addComment(prdId, body, parentId);
+      if (result?.error) return;
+      setActiveReplyId(null);
+      setReplyBody('');
+      await loadComments();
+    } catch {
+      // error handled silently
+    }
   };
 
   const handleReplyCancel = () => {
@@ -563,9 +576,15 @@ export function CommentsPanel({
         <Textarea
           rows={2}
           data-testid="comments-new-body"
-          placeholder="Add a comment..."
+          placeholder="Add a comment... (⌘+Enter to submit)"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
           className="text-sm"
         />
         <div className="mt-2 flex justify-end">

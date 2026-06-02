@@ -45,7 +45,7 @@ export default async function GeneratePrdPage({
           display_name: p.display_name,
           default_model: p.default_model,
         }))}
-        initialMembers={initialMembers}
+        initialMembers={await getWorkspaceMembers(workspace.id as string, user.id)}
       />
     </div>
   );

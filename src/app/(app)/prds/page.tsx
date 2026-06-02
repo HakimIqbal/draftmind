@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { requireUser } from '@/lib/auth/permissions';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { getPRDsByWorkspace, getPRDCountByWorkspace } from '@/lib/db/queries/prd';
@@ -11,8 +12,20 @@ interface Props {
 }
 
 export default async function PRDListPage({ searchParams }: Props) {
-  const user = await requireUser();
-  const workspace = await getCurrentWorkspace(user.id);
+  let user;
+  try {
+    user = await requireUser();
+  } catch {
+    redirect('/login');
+  }
+
+  let workspace;
+  try {
+    workspace = await getCurrentWorkspace(user!.id);
+  } catch {
+    redirect('/dashboard');
+  }
+
   if (!workspace) redirect('/dashboard');
 
   const wsId = workspace.id as string;
@@ -38,12 +51,14 @@ export default async function PRDListPage({ searchParams }: Props) {
   const { items, total } = await getPRDsByWorkspace(wsId, { status, search, sort });
 
   return (
-    <PRDListPageClient
-      items={items}
-      total={total}
-      currentStatus={status}
-      currentSearch={search}
-      workspaceId={wsId}
-    />
+    <Suspense>
+      <PRDListPageClient
+        items={items}
+        total={total}
+        currentStatus={status}
+        currentSearch={search}
+        workspaceId={wsId}
+      />
+    </Suspense>
   );
 }

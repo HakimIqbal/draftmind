@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { logError, logWarn } from '@/lib/logging/system-log';
+import { logError, logInfo, logWarn } from '@/lib/logging/system-log';
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     try {
       payload = await request.json();
     } catch (error) {
-      logWarn(
+      logInfo(
         'api.log.parse_failed',
         'Client log payload could not be parsed',
         { error: error instanceof Error ? error.message : 'Unknown parse error' },
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     };
 
     if (!source || !message) {
-      logWarn(
+      logInfo(
         'api.log.validation_failed',
         'Client log payload missing source/message',
         {},
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     return Response.json({ ok: true });
   } catch (error) {
-    logError(
+    logWarn(
       'api.log.failed',
       error instanceof Error ? error.message : 'Failed to ingest client log',
       {},

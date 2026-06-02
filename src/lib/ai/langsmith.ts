@@ -1,7 +1,6 @@
 import 'server-only';
 import { Client } from 'langsmith';
 import { RunTree } from 'langsmith';
-import { logError } from '@/lib/logging/system-log';
 
 // LangSmith client — only initialized if API key is set
 const apiKey = process.env.LANGCHAIN_API_KEY;
@@ -73,11 +72,9 @@ export async function tracedAICall<T>({
       await run.end({ error: message });
       await run.patchRun();
     } catch (traceError) {
-      logError(
-        'langsmith.trace_failure',
-        traceError instanceof Error ? traceError.message : String(traceError),
-        { operation: name },
-      );
+      // LangSmith is optional — never pollute admin dashboard with trace failures.
+      // The error is a best-effort notification, not a system problem.
+      // (Intentionally no systemLog call here.)
     }
     throw error;
   }
@@ -139,10 +136,9 @@ export async function logToLangSmith({
 
     await run.patchRun();
   } catch (error) {
-    logError('langsmith.trace_failure', error instanceof Error ? error.message : String(error), {
-      operation: name,
-    });
-    // Never block main flow if LangSmith fails
+    // LangSmith is optional — trace failures should never appear in admin dashboard.
+    // Surface only in server console, not as a system log entry.
+    console.warn('[langsmith] trace failed:', error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -273,9 +269,8 @@ export async function fetchLangSmithRuns(limit: number = 20): Promise<LangSmithR
     _lsCache = { data: result, ts: Date.now() };
     return result;
   } catch (error) {
-    logError('langsmith.trace_failure', error instanceof Error ? error.message : String(error), {
-      operation: 'fetch_runs',
-    });
+    // LangSmith is optional — log fetch failures only to server console.
+    console.warn('[langsmith] fetch_runs failed:', error instanceof Error ? error.message : String(error));
     return EMPTY_RESULT;
   }
 }

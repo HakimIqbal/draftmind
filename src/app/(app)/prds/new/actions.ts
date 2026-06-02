@@ -67,7 +67,7 @@ export async function getTemplates() {
   }[];
 }
 
-export async function getWorkspaceMembers(workspaceId: string) {
+export async function getWorkspaceMembers(workspaceId: string, currentUserId?: string) {
   await requireUser();
   const admin = createAdminClient();
 
@@ -76,7 +76,7 @@ export async function getWorkspaceMembers(workspaceId: string) {
     .select('user_id, role, profile:profiles(full_name, email, role_self_reported)')
     .eq('workspace_id', workspaceId);
 
-  return (data ?? []).map((m) => {
+  const members = (data ?? []).map((m) => {
     const profile = m.profile as unknown as {
       full_name: string | null;
       email: string;
@@ -90,6 +90,28 @@ export async function getWorkspaceMembers(workspaceId: string) {
       roleProfesi: profile?.role_self_reported ?? null,
     };
   });
+
+  // If workspace has no other members, include the current user as a developer option
+  // This allows solo workspaces to create PRDs
+  if (members.length === 0 && currentUserId) {
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', currentUserId)
+      .single();
+
+    if (profile) {
+      members.push({
+        id: currentUserId,
+        name: profile.full_name ?? profile.email ?? 'You',
+        email: profile.email ?? '',
+        role: 'Member',
+        roleProfesi: null,
+      });
+    }
+  }
+
+  return members;
 }
 
 export async function createPRDAndGenerate(data: {

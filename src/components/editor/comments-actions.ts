@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser, requireWorkspaceMember, requireWorkspaceRole } from '@/lib/auth/permissions';
-import { logError } from '@/lib/logging/system-log';
+import { logError, logWarn } from '@/lib/logging/system-log';
 import { getCurrentWorkspace } from '@/lib/db/queries/workspace';
 import { logActivity } from '@/lib/logging/activity-log';
 import { sendNotification } from '@/lib/notifications/send';
@@ -58,7 +58,7 @@ export async function addComment(
     .single();
 
   if (error) {
-    logError('comments.add', error.message, { prdId }, user.id);
+    logWarn('comments.add', error.message, { prdId }, user.id);
     return { error: 'Failed to add comment' };
   }
 
@@ -171,7 +171,7 @@ export async function resolveComment(commentId: string) {
     .eq('id', commentId);
 
   if (error) {
-    logError('comments.resolve', error.message, { commentId });
+    logWarn('comments.resolve', error.message, { commentId });
     return { error: 'Failed to resolve comment' };
   }
 
