@@ -68,7 +68,12 @@ export async function savePRDContent(
     const parsed = PRDDocumentSchema.safeParse(existing.content);
     if (parsed.success) {
       try {
-        const updatedDocument = tiptapToPRD(tiptapContent as unknown as TiptapDoc, parsed.data);
+        // Sanitize parsed.data to a plain object — Zod's .default() can produce
+        // objects that Next.js RSC treats as client module references, causing
+        // "Cannot access level on the server" errors when computeHealthScore
+        // iterates over nested properties.
+        const plainPRD = JSON.parse(JSON.stringify(parsed.data));
+        const updatedDocument = tiptapToPRD(tiptapContent as unknown as TiptapDoc, plainPRD);
         const health = computeHealthScore(updatedDocument);
         structuredContent = updatedDocument;
         healthScore = health.score;

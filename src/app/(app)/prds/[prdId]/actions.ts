@@ -196,7 +196,8 @@ export async function restoreVersion(prdId: string, versionId: string) {
     const parsedExisting = PRDDocumentSchema.safeParse(prd.content);
     if (parsedExisting.success) {
       try {
-        const updatedDocument = tiptapToPRD(restoredTiptap, parsedExisting.data);
+        const plainPRD = JSON.parse(JSON.stringify(parsedExisting.data));
+        const updatedDocument = tiptapToPRD(restoredTiptap, plainPRD);
         const health = computeHealthScore(updatedDocument);
         structuredContent = updatedDocument;
         healthScore = health.score;
