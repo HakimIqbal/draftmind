@@ -95,7 +95,7 @@ export function buildGeneratePRDPrompt(input: GeneratePRDInput): string {
 
   const localeInstruction =
     effectiveLocale === 'id'
-      ? 'Write ALL content in Bahasa Indonesia.'
+      ? 'Write ALL content in Bahasa Indonesia. EXCEPTION: User Stories and Acceptance Criteria MUST stay in standard English Agile format ("As a [role], I want [action], so that [benefit]" and "Given/When/Then"). Never translate these into Indonesian.'
       : 'Write ALL content in English.';
 
   const dateRange =
