@@ -57,9 +57,11 @@ export function GenerationLoading({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const doneRef = useRef(false);
+  const mountedRef = useRef(true);
 
   // Trigger generation on mount if status is queued
   const triggerGeneration = useCallback(async () => {
+    if (!mountedRef.current) return;
     if (triggerRef.current) return;
     triggerRef.current = true;
 
@@ -76,45 +78,47 @@ export function GenerationLoading({
       if (!res.ok && !doneRef.current) {
         // Wait 3s before showing error — give polling a chance to detect success
         setTimeout(() => {
-          if (!doneRef.current) {
-            setError(
-              'AI provider could not generate the PRD. Try again - it often works on the second attempt.',
-            );
-          }
+          if (!mountedRef.current || doneRef.current) return;
+          setError(
+            'AI provider could not generate the PRD. Try again - it often works on the second attempt.',
+          );
         }, 3000);
       }
     } catch {
-      if (!doneRef.current) {
-        setTimeout(() => {
-          if (!doneRef.current) {
-            setError('Unable to reach the server. Please check your connection and try again.');
-          }
-        }, 3000);
-      }
+      if (!mountedRef.current || doneRef.current) return;
+      setTimeout(() => {
+        if (!mountedRef.current || doneRef.current) return;
+        setError('Unable to reach the server. Please check your connection and try again.');
+      }, 3000);
     }
   }, [prdId, aiRunId]);
 
   // Poll ai_run status via server action
   const pollStatus = useCallback(async () => {
+    if (!mountedRef.current) return;
+
     let run;
     try {
       run = await pollAIRunStatus(aiRunId);
     } catch {
-      // Server action may be stale after HMR — skip this poll
+      // Server action may be stale after HMR or component unmounted — skip this poll silently
       return;
     }
 
+    if (!mountedRef.current) return;
     if (run.status === 'not_found') return;
 
     if (run.status === 'success') {
       doneRef.current = true;
       if (pollRef.current) clearInterval(pollRef.current);
       if (tickRef.current) clearInterval(tickRef.current);
+      if (!mountedRef.current) return;
       setCurrentStep(STEPS.length);
       setProgress(100);
       setError(null); // Clear any transient error
       // Small delay to show completion state before redirecting
       setTimeout(() => {
+        if (!mountedRef.current) return;
         router.replace(`/prds/${prdId}`);
         router.refresh();
       }, 600);
@@ -122,7 +126,7 @@ export function GenerationLoading({
     }
 
     if (run.status === 'error') {
-      if (!doneRef.current) {
+      if (!doneRef.current && mountedRef.current) {
         if (pollRef.current) clearInterval(pollRef.current);
         if (tickRef.current) clearInterval(tickRef.current);
         setError(
@@ -131,6 +135,8 @@ export function GenerationLoading({
       }
       return;
     }
+
+    if (!mountedRef.current) return;
 
     // Real status-based progress
     if (run.status === 'queued') {
@@ -162,10 +168,12 @@ export function GenerationLoading({
 
     // Live elapsed timer - update every second
     tickRef.current = setInterval(() => {
+      if (!mountedRef.current) return;
       setElapsedSec(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
 
     return () => {
+      mountedRef.current = false;
       if (pollRef.current) clearInterval(pollRef.current);
       if (tickRef.current) clearInterval(tickRef.current);
     };
