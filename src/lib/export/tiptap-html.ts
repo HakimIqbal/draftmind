@@ -36,7 +36,7 @@ export function tiptapToStyledHTML(doc: { type: string; content: TNode[] }, titl
     em { font-style: italic; }
     code { background: #f5f5f5; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.875em; }
     blockquote { border-left: 3px solid #e5e5e5; padding-left: 1em; color: #6b7280; margin: 0.75rem 0; }
-    table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 12px; table-layout: fixed; word-wrap: break-word; }
+    table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 12px; table-layout: auto; word-wrap: break-word; }
     th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
     th { background: #f5f5f4; font-weight: 600; color: #1a1a1a; }
     th p, td p { margin: 0; }
