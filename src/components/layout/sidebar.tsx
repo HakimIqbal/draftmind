@@ -106,7 +106,18 @@ export function Sidebar({
           <span className="text-[14px] font-bold text-[#1a1a1a]">DraftMind</span>
         </Link>
         <button
-          onClick={onClose ?? onToggleCollapse}
+          onClick={() => {
+            // Mobile (<768px): close the drawer via onClose.
+            // Desktop (>=768px): collapse the sidebar via onToggleCollapse.
+            // The previous  always picked onClose,
+            // which only set mobileSidebarOpen — useless on desktop, so the
+            // X button appeared dead whenever the viewport was >= md.
+            if (typeof window !== "undefined" && window.innerWidth < 768) {
+              onClose?.();
+            } else {
+              onToggleCollapse();
+            }
+          }}
           className="flex h-7 w-7 items-center justify-center rounded-md text-[#bbb] transition-colors hover:bg-white hover:text-[#666]"
         >
           <X size={15} className="md:hidden" />
