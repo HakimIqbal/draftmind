@@ -52,8 +52,10 @@ export function GenerationLoading({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState(Date.now());
+  const [elapsedSec, setElapsedSec] = useState(0);
   const triggerRef = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const doneRef = useRef(false);
 
   // Trigger generation on mount if status is queued
@@ -107,6 +109,7 @@ export function GenerationLoading({
     if (run.status === 'success') {
       doneRef.current = true;
       if (pollRef.current) clearInterval(pollRef.current);
+      if (tickRef.current) clearInterval(tickRef.current);
       setCurrentStep(STEPS.length);
       setProgress(100);
       setError(null); // Clear any transient error
@@ -121,6 +124,7 @@ export function GenerationLoading({
     if (run.status === 'error') {
       if (!doneRef.current) {
         if (pollRef.current) clearInterval(pollRef.current);
+        if (tickRef.current) clearInterval(tickRef.current);
         setError(
           'AI provider could not generate the PRD. Try again - it often works on the second attempt.',
         );
@@ -133,19 +137,18 @@ export function GenerationLoading({
       setCurrentStep(0);
       setProgress(10);
     } else if (run.status === 'running') {
-      // AI is actively processing — show real elapsed time
       const elapsed = Date.now() - startTime;
-      const elapsedSec = Math.floor(elapsed / 1000);
+      const sec = Math.floor(elapsed / 1000);
       // Progress based on real elapsed: cap at 90% (100% only on success)
-      const realProgress = Math.min(90, 20 + elapsedSec * 3);
+      const realProgress = Math.min(90, 20 + sec * 3);
       setProgress(realProgress);
 
       // Steps based on real elapsed time during running state
-      if (elapsedSec < 2)
+      if (sec < 2)
         setCurrentStep(1); // Calling AI
-      else if (elapsedSec < 5)
+      else if (sec < 5)
         setCurrentStep(2); // Parsing
-      else if (elapsedSec < 8)
+      else if (sec < 8)
         setCurrentStep(3); // Validating
       else setCurrentStep(4); // Saving
     }
@@ -157,10 +160,16 @@ export function GenerationLoading({
     // Run first poll immediately
     pollStatus();
 
+    // Live elapsed timer - update every second
+    tickRef.current = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (tickRef.current) clearInterval(tickRef.current);
     };
-  }, [triggerGeneration, pollStatus]);
+  }, [triggerGeneration, pollStatus, startTime]);
 
   const stepStatuses = getStepStatuses(currentStep);
 
@@ -197,6 +206,7 @@ export function GenerationLoading({
                 triggerRef.current = false;
                 setCurrentStep(0);
                 setProgress(0);
+                setElapsedSec(0);
                 triggerGeneration();
               }}
             >
@@ -214,7 +224,7 @@ export function GenerationLoading({
       <div className="border-ink-quaternary/10 flex items-center gap-sm border-b px-lg py-sm">
         <ProgressBar value={progress} className="flex-1" />
         <span className="whitespace-nowrap font-mono text-[11px] text-ink-secondary">
-          {Math.round(progress)}% &middot; {Math.floor((Date.now() - startTime) / 1000)}s elapsed
+          {Math.round(progress)}% · {elapsedSec}s elapsed
         </span>
       </div>
 
@@ -283,6 +293,7 @@ export function GenerationLoading({
             <button
               onClick={() => {
                 if (pollRef.current) clearInterval(pollRef.current);
+                if (tickRef.current) clearInterval(tickRef.current);
                 router.replace(`/prds/${prdId}`);
               }}
               className="text-sm text-ink-secondary transition-colors hover:text-ink-primary"

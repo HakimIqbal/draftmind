@@ -224,7 +224,7 @@ const shareStyles = `
   border-collapse: collapse;
   margin: 0.75rem 0;
   font-size: 12px;
-  table-layout: fixed;
+  table-layout: auto;
   word-wrap: break-word;
 }
 .tiptap-share th, .tiptap-share td {
