@@ -25,22 +25,22 @@ export function tiptapToStyledHTML(doc: { type: string; content: TNode[] }, titl
       line-height: 1.75;
       background: white;
     }
-    h1 { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0; margin-bottom: 1rem; color: #666; }
-    h2 { font-size: 1.25rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.625rem; color: #1a1a1a; }
-    h3 { font-size: 1rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.375rem; color: #1a1a1a; }
-    p { font-size: 14px; margin-bottom: 0.5rem; line-height: 1.7; color: #333; }
-    ul, ol { margin: 0.5rem 0 0.625rem; padding-left: 1.5rem; font-size: 14px; color: #333; }
-    li { margin-bottom: 0.25rem; }
+    h1 { font-size: 1.25rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #1a1a1a; }
+    h2 { font-size: 1rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid #e5e5e3; color: #1a1a1a; }
+    h3 { font-size: 0.875rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.25rem; color: #1a1a1a; }
+    p { font-size: 13px; margin-bottom: 0.25rem; line-height: 1.65; color: #555; }
+    ul, ol { margin: 0.5rem 0; padding-left: 1.25rem; font-size: 13px; color: #555; }
+    li { margin-bottom: 0.125rem; }
     li > p { margin: 0; }
     strong { font-weight: 600; color: #111; }
     em { font-style: italic; }
     code { background: #f5f5f5; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.875em; }
     blockquote { border-left: 3px solid #e5e5e5; padding-left: 1em; color: #6b7280; margin: 0.75rem 0; }
-    table { width: 100%; border-collapse: collapse; margin: 0.875rem 0; font-size: 13px; table-layout: auto; word-wrap: break-word; border: 1px solid #e0e0e0; }
-    th, td { border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; vertical-align: top; line-height: 1.55; }
-    th { background: #f5f5f4; font-weight: 600; color: #1a1a1a; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 12px; table-layout: fixed; word-wrap: break-word; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f5f5f4; font-weight: 600; color: #1a1a1a; }
     th p, td p { margin: 0; }
-    hr { border: none; border-top: 1px solid #ebebeb; margin: 1.75rem 0; }
+    hr { border: none; border-top: 1px solid #f0f0f0; margin: 1.5rem 0; }
     a { color: #c26a3a; text-decoration: none; }
     a:hover { text-decoration: underline; }
     .footer { margin-top: 3em; padding-top: 1em; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.85em; text-align: center; }

@@ -18,7 +18,7 @@ export function PublicShareView({ prd, tiptapContent }: PublicShareViewProps) {
     <div className="min-h-screen bg-[#f0efed]">
       {/* Top bar */}
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-12 max-w-[860px] items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-12 max-w-[860px] items-center justify-between px-6">
           <span className="text-sm font-bold tracking-tight text-gray-900">DraftMind</span>
           <span className="inline-flex items-center gap-1.5 font-mono text-xs text-gray-400">
             <Globe size={12} />
@@ -32,14 +32,14 @@ export function PublicShareView({ prd, tiptapContent }: PublicShareViewProps) {
 
       {/* Paper — same style as editor */}
       <main
-        className="mx-auto my-4 w-full max-w-[816px] rounded-sm bg-white px-4 py-6 shadow-sm sm:my-6 sm:px-8 sm:py-8 md:my-8 md:px-16 md:py-12"
+        className="mx-auto my-8 w-full max-w-[816px] rounded-sm bg-white px-16 py-12 shadow-sm"
         style={{ minHeight: '1056px' }}
       >
         <TiptapRenderer nodes={doc.content} />
       </main>
 
       {/* Footer */}
-      <footer className="mx-auto max-w-[816px] px-4 py-6 sm:px-6 sm:py-8">
+      <footer className="mx-auto max-w-[816px] px-6 py-8">
         <p className="text-center text-xs text-gray-400">Generated with DraftMind</p>
       </footer>
     </div>
@@ -171,46 +171,46 @@ const shareStyles = `
 .tiptap-share {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
-  line-height: 1.7;
-  color: #333;
+  line-height: 1.75;
+  color: #1a1a1a;
 }
 .tiptap-share h1 {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #666;
-}
-.tiptap-share h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  margin-top: 2rem;
-  margin-bottom: 0.625rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+.tiptap-share h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #e5e5e3;
   color: #1a1a1a;
 }
 .tiptap-share h3 {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  margin-top: 1.25rem;
-  margin-bottom: 0.375rem;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
   color: #1a1a1a;
 }
 .tiptap-share p {
-  font-size: 14px;
-  margin-bottom: 0.5rem;
-  line-height: 1.7;
-  color: #333;
+  font-size: 13px;
+  margin-bottom: 0.25rem;
+  line-height: 1.65;
+  color: #555;
 }
 .tiptap-share ul, .tiptap-share ol {
-  margin: 0.5rem 0 0.625rem;
-  padding-left: 1.5rem;
-  font-size: 14px;
-  color: #333;
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  font-size: 13px;
+  color: #555;
 }
 .tiptap-share li {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
 }
 .tiptap-share li > p {
   margin: 0;
@@ -222,32 +222,29 @@ const shareStyles = `
 .tiptap-share table {
   width: 100%;
   border-collapse: collapse;
-  margin: 0.875rem 0;
-  font-size: 13px;
-  table-layout: auto;
+  margin: 0.75rem 0;
+  font-size: 12px;
+  table-layout: fixed;
   word-wrap: break-word;
-  border: 1px solid #e0e0e0;
 }
 .tiptap-share th, .tiptap-share td {
-  border: 1px solid #e0e0e0;
-  padding: 8px 12px;
+  border: 1px solid #ccc;
+  padding: 6px 8px;
   text-align: left;
   vertical-align: top;
-  line-height: 1.55;
 }
 .tiptap-share th {
   background: #f5f5f4;
   font-weight: 600;
   color: #1a1a1a;
-  font-size: 13px;
 }
 .tiptap-share th p, .tiptap-share td p {
   margin: 0;
 }
 .tiptap-share hr {
   border: none;
-  border-top: 1px solid #ebebeb;
-  margin: 1.75rem 0;
+  border-top: 1px solid #f0f0f0;
+  margin: 1.5rem 0;
 }
 .tiptap-share a {
   color: #2563eb;
