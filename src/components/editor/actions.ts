@@ -27,6 +27,9 @@ export async function savePRDContent(
     return { ok: false };
   }
 
+  // Deep clone to ensure we have plain JSON (not a Proxy)
+  tiptapContent = JSON.parse(JSON.stringify(tiptapContent));
+
   // Recalculate word count + read time from the latest content
   const wordCount = countTiptapWords(tiptapContent);
   const readTimeMinutes = Math.max(1, Math.round(wordCount / 200));
