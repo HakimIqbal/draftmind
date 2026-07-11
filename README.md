@@ -48,7 +48,7 @@ The platform is fully multi-tenant with workspace isolation enforced at the data
 - **AI Copilot** - Chat-based AI assistant embedded in the editor for questions, feedback, and guidance
 - **AI Assist** - Select text and apply 13 inline actions: rewrite, expand, summarize, shorten, translate, add examples, add metrics, convert to table, and more
 - **Refine Section** - AI rewrites individual PRD sections with content safety checks
-- **Multi-Provider** - Anthropic, OpenAI, Google Gemini, and Groq; priority-based fallback routing if a provider is unavailable
+- **Multi-Provider** — Anthropic, OpenAI, Google Gemini, Groq, and Sumopod (OpenAI-compatible); priority-based fallback routing if a provider is unavailable
 
 ### Collaboration
 
@@ -100,7 +100,7 @@ The platform is fully multi-tenant with workspace isolation enforced at the data
 | Editor        | Tiptap (ProseMirror-based) with custom extensions               | ^2.27.x          |
 | Database      | Supabase - PostgreSQL + Auth + Storage + Realtime               | ^2.45.0          |
 | AI Framework  | Vercel AI SDK                                                   | ^4.0.0           |
-| AI Providers  | @ai-sdk/anthropic, @ai-sdk/openai, @ai-sdk/google, @ai-sdk/groq | various          |
+| AI Providers  | @ai-sdk/anthropic, @ai-sdk/openai, @ai-sdk/google, @ai-sdk/groq, Sumopod (OpenAI-compatible) | various          |
 | Observability | LangSmith                                                       | ^0.6.0           |
 | State         | Zustand (client state)                                          | ^4.5.0           |
 | Email         | Resend                                                          | ^6.12.2          |
