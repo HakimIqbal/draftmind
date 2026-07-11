@@ -108,7 +108,7 @@ The platform is fully multi-tenant with workspace isolation enforced at the data
 | DOCX Export   | docx                                                            | ^8.5.0           |
 | Toast         | Sonner                                                          | ^1.5.0           |
 | Image Crop    | react-avatar-editor                                             | ^15.1.0          |
-| Validation    | Zod + react-hook-form                                           | ^3.23.0          |
+| Validation    | Zod + react-hook-form                                           | ^7.52.0          |
 | Testing       | Vitest + Playwright                                             | ^2.0.0 / ^1.46.0 |
 | Linting       | ESLint + Prettier + Husky + lint-staged                         | -                |
 | Deployment    | Docker (standalone output) + Caddy reverse proxy                | -                |
@@ -149,7 +149,7 @@ Edit `.env.local` with your values. See the [Environment Variables](#environment
 # Start local Supabase (requires Docker)
 pnpm db:start
 
-# Apply all 37 migrations + seed demo data
+# Apply all 58 migrations + seed demo data
 pnpm db:reset
 ```
 
@@ -252,7 +252,7 @@ draftmind/
 │   └── types/                     # TypeScript types (database.ts auto-generated)
 ├── supabase/
 │   ├── config.toml                # Local Supabase configuration
-│   └── migrations/                # 37 sequential SQL migrations
+│   └── migrations/                # 58 sequential SQL migrations
 ├── scripts/
 │   ├── seed.ts                    # Seed demo users, workspace, and PRDs
 │   └── generate-types.ts          # Regenerate src/types/database.ts from DB schema
@@ -314,7 +314,7 @@ docker compose up -d
 
 ### Database Migrations (Production)
 
-Apply all 37 migrations to your production Supabase project:
+Apply all 58 migrations to your production Supabase project:
 
 ```bash
 supabase link --project-ref <your-project-ref>
