@@ -312,6 +312,16 @@ The Dockerfile uses a multi-stage build (`deps → builder → runner`) based on
 docker compose up -d
 ```
 
+### Sumopod
+
+DraftMind is Docker-native and ready for one-click deployment on [Sumopod](https://sumopod.com/) — Indonesia's container cloud platform.
+
+```bash
+# Build and push to Sumopod container registry
+docker build -t draftmind .
+sumopod deploy --image draftmind --port 3000 --env-file .env.production
+```
+
 ### Database Migrations (Production)
 
 Apply all 58 migrations to your production Supabase project:
