@@ -23,51 +23,51 @@ DraftMind is a web application for drafting, auditing, and managing Product Requ
 
 ---
 
-## Key Features
+## Overview
 
 ### PRD Authoring & Lifecycle
 
 - **Block Editor**: Custom Tiptap block editor supporting Objectives, User Stories, Key Metrics, Requirements, and Risk Nodes.
 - **9-Stage Status Workflow**: Track documents across `draft`, `in_review`, `reviewed`, `refined`, `final`, `blocked`, `approved`, `shipped`, and `archived`.
 - **Kanban Pipeline**: Visual status board with drag-and-drop workflow updates.
-- **Auto-Save & Snapshot History**: Dual auto-save triggers (3s idle debounce + 5m interval) with full diff comparison and version restore.
-- **Granular Public Sharing**: Token-based public links with configurable expiration. Hidden sections are filtered at the query layer before public rendering.
+- **Auto-Save & Version History**: Dual auto-save triggers (3s idle debounce + 5m interval) with side-by-side diff comparison and version restoration.
+- **Public Sharing**: Token-based public links with configurable expiration. Hidden sections are filtered at the query layer before public rendering.
 
-### AI Integration & Observability
+### AI Integration & Telemetry
 
 - **Full PRD Generation**: Generates structured PRDs from raw briefs using Vercel AI SDK.
-- **Automated Health Score (0-100)**: Evaluates PRD completeness, readability score, structural clarity, and edge-case coverage.
+- **Automated Quality Scoring**: Evaluates PRD completeness, readability, structural clarity, and edge-case coverage (0-100 score).
 - **In-Context AI Actions**: 13 inline transformation actions including section rewriting, table conversion, metric extraction, and translation.
-- **Multi-Provider Fallback Registry**: Runtime provider resolution across Anthropic, OpenAI, Groq, Sumopod, and GaNRouter.
-- **Provider Encryption & Tracing**: Provider API keys encrypted with AES-256-GCM at rest. AI executions log to `ai_runs` and support optional LangSmith tracing.
+- **Multi-Provider Registry**: Runtime provider resolution across Anthropic, OpenAI, Groq, Sumopod, and GaNRouter.
+- **Provider Encryption & Tracing**: Provider API keys encrypted with AES-256-GCM at rest. AI executions log to `ai_runs` with optional LangSmith tracing.
 
 ### Multi-Tenancy & Collaboration
 
-- **Database Level Isolation**: Multi-tenant data segregation enforced via PostgreSQL RLS policies.
-- **Role-Based Access Control (RBAC)**: Workspace roles (`admin`, `editor`, `commenter`, `viewer`) guarding read, write, export, and deletion endpoints.
-- **Inline Commenting**: Section-anchored comment threads with resolution state and member `@mentions`.
+- **Database Isolation**: Multi-tenant data segregation enforced via PostgreSQL RLS policies.
+- **Role-Based Access Control**: Workspace roles (`admin`, `editor`, `commenter`, `viewer`) guarding read, write, export, and deletion endpoints.
+- **Inline Comments**: Section-anchored comment threads with resolution state and member `@mentions`.
 - **Realtime Presence**: Active user detection and online status thresholding.
 
 ### Multi-Format Export
 
 - **PDF**: Server-side PDF generation via Puppeteer Core and `@sparticuz/chromium`.
 - **DOCX**: Native Microsoft Word document output.
-- **Atlassian Jira / Confluence**: Formatted ADF/Jira wiki markup export.
+- **Jira & Confluence**: Formatted ADF/Jira wiki markup export.
 - **Slack**: Block Kit JSON payload generation for team channels.
-- **Markdown & HTML**: Clean GFM markdown and standalone HTML exports.
+- **Markdown & HTML**: GFM markdown and standalone HTML exports.
 
 ### Platform Administration
 
-- **System Telemetry**: Platform-wide metrics for user growth, active workspaces, PRDs by status, and AI execution latency.
+- **System Telemetry**: Metrics for user growth, active workspaces, PRDs by status, and AI execution latency.
 - **Audit & System Logs**: Real-time error and activity logs with filterable severity levels and JSON export.
 - **Support Ticket System**: User-submitted support tickets with admin workflow state.
 - **Broadcast Announcements**: In-app notifications targeting specific workspace roles or platform users.
 
 ---
 
-## Visual Overview
+## User Interface
 
-### Workspace Dashboard & Feed
+### Workspace Dashboard
 
 Active workspace documents, recent team activity, and quick-start actions.
 ![Workspace Dashboard](docs/screenshots/03-dashboard.png)
@@ -77,12 +77,12 @@ Active workspace documents, recent team activity, and quick-start actions.
 Visual lifecycle management across 9 document status stages.
 ![Kanban Pipeline](docs/screenshots/04-kanban-pipeline.png)
 
-### Tiptap Block Editor & AI Assistant
+### Tiptap Block Editor
 
 Document editor with custom block nodes, floating toolbar, and inline AI copilot.
 ![PRD Block Editor](docs/screenshots/07-prd-editor.png)
 
-### AI Quality Audit & Health Score
+### AI Quality Review
 
 Structural completeness and readability score breakdown (0-100).
 ![AI Quality Audit](docs/screenshots/08-ai-review.png)
@@ -92,12 +92,12 @@ Structural completeness and readability score breakdown (0-100).
 Pre-built templates for Feature PRDs, RFCs, Technical Specs, and Product Briefs.
 ![Template Library](docs/screenshots/05-template-library.png)
 
-### Admin Panel & System Health
+### Admin Panel
 
 Super-admin controls for user management, workspace auditing, and system logs.
 ![Admin Overview](docs/screenshots/09-admin-overview.png)
 
-### AI Runs & Provider Telemetry
+### AI Telemetry & Provider Metrics
 
 Execution logs, token accounting, latency metrics, and error rates per provider.
 ![Admin AI Telemetry](docs/screenshots/10-admin-ai-runs.png)
@@ -126,7 +126,7 @@ Execution logs, token accounting, latency metrics, and error rates per provider.
 
 ---
 
-## Architecture Overview
+## Architecture
 
 ```mermaid
 graph TD
@@ -180,15 +180,17 @@ graph TD
 
 ---
 
-## Quickstart (Local Development)
+## Local Development
 
-### Requirements
+### Prerequisites
 
 - Node.js `>= 20.11.0` (Use `.nvmrc` via `nvm use`)
 - pnpm `>= 9.x`
 - Docker (Required for local Supabase instance)
 
-### 1. Clone & Install
+### Setup Instructions
+
+1. Clone repository and install dependencies:
 
 ```bash
 git clone https://github.com/HakimIqbal/draftmind.git
@@ -197,7 +199,7 @@ nvm use
 pnpm install
 ```
 
-### 2. Environment Setup
+2. Configure environment:
 
 ```bash
 cp .env.example .env.local
@@ -209,32 +211,32 @@ Generate an encryption key:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-Set the output as `ENCRYPTION_KEY` in `.env.local`.
+Set the generated key as `ENCRYPTION_KEY` in `.env.local`.
 
-### 3. Database Initialization
+3. Initialize local database:
 
 ```bash
 pnpm db:start   # Starts Supabase via Docker
-pnpm db:reset   # Runs all 58 migrations + seeds test data
+pnpm db:reset   # Applies 58 migrations + seeds test data
 ```
 
-Copy `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from the Supabase CLI output into `.env.local`.
+Copy `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from terminal output into `.env.local`.
 
-### 4. Run Development Server
+4. Start development server:
 
 ```bash
 pnpm dev
 ```
 
-Access the application at `http://localhost:3000`.
+Open `http://localhost:3000`.
 
 ---
 
-## Pre-Seeded Accounts
+## Seed Accounts
 
-Running `pnpm db:reset` generates the following test accounts:
+Running `pnpm db:reset` creates the following test accounts:
 
-| Email                  | Password    | Access Level               |
+| Email                  | Password    | Role                       |
 | :--------------------- | :---------- | :------------------------- |
 | `admin@draftmind.com`  | `admin1234` | Super Admin (System Panel) |
 | `hakim@draftmind.com`  | `user1234`  | Workspace Admin            |
@@ -245,9 +247,9 @@ Running `pnpm db:reset` generates the following test accounts:
 
 ---
 
-## Environment Variables Reference
+## Environment Variables
 
-| Variable                        | Scope  | Required | Purpose                                       |
+| Variable                        | Scope  | Required | Description                                   |
 | :------------------------------ | :----: | :------: | :-------------------------------------------- |
 | `NEXT_PUBLIC_SUPABASE_URL`      |  Both  |   Yes    | Supabase endpoint URL                         |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |  Both  |   Yes    | Supabase anonymous API key                    |
@@ -268,15 +270,12 @@ Running `pnpm db:reset` generates the following test accounts:
 
 ## Production Deployment
 
-### Docker (VPS Deployment)
+### Docker (VPS)
 
-DraftMind uses a multi-stage Docker build producing a standalone Next.js server output:
+Build and run Next.js standalone container:
 
 ```bash
-# Build image
 docker build -t draftmind:latest .
-
-# Run container
 docker run -d -p 3000:3000 --env-file .env.production --name draftmind draftmind:latest
 ```
 
@@ -286,16 +285,16 @@ Or using Docker Compose:
 docker compose up -d
 ```
 
-### Vercel Deployment
+### Vercel
 
 1. Import repository to Vercel.
-2. Configure required environment variables in project settings.
+2. Set environment variables in project settings.
 3. Set `DEPLOYMENT_TARGET=vercel`.
 4. Deploy.
 
-### Production Migrations
+### Database Migrations
 
-Apply database migrations to remote Supabase:
+Push database migrations to remote Supabase project:
 
 ```bash
 supabase link --project-ref <your-project-ref>
@@ -304,7 +303,7 @@ supabase db push
 
 ---
 
-## Testing & Quality Assurance
+## Testing
 
 ```bash
 pnpm typecheck   # Typecheck via tsc --noEmit
@@ -316,20 +315,20 @@ pnpm test:e2e    # Playwright end-to-end tests
 
 ---
 
-## Technical Documentation Index
+## Documentation
 
-Detailed module documentation is located under `docs/`:
+Detailed documentation is available in the `docs/` directory:
 
-- 📖 [Architecture Specification](docs/ARCHITECTURE.md)
-- 🗄️ [Database Schema & Policies](docs/DATABASE.md)
-- 📋 [PRD JSON Schema Specification](docs/PRD_SCHEMA.md)
-- 🔌 [API & Server Action Reference](docs/API.md)
-- 🎨 [Design Tokens & UI System](docs/DESIGN_SYSTEM.md)
-- 🚀 [Deployment Guide](docs/DEPLOYMENT.md)
-- 👥 [User Guide & Workflows](docs/USER_GUIDE.md)
-- 👑 [Admin Operations Manual](docs/WORKFLOW_ADMIN.md)
-- 🛡️ [Security Audit Report](docs/SECURITY-REPORT-20260604.md)
-- 🤝 [Contributing Guidelines](docs/CONTRIBUTING.md)
+- [Architecture Specification](docs/ARCHITECTURE.md)
+- [Database Schema & Policies](docs/DATABASE.md)
+- [PRD JSON Schema Specification](docs/PRD_SCHEMA.md)
+- [API & Server Action Reference](docs/API.md)
+- [Design Tokens & UI System](docs/DESIGN_SYSTEM.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [User Guide & Workflows](docs/USER_GUIDE.md)
+- [Admin Operations Manual](docs/WORKFLOW_ADMIN.md)
+- [Security Audit Report](docs/SECURITY-REPORT-20260604.md)
+- [Contributing Guidelines](docs/CONTRIBUTING.md)
 
 ---
 
